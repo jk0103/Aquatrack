@@ -1,4 +1,4 @@
-"""Common pose types shared by every backend (MediaPipe now, fine-tuned models later)."""
+"""Common pose types shared by every backend (YOLO pose now, fine-tuned models later)."""
 
 from dataclasses import dataclass
 from enum import IntEnum

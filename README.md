@@ -10,7 +10,7 @@ and interprets them alongside the swimmer's goals, records and video history.
 src/aquatrack/
   analysis/            # pure Python: video, pose, metrics (no web code)
     video.py           # read video info, iterate frames
-    pose/              # pose backends behind one interface (MediaPipe for now)
+    pose/              # pose backends behind one interface (YOLO pose for now)
     metrics/           # stroke rate, arm symmetry, ... (more to come)
   api/                 # FastAPI app: upload videos, return analysis
 tests/                 # pytest, uses synthetic videos and pose data
@@ -25,7 +25,7 @@ Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) (it insta
 
 ```bash
 uv sync                  # core + dev tools
-uv sync --extra pose     # also install MediaPipe for pose estimation
+uv sync --extra pose     # also install Ultralytics YOLO for pose estimation
 cp .env.example .env
 ```
 

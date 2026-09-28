@@ -19,6 +19,9 @@ data/*
 *.avi
 *.mkv
 
+# Downloaded model weights
+*.pt
+
 # Notebooks checkpoints
 .ipynb_checkpoints/
 

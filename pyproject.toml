@@ -14,7 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Pose estimation backends are heavy, so they are opt-in: `uv sync --extra pose`
-pose = ["mediapipe>=0.10.14"]
+pose = ["ultralytics>=8.4"]
 
 [dependency-groups]
 dev = [
