@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Videos and generated data stay out of git
+data/*
+!data/README.md
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Frontend
+node_modules/
+.next/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
