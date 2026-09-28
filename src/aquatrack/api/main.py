@@ -3,17 +3,31 @@
 import os
 import shutil
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile
 
 from aquatrack import __version__
 from aquatrack.analysis.video import read_video_info
+from aquatrack.api import auth
+from aquatrack.api.config import COOKIE_SECURE, SECRET_KEY
+from aquatrack.api.db import init_db
 
 UPLOAD_DIR = Path(os.environ.get("AQUATRACK_UPLOAD_DIR", "data/uploads"))
 ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv"}
 
-app = FastAPI(title="Aquatrack", version=__version__)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if COOKIE_SECURE and SECRET_KEY.startswith("dev-only"):
+        raise RuntimeError("Set AQUATRACK_SECRET_KEY before running with secure cookies")
+    init_db()
+    yield
+
+
+app = FastAPI(title="Aquatrack", version=__version__, lifespan=lifespan)
+app.include_router(auth.router)
 
 
 @app.get("/health")
