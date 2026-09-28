@@ -12,11 +12,11 @@ src/aquatrack/
     video.py           # read video info, iterate frames
     pose/              # pose backends behind one interface (YOLO pose for now)
     metrics/           # stroke rate, arm symmetry, ... (more to come)
-  api/                 # FastAPI app: upload videos, return analysis
+  api/                 # FastAPI app: accounts, video upload, analysis
 tests/                 # pytest, uses synthetic videos and pose data
 notebooks/             # experiments on sample videos
 data/                  # sample and uploaded videos (gitignored)
-frontend/              # Next.js web app (not started yet)
+frontend/              # Next.js web app (login and signup so far), see frontend/README.md
 ```
 
 ## Setup
@@ -35,6 +35,7 @@ cp .env.example .env
 uv run pytest                                   # tests
 uv run ruff check . && uv run ruff format .     # lint + format
 uv run uvicorn aquatrack.api.main:app --reload  # API on http://localhost:8000/docs
+cd frontend && npm run dev                      # web app on http://localhost:3000
 ```
 
 ## Roadmap
