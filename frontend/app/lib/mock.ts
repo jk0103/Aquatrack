@@ -5,19 +5,6 @@ export const TODAY = "2026-10-15";
 
 export type Stroke = "Freestyle" | "Backstroke" | "Breaststroke" | "Butterfly";
 
-export const profile = {
-  name: "Joon Kang",
-  email: "joon@example.com",
-  level: "Competitive (club)",
-  primaryStroke: "Freestyle" as Stroke,
-  strokes: ["Freestyle", "Butterfly"] as Stroke[],
-  poolLength: "25 m",
-  sessionsPerWeek: 5,
-  goal: "Break 1:00 in the 100 m freestyle",
-  club: "Riverside Aquatics",
-  birthYear: 2005,
-};
-
 export type Analysis = {
   id: string;
   date: string;

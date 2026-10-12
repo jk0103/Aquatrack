@@ -1,26 +1,79 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { useUser } from "@/app/components/AppShell";
-import { AboutFields, GoalFields, SwimmingFields, TimesFields } from "@/app/components/ProfileFields";
-import { Badge, Button, Card, PageHeader } from "@/app/components/ui";
-import { formatTime, profile, progression } from "@/app/lib/mock";
+import { FormError } from "@/app/components/fields";
+import { BodyFields, LevelField, TrainingFields } from "@/app/components/ProfileFields";
+import { Badge, Button, ButtonLink, Card, PageHeader } from "@/app/components/ui";
+import { api } from "@/app/lib/api";
+import { formatTime, progression } from "@/app/lib/mock";
+import {
+  BODY_CHECKS,
+  checkDraft,
+  checkLevel,
+  emptyDraft,
+  formatMinutes,
+  fromDraft,
+  levelLabel,
+  toDraft,
+  TRAINING_CHECKS,
+  type Profile,
+  type ProfileDraft,
+} from "@/app/lib/profile";
 
 export default function ProfilePage() {
   const user = useUser();
+  // undefined while loading, null when the survey hasn't been filled in.
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const name = user?.name ?? profile.name;
-  const email = user?.email ?? profile.email;
+  const [draft, setDraft] = useState<ProfileDraft>(emptyDraft);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    api<Profile>("/profile").then((result) => {
+      if (result.ok) setProfile(result.data);
+      else if (result.status === 404) setProfile(null);
+      else setLoadError(result.error);
+    });
+  }, []);
+
+  const name = user?.name ?? "";
   const initials = name
     .split(/\s+/)
+    .filter(Boolean)
     .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
+    .map((p) => p[0]!.toUpperCase())
     .join("");
 
-  // Layout only: closes the editor without saving.
-  function onSave(event: FormEvent) {
+  function startEditing() {
+    setDraft(profile ? toDraft(profile) : emptyDraft);
+    setError(null);
+    setEditing(true);
+  }
+
+  function set(changes: Partial<ProfileDraft>) {
+    setDraft((d) => ({ ...d, ...changes }));
+    setError(null);
+  }
+
+  async function onSave(event: FormEvent) {
     event.preventDefault();
+    if (pending) return;
+    const problem =
+      checkDraft(draft, BODY_CHECKS) ?? checkLevel(draft) ?? checkDraft(draft, TRAINING_CHECKS);
+    if (problem) return setError(problem);
+
+    setPending(true);
+    const result = await api<Profile>("/profile", {
+      method: "PUT",
+      body: JSON.stringify(fromDraft(draft)),
+    });
+    setPending(false);
+    if (!result.ok) return setError(result.error);
+    setProfile(result.data);
     setEditing(false);
   }
 
@@ -29,9 +82,10 @@ export default function ProfilePage() {
       <PageHeader
         title={editing ? "Edit profile" : "Profile"}
         action={
-          !editing && (
-            <Button variant="secondary" className="self-start" onClick={() => setEditing(true)}>
-              Edit profile
+          !editing &&
+          profile !== undefined && (
+            <Button variant="secondary" className="self-start" onClick={startEditing}>
+              {profile ? "Edit profile" : "Fill in profile"}
             </Button>
           )
         }
@@ -44,48 +98,31 @@ export default function ProfilePage() {
           </span>
           <div className="min-w-0">
             <p className="truncate text-xl font-semibold">{name}</p>
-            <p className="truncate text-sm text-sky-100">{email}</p>
-            {editing && (
-              <button className="mt-1 text-sm font-medium text-cyan-200 hover:text-white">
-                Change photo
-              </button>
+            <p className="truncate text-sm text-sky-100">{user?.email}</p>
+            {profile && (
+              <span className="mt-2 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-medium">
+                {levelLabel(profile.swim_level)} swimmer
+              </span>
             )}
           </div>
         </div>
       </section>
 
-      {editing ? (
-        <form onSubmit={onSave} className="space-y-6">
-          <Card title="Name and email">
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="block space-y-1.5">
-                <span className="block text-sm font-medium text-slate-700">Name</span>
-                <input
-                  defaultValue={name}
-                  className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="block text-sm font-medium text-slate-700">Email</span>
-                <input
-                  type="email"
-                  defaultValue={email}
-                  className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15"
-                />
-              </label>
-            </div>
-          </Card>
+      {loadError ? (
+        <FormError message={loadError} />
+      ) : profile === undefined ? (
+        <p className="text-slate-500">Loading…</p>
+      ) : editing ? (
+        <form onSubmit={onSave} noValidate className="space-y-6">
+          <FormError message={error} />
           <Card title="About you">
-            <AboutFields d={profile} />
+            <BodyFields draft={draft} set={set} />
           </Card>
           <Card title="Your swimming">
-            <SwimmingFields d={profile} />
+            <LevelField draft={draft} set={set} />
           </Card>
-          <Card title="Goals">
-            <GoalFields d={profile} />
-          </Card>
-          <Card title="Best times">
-            <TimesFields />
+          <Card title="Your training">
+            <TrainingFields draft={draft} set={set} />
           </Card>
           <div className="sticky bottom-20 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:bottom-4">
             <button
@@ -95,37 +132,36 @@ export default function ProfilePage() {
             >
               Cancel
             </button>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit">{pending ? "Saving…" : "Save changes"}</Button>
           </div>
         </form>
+      ) : profile === null ? (
+        <Card>
+          <p className="font-medium text-slate-900">You haven&apos;t filled in your profile yet.</p>
+          <p className="mt-1 mb-4 text-sm text-slate-600">
+            It takes a minute and helps us tailor feedback and training plans to you.
+          </p>
+          <ButtonLink href="/onboarding">Start the survey</ButtonLink>
+        </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card title="Swimming" className="lg:col-span-2">
-            <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-              <Item label="Level" value={profile.level} />
-              <Item label="Club" value={profile.club} />
-              <Item label="Usual pool" value={profile.poolLength} />
-              <Item label="Sessions per week" value={String(profile.sessionsPerWeek)} />
-              <div className="sm:col-span-2">
-                <dt className="text-sm text-slate-500">Strokes</dt>
-                <dd className="mt-1.5 flex flex-wrap gap-2">
-                  {profile.strokes.map((s) => (
-                    <Badge key={s} tone={s === profile.primaryStroke ? "sky" : "slate"}>
-                      {s}
-                      {s === profile.primaryStroke ? " · main" : ""}
-                    </Badge>
-                  ))}
-                </dd>
-              </div>
+          <Card title="About you">
+            <dl className="grid grid-cols-3 gap-4 lg:grid-cols-1">
+              <Item label="Age" value={`${profile.age}`} />
+              <Item label="Height" value={`${profile.height_cm} cm`} />
+              <Item label="Weight" value={`${profile.weight_kg} kg`} />
             </dl>
           </Card>
 
-          <Card title="Goal">
-            <p className="text-slate-800">{profile.goal}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge tone="teal">Speed</Badge>
-              <Badge tone="teal">Technique</Badge>
-            </div>
+          <Card title="Swimming">
+            <Badge>{levelLabel(profile.swim_level)}</Badge>
+          </Card>
+
+          <Card title="Training">
+            <dl className="grid grid-cols-2 gap-4 lg:grid-cols-1">
+              <Item label="Times a week" value={`${profile.sessions_per_week}`} />
+              <Item label="Time per day" value={formatMinutes(profile.minutes_per_day)} />
+            </dl>
           </Card>
 
           <Card title="Best times" className="lg:col-span-3">
@@ -150,7 +186,7 @@ function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-sm text-slate-500">{label}</dt>
-      <dd className="mt-0.5 font-medium text-slate-900">{value}</dd>
+      <dd className="mt-0.5 text-lg font-semibold text-slate-900">{value}</dd>
     </div>
   );
 }

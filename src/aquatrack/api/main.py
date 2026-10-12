@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, UploadFile
 
 from aquatrack import __version__
 from aquatrack.analysis.video import read_video_info
-from aquatrack.api import auth
+from aquatrack.api import auth, profile
 from aquatrack.api.config import COOKIE_SECURE, SECRET_KEY
 from aquatrack.api.db import init_db
 
@@ -28,6 +28,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Aquatrack", version=__version__, lifespan=lifespan)
 app.include_router(auth.router)
+app.include_router(profile.router)
 
 
 @app.get("/health")

@@ -1,30 +1,8 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
 
-from aquatrack.api import models  # noqa: F401  registers the tables
 from aquatrack.api.auth import COOKIE_NAME
-from aquatrack.api.db import get_session
-from aquatrack.api.main import app
 
 ALICE = {"name": "Alice", "email": "alice@example.com", "password": "freestyle50"}
-
-
-@pytest.fixture
-def client():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-
-    def session_override():
-        with Session(engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = session_override
-    yield TestClient(app)
-    app.dependency_overrides.clear()
 
 
 def test_signup_logs_you_in(client):

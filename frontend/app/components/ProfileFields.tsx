@@ -1,58 +1,141 @@
 "use client";
 
-import { useState } from "react";
+import type { ReactNode } from "react";
 
-import { TextField } from "@/app/components/fields";
-import { profile } from "@/app/lib/mock";
+import { SWIM_LEVELS, type ProfileDraft } from "@/app/lib/profile";
 
 // Profile questions, shared by the signup survey and the edit profile page.
 
-const selectClass =
-  "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
+type FieldsProps = {
+  draft: ProfileDraft;
+  set: (changes: Partial<ProfileDraft>) => void;
+};
 
-type Defaults = Partial<typeof profile>;
+const inputClass =
+  "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm " +
+  "placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
 
-function Chips({
+function NumberField({
   label,
-  options,
-  multiple = false,
-  initial = [],
+  unit,
+  value,
+  onChange,
+  placeholder,
+  step = "1",
 }: {
   label: string;
-  options: string[];
-  multiple?: boolean;
-  initial?: string[];
+  unit: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  step?: string;
 }) {
-  const [picked, setPicked] = useState<string[]>(initial);
-  function toggle(option: string) {
-    setPicked((p) =>
-      multiple
-        ? p.includes(option)
-          ? p.filter((o) => o !== option)
-          : [...p, option]
-        : [option],
-    );
-  }
+  return (
+    <label className="block space-y-1.5">
+      <span className="block text-sm font-medium text-slate-700">{label}</span>
+      <span className="relative block">
+        <input
+          type="number"
+          inputMode="decimal"
+          step={step}
+          min="0"
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputClass} pr-14`}
+        />
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-sm text-slate-500">
+          {unit}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function Chip({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+        on
+          ? "bg-sky-700 text-white shadow-sm"
+          : "border border-slate-300 bg-white text-slate-700 hover:border-sky-400"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function BodyFields({ draft, set }: FieldsProps) {
+  return (
+    <div className="grid gap-5 sm:grid-cols-3">
+      <NumberField
+        label="Age"
+        unit="years"
+        placeholder="21"
+        value={draft.age}
+        onChange={(age) => set({ age })}
+      />
+      <NumberField
+        label="Height"
+        unit="cm"
+        placeholder="175"
+        step="0.1"
+        value={draft.height_cm}
+        onChange={(height_cm) => set({ height_cm })}
+      />
+      <NumberField
+        label="Weight"
+        unit="kg"
+        placeholder="70"
+        step="0.1"
+        value={draft.weight_kg}
+        onChange={(weight_kg) => set({ weight_kg })}
+      />
+    </div>
+  );
+}
+
+export function LevelField({ draft, set }: FieldsProps) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-slate-700">{label}</legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          const on = picked.includes(option);
+      <legend className="mb-3 text-sm font-medium text-slate-700">
+        Which best describes your swimming?
+      </legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {SWIM_LEVELS.map((level) => {
+          const on = draft.swim_level === level.value;
           return (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={on}
-              onClick={() => toggle(option)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            <label
+              key={level.value}
+              className={`cursor-pointer rounded-xl border p-4 transition ${
                 on
-                  ? "bg-sky-700 text-white shadow-sm"
-                  : "border border-slate-300 bg-white text-slate-700 hover:border-sky-400"
+                  ? "border-sky-600 bg-sky-50 ring-4 ring-sky-600/10"
+                  : "border-slate-200 hover:border-slate-300"
               }`}
             >
-              {option}
-            </button>
+              <input
+                type="radio"
+                name="swim_level"
+                value={level.value}
+                checked={on}
+                onChange={() => set({ swim_level: level.value })}
+                className="sr-only"
+              />
+              <span className="block font-medium text-slate-900">{level.label}</span>
+              <span className="text-sm text-slate-500">{level.note}</span>
+            </label>
           );
         })}
       </div>
@@ -60,102 +143,52 @@ function Chips({
   );
 }
 
-function Select({ label, options, defaultValue }: { label: string; options: string[]; defaultValue?: string }) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="block text-sm font-medium text-slate-700">{label}</span>
-      <select className={selectClass} defaultValue={defaultValue ?? ""}>
-        <option value="" disabled>
-          Choose one
-        </option>
-        {options.map((o) => (
-          <option key={o}>{o}</option>
-        ))}
-      </select>
-    </label>
-  );
-}
+const SESSION_CHOICES = ["1", "2", "3", "4", "5", "6", "7", "8", "10"];
+const MINUTE_CHOICES = ["30", "45", "60", "90", "120"];
 
-export function AboutFields({ d = {} }: { d?: Defaults }) {
-  return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      <TextField label="Year of birth" inputMode="numeric" placeholder="2005" defaultValue={d.birthYear} />
-      <Select label="Gender" options={["Female", "Male", "Non-binary", "Prefer not to say"]} />
-      <div className="sm:col-span-2">
-        <TextField label="Club or team" placeholder="Optional" defaultValue={d.club} />
-      </div>
-    </div>
-  );
-}
-
-export function SwimmingFields({ d = {} }: { d?: Defaults }) {
+export function TrainingFields({ draft, set }: FieldsProps) {
   return (
     <div className="space-y-6">
-      <Chips
-        label="How would you describe your swimming?"
-        options={["Learning", "Fitness", "Masters", "Competitive (club)", "Elite"]}
-        initial={d.level ? [d.level] : []}
-      />
-      <Chips
-        label="Which strokes do you swim? Pick all that apply."
-        options={["Freestyle", "Backstroke", "Breaststroke", "Butterfly"]}
-        multiple
-        initial={d.strokes}
-      />
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Select label="Usual pool" options={["25 m", "25 yd", "50 m", "Open water"]} defaultValue={d.poolLength} />
-        <Select
-          label="Sessions per week"
-          options={["1", "2", "3", "4", "5", "6+"]}
-          defaultValue={d.sessionsPerWeek ? String(d.sessionsPerWeek) : undefined}
+      <div>
+        <NumberField
+          label="How many times do you train a week?"
+          unit="times"
+          placeholder="4"
+          value={draft.sessions_per_week}
+          onChange={(sessions_per_week) => set({ sessions_per_week })}
         />
-      </div>
-    </div>
-  );
-}
-
-export function GoalFields({ d = {} }: { d?: Defaults }) {
-  return (
-    <div className="space-y-6">
-      <Chips
-        label="What do you want to improve?"
-        options={["Speed", "Technique", "Endurance", "Starts & turns", "Race prep"]}
-        multiple
-        initial={d.goal ? ["Speed", "Technique"] : []}
-      />
-      <label className="block space-y-1.5">
-        <span className="block text-sm font-medium text-slate-700">Your main goal</span>
-        <textarea
-          rows={3}
-          className={`${selectClass} resize-y`}
-          placeholder="e.g. Break 1:00 in the 100 m freestyle by spring"
-          defaultValue={d.goal}
-        />
-      </label>
-    </div>
-  );
-}
-
-export function TimesFields() {
-  const rows = [
-    ["50 m Freestyle", "28.10"],
-    ["100 m Freestyle", "1:01.30"],
-    ["50 m Butterfly", "31.80"],
-  ];
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-slate-600">
-        Optional. Your best times help us track progress and set realistic targets.
-      </p>
-      {rows.map(([event, time]) => (
-        <div key={event} className="grid grid-cols-[1fr_8rem] items-center gap-3">
-          <span className="text-sm font-medium text-slate-800">{event}</span>
-          <input className={selectClass} placeholder={time} aria-label={`${event} best time`} />
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {SESSION_CHOICES.map((n) => (
+            <Chip
+              key={n}
+              on={draft.sessions_per_week === n}
+              onClick={() => set({ sessions_per_week: n })}
+            >
+              {n}
+            </Chip>
+          ))}
         </div>
-      ))}
-      <button type="button" className="text-sm font-semibold text-sky-700 hover:text-sky-900">
-        + Add another event
-      </button>
+      </div>
+      <div>
+        <NumberField
+          label="How much time do you spend swimming each day?"
+          unit="min"
+          placeholder="60"
+          value={draft.minutes_per_day}
+          onChange={(minutes_per_day) => set({ minutes_per_day })}
+        />
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {MINUTE_CHOICES.map((m) => (
+            <Chip
+              key={m}
+              on={draft.minutes_per_day === m}
+              onClick={() => set({ minutes_per_day: m })}
+            >
+              {Number(m) < 60 ? `${m} min` : `${Number(m) / 60} h`}
+            </Chip>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
