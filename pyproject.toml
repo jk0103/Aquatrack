@@ -5,14 +5,11 @@ description = "Swim technique analysis from underwater and overhead video"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "email-validator>=2.2",
     "fastapi>=0.115",
+    "firebase-admin>=7.7.0",
     "numpy>=1.26",
     "opencv-python-headless>=4.10",
-    "pwdlib[argon2]>=0.2",
-    "pyjwt>=2.9",
     "python-multipart>=0.0.9",
-    "sqlmodel>=0.0.22",
     "uvicorn[standard]>=0.30",
 ]
 

@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { FormError, PasswordField, SubmitButton, TextField } from "@/app/components/fields";
-import { api, type User } from "@/app/lib/api";
+import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import { useFormSubmit } from "@/app/lib/useFormSubmit";
 
 export default function LoginPage() {
   const router = useRouter();
   const { error, pending, onSubmit } = useFormSubmit(async (form) => {
-    const result = await api<User>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email: form.get("email"), password: form.get("password") }),
-    });
-    if (!result.ok) return result.error;
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    if (!email || !password) return "Enter your email and password.";
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      return describeFirebaseError(err);
+    }
     router.replace("/");
     return null;
   });

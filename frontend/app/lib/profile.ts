@@ -1,5 +1,9 @@
-// The swimmer profile saved by the signup survey. Must match ProfileIn in
-// src/aquatrack/api/profile.py.
+// The swimmer profile saved by the signup survey, one Firestore document per user at
+// profiles/{uid}. firestore.rules checks the same ranges as checkDraft below.
+
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+
+import { db } from "@/app/lib/firebase";
 
 export type SwimLevel = "beginner" | "hobby" | "masters" | "competitive";
 
@@ -91,4 +95,23 @@ export function formatMinutes(minutes: number): string {
   const m = minutes % 60;
   if (!h) return `${m} min`;
   return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+// The saved profile, or null if the survey hasn't been filled in.
+export async function loadProfile(uid: string): Promise<Profile | null> {
+  const snap = await getDoc(doc(db, "profiles", uid));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    age: d.age,
+    height_cm: d.height_cm,
+    weight_kg: d.weight_kg,
+    swim_level: d.swim_level,
+    sessions_per_week: d.sessions_per_week,
+    minutes_per_day: d.minutes_per_day,
+  };
+}
+
+export async function saveProfile(uid: string, profile: Profile): Promise<void> {
+  await setDoc(doc(db, "profiles", uid), { ...profile, updatedAt: serverTimestamp() });
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import {
@@ -16,7 +17,7 @@ import {
   VideoIcon,
 } from "@/app/components/icons";
 import { Logo } from "@/app/components/Logo";
-import { api, type User } from "@/app/lib/api";
+import { auth } from "@/app/lib/firebase";
 
 const nav = [
   { href: "/", label: "Home", Icon: HomeIcon },
@@ -27,6 +28,8 @@ const nav = [
   { href: "/history", label: "History", Icon: HistoryIcon },
   { href: "/profile", label: "Profile", Icon: UserIcon },
 ];
+
+export type User = { uid: string; name: string; email: string };
 
 const UserContext = createContext<User | null>(null);
 
@@ -50,20 +53,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    api<User>("/auth/me").then(async (result) => {
-      if (result.ok) {
-        setUser(result.data);
-      } else {
-        // Stale or invalid cookie: clear it so the login page doesn't bounce back here.
-        await api("/auth/logout", { method: "POST" });
-        router.replace("/login");
-      }
-    });
-  }, [router]);
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (firebaseUser) => {
+        if (!firebaseUser) {
+          router.replace("/login");
+          return;
+        }
+        setUser({
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName ?? firebaseUser.email ?? "",
+          email: firebaseUser.email ?? "",
+        });
+      }),
+    [router],
+  );
 
   async function logout() {
-    await api("/auth/logout", { method: "POST" });
+    await signOut(auth);
     router.replace("/login");
   }
 

@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function inRange(value, lo, hi) {
+      return value is number && value >= lo && value <= hi;
+    }
+
+    // Survey answers, one document per user. Ranges match frontend/app/lib/profile.ts.
+    match /profiles/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'age', 'height_cm', 'weight_kg', 'swim_level',
+          'sessions_per_week', 'minutes_per_day', 'updatedAt'
+        ])
+        && request.resource.data.age is int && inRange(request.resource.data.age, 5, 100)
+        && inRange(request.resource.data.height_cm, 80, 250)
+        && inRange(request.resource.data.weight_kg, 15, 250)
+        && request.resource.data.swim_level in ['beginner', 'hobby', 'masters', 'competitive']
+        && request.resource.data.sessions_per_week is int
+        && inRange(request.resource.data.sessions_per_week, 0, 14)
+        && request.resource.data.minutes_per_day is int
+        && inRange(request.resource.data.minutes_per_day, 0, 600)
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // One document per uploaded video. Only the uploader can see it; the file is in Storage.
+    match /videos/{videoId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'uploaded'
+        && request.resource.data.storagePath.matches('videos/' + request.auth.uid + '/.*')
+        && request.resource.data.createdAt == request.time;
+      // Analysis results are written by the backend, which bypasses these rules.
+      allow update, delete: if false;
+    }
+  }
+}

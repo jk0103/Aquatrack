@@ -1,10 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { useUser } from "@/app/components/AppShell";
+import { FormError } from "@/app/components/fields";
 import { UploadIcon } from "@/app/components/icons";
-import { Button, Card, PageHeader } from "@/app/components/ui";
+import { Button, ButtonLink, Card, LaneProgress, PageHeader } from "@/app/components/ui";
+import { describeFirebaseError } from "@/app/lib/firebase";
+import { MAX_VIDEO_BYTES, uploadVideo } from "@/app/lib/videos";
 
 const strokes = ["Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
 const cameras = [
@@ -16,14 +19,67 @@ const selectClass =
   "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
 
 export default function AnalyzePage() {
-  const router = useRouter();
-  const [fileName, setFileName] = useState<string | null>(null);
+  const user = useUser();
+  const [file, setFile] = useState<File | null>(null);
   const [camera, setCamera] = useState("Underwater");
+  const [progress, setProgress] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [savedName, setSavedName] = useState<string | null>(null);
+  const fileName = file?.name ?? null;
+  const uploading = progress !== null;
 
-  // Layout only: shows the example feedback instead of uploading.
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    router.push("/feedback/a-1042");
+    if (uploading || !user) return;
+    if (!file) return setError("Choose a video to upload.");
+    if (!file.type.startsWith("video/")) return setError("That file isn't a video.");
+    if (file.size > MAX_VIDEO_BYTES) return setError("Videos must be under 500 MB.");
+
+    const form = new FormData(event.currentTarget);
+    setError(null);
+    setProgress(0);
+    try {
+      await uploadVideo(
+        user.uid,
+        file,
+        {
+          stroke: String(form.get("stroke")),
+          camera,
+          distance: String(form.get("distance")),
+          comments: String(form.get("comments") ?? "").trim(),
+          wantFeedback: form.get("want_feedback") === "on",
+          wantPlan: form.get("want_plan") === "on",
+        },
+        setProgress,
+      );
+      setSavedName(file.name);
+      setFile(null);
+    } catch (err) {
+      setError(describeFirebaseError(err));
+    } finally {
+      setProgress(null);
+    }
+  }
+
+  if (savedName) {
+    return (
+      <div className="mx-auto max-w-lg py-10 text-center">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-2xl text-teal-700">
+          ✓
+        </span>
+        <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
+        <p className="mt-2 text-slate-600">
+          {savedName} is saved. It will show up in History, and feedback will appear there once
+          analysis is connected.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <ButtonLink href="/history">Go to history</ButtonLink>
+          <Button variant="secondary" onClick={() => setSavedName(null)}>
+            Upload another
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -53,7 +109,10 @@ export default function AnalyzePage() {
               type="file"
               accept="video/*"
               className="sr-only"
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setError(null);
+              }}
             />
           </label>
 
@@ -125,12 +184,13 @@ export default function AnalyzePage() {
           <Card title="What would you like back?">
             <div className="space-y-3">
               {[
-                ["Technique feedback", "Annotated frames and what to fix first"],
-                ["Training plan suggestion", "Drills and sets built around the feedback"],
-              ].map(([label, note]) => (
-                <label key={label} className="flex gap-3">
+                ["want_feedback", "Technique feedback", "Annotated frames and what to fix first"],
+                ["want_plan", "Training plan suggestion", "Drills and sets built around the feedback"],
+              ].map(([name, label, note]) => (
+                <label key={name} className="flex gap-3">
                   <input
                     type="checkbox"
+                    name={name}
                     defaultChecked
                     className="mt-1 h-4 w-4 rounded border-slate-300 accent-sky-700"
                   />
@@ -143,8 +203,17 @@ export default function AnalyzePage() {
             </div>
           </Card>
 
+          <FormError message={error} />
+          {uploading && (
+            <div className="space-y-2">
+              <LaneProgress value={progress * 100} label="Upload progress" />
+              <p className="text-center text-sm text-slate-600">
+                Uploading… {Math.round(progress * 100)}%
+              </p>
+            </div>
+          )}
           <Button type="submit" className="w-full py-3">
-            Analyze my swim
+            {uploading ? "Uploading…" : "Upload and analyze"}
           </Button>
         </div>
       </form>

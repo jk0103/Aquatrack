@@ -6,7 +6,7 @@ import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
 import { BodyFields, LevelField, TrainingFields } from "@/app/components/ProfileFields";
 import { Badge, Button, ButtonLink, Card, PageHeader } from "@/app/components/ui";
-import { api } from "@/app/lib/api";
+import { describeFirebaseError } from "@/app/lib/firebase";
 import { formatTime, progression } from "@/app/lib/mock";
 import {
   BODY_CHECKS,
@@ -16,6 +16,8 @@ import {
   formatMinutes,
   fromDraft,
   levelLabel,
+  loadProfile,
+  saveProfile,
   toDraft,
   TRAINING_CHECKS,
   type Profile,
@@ -32,13 +34,13 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const uid = user?.uid;
   useEffect(() => {
-    api<Profile>("/profile").then((result) => {
-      if (result.ok) setProfile(result.data);
-      else if (result.status === 404) setProfile(null);
-      else setLoadError(result.error);
-    });
-  }, []);
+    if (!uid) return;
+    loadProfile(uid)
+      .then(setProfile)
+      .catch((err) => setLoadError(describeFirebaseError(err)));
+  }, [uid]);
 
   const name = user?.name ?? "";
   const initials = name
@@ -61,19 +63,21 @@ export default function ProfilePage() {
 
   async function onSave(event: FormEvent) {
     event.preventDefault();
-    if (pending) return;
+    if (pending || !uid) return;
     const problem =
       checkDraft(draft, BODY_CHECKS) ?? checkLevel(draft) ?? checkDraft(draft, TRAINING_CHECKS);
     if (problem) return setError(problem);
 
     setPending(true);
-    const result = await api<Profile>("/profile", {
-      method: "PUT",
-      body: JSON.stringify(fromDraft(draft)),
-    });
-    setPending(false);
-    if (!result.ok) return setError(result.error);
-    setProfile(result.data);
+    const saved = fromDraft(draft);
+    try {
+      await saveProfile(uid, saved);
+    } catch (err) {
+      return setError(describeFirebaseError(err));
+    } finally {
+      setPending(false);
+    }
+    setProfile(saved);
     setEditing(false);
   }
 

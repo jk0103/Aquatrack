@@ -1,4 +1,4 @@
-export type User = { id: number; name: string; email: string };
+import { auth } from "@/app/lib/firebase";
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
 
@@ -9,21 +9,23 @@ function describeError(body: FastApiError | null, status: number): string {
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail) && detail.length > 0) {
     const field = detail[0].loc.at(-1);
-    if (field === "email") return "Enter a valid email address.";
-    if (field === "password") return "Password must be at least 8 characters.";
-    if (field === "name") return "Enter your name.";
-    return detail[0].msg;
+    return field ? `${field}: ${detail[0].msg}` : detail[0].msg;
   }
   return status >= 500 ? "Something went wrong on our side. Try again." : "Request failed.";
 }
 
+// Calls the FastAPI backend as the logged-in Firebase user.
 export async function api<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   let res: Response;
   try {
+    const token = await auth.currentUser?.getIdToken();
     res = await fetch(`/api${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
-      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     return { ok: false, status: 0, error: "Can't reach the server. Check your connection." };

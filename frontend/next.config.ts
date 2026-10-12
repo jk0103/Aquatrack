@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// The FastAPI backend. Browser calls go to /api/* on this app and are forwarded there,
-// so the login cookie stays on the same site as the pages.
+// The FastAPI backend. Browser calls go to /api/* on this app and are forwarded there
+// (same site as the pages, so no CORS setup is needed).
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {

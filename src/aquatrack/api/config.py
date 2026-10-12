@@ -2,12 +2,8 @@
 
 import os
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///data/aquatrack.db")
+# Firebase project the web app signs in with, e.g. "aquatrack-1234".
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID") or None
 
-# Signs login session cookies. The default is only for local development.
-SECRET_KEY = os.environ.get("AQUATRACK_SECRET_KEY", "dev-only-insecure-secret-change-me")
-
-SESSION_DAYS = int(os.environ.get("AQUATRACK_SESSION_DAYS", "7"))
-
-# Set to true when served over HTTPS so the session cookie is never sent in plain text.
-COOKIE_SECURE = os.environ.get("AQUATRACK_COOKIE_SECURE", "false").lower() == "true"
+# Path to the service account key JSON. Keep the file outside the repo; never commit it.
+FIREBASE_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or None

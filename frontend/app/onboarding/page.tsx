@@ -1,20 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { FormError } from "@/app/components/fields";
 import { Logo } from "@/app/components/Logo";
 import { BodyFields, LevelField, TrainingFields } from "@/app/components/ProfileFields";
-import { api } from "@/app/lib/api";
+import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import {
   BODY_CHECKS,
   checkDraft,
   checkLevel,
   emptyDraft,
   fromDraft,
+  saveProfile,
   TRAINING_CHECKS,
-  type Profile,
   type ProfileDraft,
 } from "@/app/lib/profile";
 
@@ -46,8 +47,18 @@ export default function OnboardingPage() {
   const [draft, setDraft] = useState<ProfileDraft>(emptyDraft);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const { title, intro, Fields, check } = steps[step];
   const last = step === steps.length - 1;
+
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        if (u) setUser(u);
+        else router.replace("/login");
+      }),
+    [router],
+  );
 
   function set(changes: Partial<ProfileDraft>) {
     setDraft((d) => ({ ...d, ...changes }));
@@ -60,15 +71,14 @@ export default function OnboardingPage() {
     const problem = check(draft);
     if (problem) return setError(problem);
     if (!last) return setStep(step + 1);
+    if (!user) return;
 
     setPending(true);
-    const result = await api<Profile>("/profile", {
-      method: "PUT",
-      body: JSON.stringify(fromDraft(draft)),
-    });
-    if (!result.ok) {
+    try {
+      await saveProfile(user.uid, fromDraft(draft));
+    } catch (err) {
       setPending(false);
-      return setError(result.error);
+      return setError(describeFirebaseError(err));
     }
     router.replace("/");
   }

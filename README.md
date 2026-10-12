@@ -16,7 +16,8 @@ src/aquatrack/
 tests/                 # pytest, uses synthetic videos and pose data
 notebooks/             # experiments on sample videos
 data/                  # sample and uploaded videos (gitignored)
-frontend/              # Next.js web app (login and signup so far), see frontend/README.md
+frontend/              # Next.js web app, see frontend/README.md
+firebase/              # Firestore and Storage security rules (firebase.json points here)
 ```
 
 ## Setup
@@ -34,7 +35,7 @@ cp .env.example .env
 ```bash
 uv run pytest                                   # tests
 uv run ruff check . && uv run ruff format .     # lint + format
-uv run uvicorn aquatrack.api.main:app --reload  # API on http://localhost:8000/docs
+uv run uvicorn aquatrack.api.main:app --reload --env-file .env  # API on http://localhost:8000/docs
 cd frontend && npm run dev                      # web app on http://localhost:3000
 ```
 
@@ -42,6 +43,6 @@ cd frontend && npm run dev                      # web app on http://localhost:30
 
 1. Run pose estimation on 5 to 10 sample clips (underwater side view and overhead) and see where tracking breaks.
 2. Stroke rate and left-right symmetry working end to end on real clips.
-3. Session and swimmer profile storage (SQLite, then Postgres).
+3. Accounts, swimmer profiles and videos in Firebase (Auth, Firestore, Storage).
 4. Personalized feedback text using the Claude API.
 5. Web frontend with upload, results and progress history.

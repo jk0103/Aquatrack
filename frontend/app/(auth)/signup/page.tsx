@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 import { FormError, PasswordField, SubmitButton, TextField } from "@/app/components/fields";
-import { api, type User } from "@/app/lib/api";
+import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import { useFormSubmit } from "@/app/lib/useFormSubmit";
 
 const MIN_PASSWORD = 8;
@@ -23,11 +24,12 @@ export default function SignupPage() {
     }
     if (password !== form.get("confirm")) return "Passwords don't match.";
 
-    const result = await api<User>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ name, email, password }),
-    });
-    if (!result.ok) return result.error;
+    try {
+      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(user, { displayName: name });
+    } catch (err) {
+      return describeFirebaseError(err);
+    }
     router.replace("/onboarding");
     return null;
   });
