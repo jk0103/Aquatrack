@@ -28,7 +28,7 @@ export default function SignupPage() {
       body: JSON.stringify({ name, email, password }),
     });
     if (!result.ok) return result.error;
-    router.replace("/");
+    router.replace("/onboarding");
     return null;
   });
 

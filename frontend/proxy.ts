@@ -13,5 +13,15 @@ export default function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/"],
+  matcher: [
+    "/",
+    "/analyze",
+    "/feedback/:path*",
+    "/training",
+    "/calendar",
+    "/progress",
+    "/history",
+    "/profile",
+    "/onboarding",
+  ],
 };
