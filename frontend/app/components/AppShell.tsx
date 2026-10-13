@@ -81,15 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     .map((part) => part[0]!.toUpperCase())
     .join("");
 
-  // Close the pop-up menu with Escape.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen]);
-
-  const navLinks = (light = false) => (
+  const navLinks = (
     <ul className="space-y-1">
       {nav.map(({ href, label, Icon }) => {
         const active = isActive(pathname, href);
@@ -100,13 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={() => setMenuOpen(false)}
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                light
-                  ? active
-                    ? "bg-sky-50 text-sky-800"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                  : active
-                    ? "bg-white/15 text-white"
-                    : "text-sky-100/80 hover:bg-white/10 hover:text-white"
+                active
+                  ? "bg-white/15 text-white"
+                  : "text-sky-100/80 hover:bg-white/10 hover:text-white"
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -140,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="mb-8 block px-2 text-white">
             <Logo />
           </Link>
-          <nav aria-label="Main">{navLinks()}</nav>
+          <nav aria-label="Main">{navLinks}</nav>
         </div>
         <div className="relative z-10">{account}</div>
         <LaneLines />
@@ -152,52 +140,40 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/">
             <Logo />
           </Link>
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((open) => !open)}
-              className={`relative z-50 rounded-lg p-2 transition ${menuOpen ? "bg-white/15" : "hover:bg-white/10"}`}
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
-              aria-controls="app-menu"
-            >
-              {menuOpen ? <CloseIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
-            </button>
-
-            {menuOpen && (
-              <>
-                {/* Clicking anywhere outside the pop-up closes it */}
-                <button
-                  className="fixed inset-0 z-40 cursor-default bg-slate-900/10"
-                  aria-label="Close menu"
-                  tabIndex={-1}
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div
-                  id="app-menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right animate-[menu-pop_140ms_ease-out] rounded-2xl border border-slate-200 bg-white p-2 text-slate-900 shadow-xl ring-1 ring-sky-900/5"
-                >
-                  <nav aria-label="Main">{navLinks(true)}</nav>
-                  {user && (
-                    <div className="mt-2 flex items-center gap-3 border-t border-slate-100 px-3 pt-3 pb-1">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-800">
-                        {initials}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-                        <button
-                          onClick={logout}
-                          className="text-xs font-medium text-sky-700 hover:text-sky-900"
-                        >
-                          Log out
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="rounded-lg p-2 hover:bg-white/10"
+            aria-label="Open menu"
+          >
+            <MenuIcon className="h-6 w-6" />
+          </button>
         </header>
+
+        {menuOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+            <button
+              className="absolute inset-0 bg-slate-900/50"
+              aria-label="Close menu"
+              onClick={() => setMenuOpen(false)}
+            />
+            <div className="absolute inset-y-0 right-0 flex w-72 max-w-[85%] flex-col justify-between bg-sky-900 p-5">
+              <div>
+                <div className="mb-6 flex items-center justify-between text-white">
+                  <Logo />
+                  <button
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-lg p-2 hover:bg-white/10"
+                    aria-label="Close menu"
+                  >
+                    <CloseIcon className="h-6 w-6" />
+                  </button>
+                </div>
+                <nav aria-label="Main">{navLinks}</nav>
+              </div>
+              {account}
+            </div>
+          </div>
+        )}
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-28 sm:px-8 sm:pt-10 sm:pb-12">
           <UserContext.Provider value={user}>{children}</UserContext.Provider>
@@ -216,7 +192,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   key={href}
                   href={href}
-                  onClick={() => setMenuOpen(false)}
                   className={`flex flex-col items-center gap-1 py-2 text-[11px] font-medium ${
                     active ? "text-sky-700" : "text-slate-500"
                   }`}
