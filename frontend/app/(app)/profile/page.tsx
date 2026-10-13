@@ -4,16 +4,17 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
-import { BodyFields, LevelField, TrainingFields } from "@/app/components/ProfileFields";
+import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
 import { Badge, Button, ButtonLink, Card, PageHeader } from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
-import { formatTime, progression } from "@/app/lib/mock";
 import {
   BODY_CHECKS,
   checkDraft,
   checkLevel,
+  checkPbs,
   emptyDraft,
   formatMinutes,
+  formatSwimTime,
   fromDraft,
   levelLabel,
   loadProfile,
@@ -65,7 +66,10 @@ export default function ProfilePage() {
     event.preventDefault();
     if (pending || !uid) return;
     const problem =
-      checkDraft(draft, BODY_CHECKS) ?? checkLevel(draft) ?? checkDraft(draft, TRAINING_CHECKS);
+      checkDraft(draft, BODY_CHECKS) ??
+      checkLevel(draft) ??
+      checkDraft(draft, TRAINING_CHECKS) ??
+      checkPbs(draft);
     if (problem) return setError(problem);
 
     setPending(true);
@@ -128,6 +132,9 @@ export default function ProfilePage() {
           <Card title="Your training">
             <TrainingFields draft={draft} set={set} />
           </Card>
+          <Card title="Personal bests">
+            <PbFields draft={draft} set={set} />
+          </Card>
           <div className="sticky bottom-20 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:bottom-4">
             <button
               type="button"
@@ -168,17 +175,25 @@ export default function ProfilePage() {
             </dl>
           </Card>
 
-          <Card title="Best times" className="lg:col-span-3">
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {Object.entries(progression).map(([event, entries]) => (
-                <li key={event} className="rounded-xl bg-sky-50 p-4">
-                  <p className="text-sm text-sky-800">{event}</p>
-                  <p className="mt-1 text-2xl font-semibold text-slate-900">
-                    {formatTime(Math.min(...entries.map((e) => e.seconds)))}
-                  </p>
-                </li>
-              ))}
-            </ul>
+          <Card title="Personal bests" className="lg:col-span-3">
+            {profile.pbs.length ? (
+              <ul className="grid gap-3 sm:grid-cols-3">
+                {profile.pbs.map((pb) => (
+                  <li key={`${pb.event}|${pb.pool}`} className="rounded-xl bg-sky-50 p-4">
+                    <p className="text-sm text-sky-800">
+                      {pb.event} · {pb.pool}
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">
+                      {formatSwimTime(pb.seconds)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No times added. Use Edit profile to add your personal bests whenever you have them.
+              </p>
+            )}
           </Card>
         </div>
       )}

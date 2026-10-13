@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { SWIM_LEVELS, type ProfileDraft } from "@/app/lib/profile";
+import { MAX_PBS, PB_EVENTS, PB_POOLS, SWIM_LEVELS, type PbDraft, type ProfileDraft } from "@/app/lib/profile";
 
 // Profile questions, shared by the signup survey and the edit profile page.
 
@@ -189,6 +189,83 @@ export function TrainingFields({ draft, set }: FieldsProps) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+const newPb = (): PbDraft => ({ event: "", pool: "25 m", time: "" });
+
+export function PbFields({ draft, set }: FieldsProps) {
+  const rows = draft.pbs.length ? draft.pbs : [newPb()];
+  function update(i: number, changes: Partial<PbDraft>) {
+    set({ pbs: rows.map((row, j) => (j === i ? { ...row, ...changes } : row)) });
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-600">
+        Optional. Add your best times if you have them; skip this if you don&apos;t race.
+      </p>
+      <ul className="space-y-3">
+        {rows.map((row, i) => (
+          <li
+            key={i}
+            className="grid grid-cols-[1fr_auto] items-end gap-2 rounded-xl bg-sky-50/60 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto]"
+          >
+            <label className="col-span-2 block space-y-1 sm:col-span-1">
+              <span className="block text-xs font-medium text-slate-600">Event</span>
+              <select
+                value={row.event}
+                onChange={(e) => update(i, { event: e.target.value })}
+                className={inputClass}
+              >
+                <option value="">Choose event</option>
+                {PB_EVENTS.map((ev) => (
+                  <option key={ev}>{ev}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="block text-xs font-medium text-slate-600">Pool</span>
+              <select
+                value={row.pool}
+                onChange={(e) => update(i, { pool: e.target.value })}
+                className={inputClass}
+              >
+                {PB_POOLS.map((pool) => (
+                  <option key={pool}>{pool}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="block text-xs font-medium text-slate-600">Time</span>
+              <input
+                inputMode="decimal"
+                placeholder="1:02.30"
+                value={row.time}
+                onChange={(e) => update(i, { time: e.target.value })}
+                className={inputClass}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => set({ pbs: rows.filter((_, j) => j !== i) })}
+              aria-label="Remove this time"
+              className="col-start-2 row-start-1 self-start rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-white hover:text-slate-700 sm:col-start-auto sm:row-start-auto sm:self-end sm:py-2.5"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      {rows.length < MAX_PBS && (
+        <button
+          type="button"
+          onClick={() => set({ pbs: [...rows, newPb()] })}
+          className="text-sm font-semibold text-sky-700 hover:text-sky-900"
+        >
+          + Add another time
+        </button>
+      )}
     </div>
   );
 }

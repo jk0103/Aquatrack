@@ -6,12 +6,13 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { FormError } from "@/app/components/fields";
 import { Logo } from "@/app/components/Logo";
-import { BodyFields, LevelField, TrainingFields } from "@/app/components/ProfileFields";
+import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
 import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import {
   BODY_CHECKS,
   checkDraft,
   checkLevel,
+  checkPbs,
   emptyDraft,
   fromDraft,
   saveProfile,
@@ -37,6 +38,12 @@ const steps = [
     intro: "How often and how long you're in the water.",
     Fields: TrainingFields,
     check: (d: ProfileDraft) => checkDraft(d, TRAINING_CHECKS),
+  },
+  {
+    title: "Personal bests",
+    intro: "Where you're starting from, so we can track your progress.",
+    Fields: PbFields,
+    check: checkPbs,
   },
 ];
 
@@ -109,7 +116,7 @@ export default function OnboardingPage() {
       <main className="relative flex flex-1 items-start justify-center px-4 pb-16 sm:items-center sm:px-8">
         <div className="w-full max-w-xl">
           {/* Lane-style step indicator */}
-          <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Survey steps">
+          <ol className="mb-6 grid grid-cols-4 gap-2" aria-label="Survey steps">
             {steps.map((s, i) => (
               <li key={s.title}>
                 <span
@@ -166,7 +173,13 @@ export default function OnboardingPage() {
                 disabled={pending}
                 className="rounded-lg bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-600/30 disabled:opacity-70"
               >
-                {pending ? "Saving…" : last ? "Finish" : "Continue"}
+                {pending
+                  ? "Saving…"
+                  : !last
+                    ? "Continue"
+                    : draft.pbs.some((pb) => pb.time.trim())
+                      ? "Finish"
+                      : "Skip and finish"}
               </button>
             </div>
           </form>

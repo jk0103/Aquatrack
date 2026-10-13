@@ -14,7 +14,37 @@ export type Profile = {
   swim_level: SwimLevel;
   sessions_per_week: number;
   minutes_per_day: number;
+  // Optional: people without race times leave this empty.
+  pbs: PersonalBest[];
 };
+
+export type PersonalBest = { event: string; pool: string; seconds: number };
+
+export const PB_EVENTS = [
+  "50 Free", "100 Free", "200 Free", "400 Free", "800 Free", "1500 Free",
+  "50 Back", "100 Back", "200 Back",
+  "50 Breast", "100 Breast", "200 Breast",
+  "50 Fly", "100 Fly", "200 Fly",
+  "100 IM", "200 IM", "400 IM",
+];
+export const PB_POOLS = ["25 m", "50 m", "25 yd"];
+export const MAX_PBS = 20; // keep in sync with firestore.rules
+
+// "1:01.30" or "28.1" to seconds; null if it isn't a time.
+export function parseSwimTime(text: string): number | null {
+  const m = text.trim().match(/^(?:(\d{1,2}):)?(\d{1,2}(?:\.\d{1,2})?)$/);
+  if (!m) return null;
+  const minutes = m[1] ? Number(m[1]) : 0;
+  const seconds = Number(m[2]);
+  if (m[1] && seconds >= 60) return null;
+  return Math.round((minutes * 60 + seconds) * 100) / 100;
+}
+
+export function formatSwimTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = (seconds - m * 60).toFixed(2);
+  return m ? `${m}:${s.padStart(5, "0")}` : s;
+}
 
 export const SWIM_LEVELS: { value: SwimLevel; label: string; note: string }[] = [
   { value: "beginner", label: "Beginner", note: "Still learning the strokes" },
@@ -28,7 +58,9 @@ export function levelLabel(level: SwimLevel): string {
 }
 
 // Form state: inputs hold strings until the answers are checked.
-export type ProfileDraft = { [K in keyof Profile]: string };
+type NumberKey = Exclude<keyof Profile, "pbs">;
+export type PbDraft = { event: string; pool: string; time: string };
+export type ProfileDraft = { [K in NumberKey]: string } & { pbs: PbDraft[] };
 
 export const emptyDraft: ProfileDraft = {
   age: "",
@@ -37,6 +69,7 @@ export const emptyDraft: ProfileDraft = {
   swim_level: "",
   sessions_per_week: "",
   minutes_per_day: "",
+  pbs: [],
 };
 
 export function toDraft(p: Profile): ProfileDraft {
@@ -47,10 +80,11 @@ export function toDraft(p: Profile): ProfileDraft {
     swim_level: p.swim_level,
     sessions_per_week: String(p.sessions_per_week),
     minutes_per_day: String(p.minutes_per_day),
+    pbs: p.pbs.map((pb) => ({ event: pb.event, pool: pb.pool, time: formatSwimTime(pb.seconds) })),
   };
 }
 
-type Check = { key: keyof Profile; label: string; min: number; max: number; integer?: boolean };
+type Check = { key: NumberKey; label: string; min: number; max: number; integer?: boolean };
 
 export const BODY_CHECKS: Check[] = [
   { key: "age", label: "Age", min: 5, max: 100, integer: true },
@@ -75,6 +109,23 @@ export function checkDraft(draft: ProfileDraft, checks: Check[]): string | null 
   return null;
 }
 
+// Personal bests are optional: fully blank rows are ignored.
+export function checkPbs(draft: ProfileDraft): string | null {
+  const seen = new Set<string>();
+  for (const pb of draft.pbs) {
+    if (!pb.time.trim()) continue;
+    if (!pb.event) return "Choose the event for each time you enter.";
+    const seconds = parseSwimTime(pb.time);
+    if (seconds === null) return `Enter times like 28.45 or 1:02.30 (${pb.event}).`;
+    if (seconds < 10 || seconds > 3600) return `That time for ${pb.event} looks off.`;
+    const key = `${pb.event}|${pb.pool}`;
+    if (seen.has(key)) return `${pb.event} (${pb.pool}) is listed twice.`;
+    seen.add(key);
+  }
+  if (seen.size > MAX_PBS) return `You can add up to ${MAX_PBS} times.`;
+  return null;
+}
+
 export function checkLevel(draft: ProfileDraft): string | null {
   return draft.swim_level ? null : "Choose the option that fits your swimming best.";
 }
@@ -87,6 +138,9 @@ export function fromDraft(draft: ProfileDraft): Profile {
     swim_level: draft.swim_level as SwimLevel,
     sessions_per_week: Number(draft.sessions_per_week),
     minutes_per_day: Number(draft.minutes_per_day),
+    pbs: draft.pbs
+      .filter((pb) => pb.event && pb.time.trim())
+      .map((pb) => ({ event: pb.event, pool: pb.pool, seconds: parseSwimTime(pb.time)! })),
   };
 }
 
@@ -109,6 +163,7 @@ export async function loadProfile(uid: string): Promise<Profile | null> {
     swim_level: d.swim_level,
     sessions_per_week: d.sessions_per_week,
     minutes_per_day: d.minutes_per_day,
+    pbs: Array.isArray(d.pbs) ? d.pbs : [],
   };
 }
 

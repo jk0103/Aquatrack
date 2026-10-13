@@ -16,8 +16,11 @@ service cloud.firestore {
       allow write: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly([
           'age', 'height_cm', 'weight_kg', 'swim_level',
-          'sessions_per_week', 'minutes_per_day', 'updatedAt'
+          'sessions_per_week', 'minutes_per_day', 'pbs', 'updatedAt'
         ])
+        // Personal bests are optional: a list of {event, pool, seconds}, at most 20.
+        && request.resource.data.get('pbs', []) is list
+        && request.resource.data.get('pbs', []).size() <= 20
         && request.resource.data.age is int && inRange(request.resource.data.age, 5, 100)
         && inRange(request.resource.data.height_cm, 80, 250)
         && inRange(request.resource.data.weight_kg, 15, 250)
