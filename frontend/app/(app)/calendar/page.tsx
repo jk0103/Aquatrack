@@ -47,8 +47,8 @@ export default function CalendarPage() {
         action={<Button>Add event</Button>}
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="space-y-6">
+        <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1">
               <button
@@ -147,7 +147,7 @@ export default function CalendarPage() {
           </div>
         </Card>
 
-        <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
           <Card title={formatDate(selected, { weekday: "long" })}>
             {selectedEvents.length ? (
               <ul className="space-y-3">
