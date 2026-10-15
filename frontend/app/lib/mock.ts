@@ -228,3 +228,18 @@ export function formatDate(iso: string, opts: Intl.DateTimeFormatOptions = {}): 
     ...opts,
   });
 }
+
+// Measurements shown on the feedback page for the example freestyle 50 m.
+export const swimMetrics = {
+  lapMeters: 50,
+  atMeters: 32,
+  clock: "0:20.4",
+  lapTime: "31.80",
+  split25: "15.40",
+  strokeRate: 46, // strokes per minute
+  strokeRateTarget: [40, 50] as [number, number],
+  distancePerStroke: 1.85,
+  breaths: 6,
+  kick: "6-beat",
+  rotationDeg: 38,
+};

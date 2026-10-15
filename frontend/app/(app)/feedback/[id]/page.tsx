@@ -2,14 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ChevronIcon } from "@/app/components/icons";
-import { StrokeFrame } from "@/app/components/StrokeFrame";
-import { Badge, Button, Card, VideoPlaceholder } from "@/app/components/ui";
-import { analyses, feedback, formatDate, type FeedbackPoint } from "@/app/lib/mock";
-
-const severityTone = { Focus: "amber", Watch: "sky", Good: "teal" } as const;
+import { FeedbackStage, StatPills } from "@/app/components/FeedbackStage";
+import { Button, Card } from "@/app/components/ui";
+import { analyses, formatDate } from "@/app/lib/mock";
 
 const suggestedPlan = [
-  { day: "Mon", set: "Warm-up 400 m, catch-up freestyle 4 × 50 m, pull 4 × 100 m at shoulder-width entry" },
+  {
+    day: "Mon",
+    set: "Warm-up 400 m, catch-up freestyle 4 × 50 m, pull 4 × 100 m at shoulder-width entry",
+  },
   { day: "Wed", set: "Side-kick 6-3-6 drill 4 × 25 m, 8 × 50 m breathing every 3" },
   { day: "Fri", set: "Race pace 4 × 100 m, focus on straight entry when tired" },
 ];
@@ -30,51 +31,28 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
         <span className="text-slate-500">{formatDate(analysis.date, { year: "numeric" })}</span>
       </nav>
 
-      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 flex flex-wrap gap-2">
-            <Badge>{analysis.stroke}</Badge>
-            <Badge tone="slate">{analysis.camera}</Badge>
-            <Badge tone="slate">{analysis.distance}</Badge>
-          </div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             {analysis.headline}
           </h1>
+          <p className="mt-1.5 text-slate-600">
+            {formatDate(analysis.date, { weekday: "long", year: "numeric" })} · {analysis.stroke}{" "}
+            {analysis.distance} · {analysis.camera}
+          </p>
         </div>
-        <ScoreRing score={analysis.score} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="space-y-6 lg:col-span-3">
-          <Card title="Your video">
-            <VideoPlaceholder label={`${analysis.stroke} · ${analysis.distance}`} />
-            {analysis.comment && (
-              <blockquote className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Your comment
-                </p>
-                “{analysis.comment}”
-              </blockquote>
-            )}
-          </Card>
+      <div className="mb-5">
+        <StatPills analysis={analysis} />
+      </div>
 
-          <Card title="Example frame">
-            <StrokeFrame />
-          </Card>
-        </div>
-
-        <div className="space-y-6 lg:col-span-2">
-          <Card title="Feedback">
-            <ol className="space-y-5">
-              {feedback.map((point, i) => (
-                <FeedbackItem key={point.title} point={point} n={i + 1} />
-              ))}
-            </ol>
-          </Card>
-
+      <FeedbackStage
+        analysis={analysis}
+        aside={
           <Card title="Suggested training plan">
             <p className="mb-4 text-sm text-slate-600">
-              One week built around your focus point. Repeat for 3 weeks, then upload another swim.
+              One week built around your main fix. Repeat for 3 weeks, then upload another swim.
             </p>
             <ul className="space-y-3">
               {suggestedPlan.map((d) => (
@@ -96,56 +74,9 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
               </Link>
             </div>
           </Card>
-        </div>
-      </div>
+        }
+      />
     </>
-  );
-}
-
-function FeedbackItem({ point, n }: { point: FeedbackPoint; n: number }) {
-  return (
-    <li className="flex gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800">
-        {n}
-      </span>
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium text-slate-900">{point.title}</p>
-          <Badge tone={severityTone[point.severity]}>{point.severity}</Badge>
-        </div>
-        <p className="mt-1 text-sm text-slate-600">{point.detail}</p>
-        <p className="mt-2 text-sm text-slate-700">
-          <span className="font-medium text-teal-700">Drill: </span>
-          {point.drill}
-        </p>
-      </div>
-    </li>
-  );
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  return (
-    <div className="flex items-center gap-3">
-      <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90" aria-hidden="true">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="#e0f2fe" strokeWidth="7" />
-        <circle
-          cx="32"
-          cy="32"
-          r={r}
-          fill="none"
-          stroke="#0284c7"
-          strokeWidth="7"
-          strokeLinecap="round"
-          strokeDasharray={`${(score / 100) * c} ${c}`}
-        />
-      </svg>
-      <div>
-        <p className="text-2xl font-semibold text-slate-900">{score}</p>
-        <p className="text-sm text-slate-500">Technique score</p>
-      </div>
-    </div>
   );
 }
 
@@ -155,7 +86,9 @@ function Processing({ comment }: { comment: string }) {
       <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-sky-100">
         <div className="absolute inset-x-0 bottom-0 h-1/2 animate-pulse bg-gradient-to-t from-sky-500 to-cyan-300" />
       </div>
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">Analyzing your swim</h1>
+      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">
+        Analyzing your swim
+      </h1>
       <p className="mt-2 text-slate-600">
         We&apos;re tracking your body position frame by frame. Your feedback will show up in History
         when it&apos;s ready.
