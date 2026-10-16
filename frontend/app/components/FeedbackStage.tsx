@@ -646,14 +646,25 @@ function FilterTabs({
             }}
             onClick={() => onChange(f)}
             aria-pressed={on}
-            className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
-              on ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
+            className={`group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
+              on ? "text-slate-900" : "text-slate-500 hover:text-sky-800"
             } ${pill ? "" : on ? "bg-white shadow-sm" : ""}`}
           >
-            {f}
+            {/* Hover: a faint pill grows in behind the option you're pointing at */}
+            {!on && (
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 scale-75 rounded-full bg-sky-100/80 opacity-0 transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-100 group-hover:opacity-100"
+              />
+            )}
+            <span className="relative transition-transform duration-300 ease-out group-hover:-translate-y-px">
+              {f}
+            </span>
             <span
-              className={`rounded-full px-1.5 text-xs transition-colors duration-300 ${
-                on ? "bg-sky-700 text-white" : "bg-slate-200 text-slate-600"
+              className={`relative rounded-full px-1.5 text-xs transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-115 ${
+                on
+                  ? "bg-sky-700 text-white"
+                  : "bg-slate-200 text-slate-600 group-hover:bg-sky-200 group-hover:text-sky-800"
               }`}
             >
               {count(f)}
