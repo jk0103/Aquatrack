@@ -1,6 +1,13 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 import { StrokeFrame } from "@/app/components/StrokeFrame";
 import { Badge } from "@/app/components/ui";
@@ -24,14 +31,23 @@ export function StatPills({ analysis }: { analysis: Analysis }) {
     ["Kick", m.kick],
   ];
   return (
-    <ul className="flex gap-2 overflow-x-auto pb-1">
+    <ul className="flex gap-2 overflow-x-auto pt-1 pb-2">
       {pills.map(([label, value]) => (
         <li
           key={label}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm shadow-sm"
+          className="group relative flex shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm shadow-sm transition duration-300 ease-out hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md hover:shadow-sky-900/10"
         >
-          <span className="text-slate-500">{label}</span>
-          <span className="font-semibold text-slate-900">{value}</span>
+          {/* A soft ripple of light sweeps across on hover */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-0 transition-[left,opacity] duration-700 ease-out group-hover:left-full group-hover:opacity-100"
+          />
+          <span className="relative text-slate-500 transition-colors duration-300 group-hover:text-sky-700">
+            {label}
+          </span>
+          <span className="relative font-semibold text-slate-900 transition-colors duration-300 group-hover:text-sky-900">
+            {value}
+          </span>
         </li>
       ))}
     </ul>
@@ -138,33 +154,17 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-3">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold text-slate-900">Feedback</h2>
-            <div
-              className="flex max-w-full overflow-x-auto rounded-full bg-slate-100 p-1 text-sm"
-              role="group"
-              aria-label="Show"
-            >
-              {filters.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  aria-pressed={filter === f}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition ${
-                    filter === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                  }`}
-                >
-                  {f}
-                  <span
-                    className={`rounded-full px-1.5 text-xs ${filter === f ? "bg-sky-700 text-white" : "bg-slate-200 text-slate-600"}`}
-                  >
-                    {count(f)}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <FilterTabs value={filter} onChange={setFilter} count={count} />
           </div>
-          <ol className="space-y-5">
-            {shown.map((point) => (
-              <FeedbackItem key={point.title} point={point} n={feedback.indexOf(point) + 1} />
+          <ol key={filter} className="space-y-5">
+            {shown.map((point, i) => (
+              <li
+                key={point.title}
+                className="feedback-enter"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <FeedbackItem point={point} n={feedback.indexOf(point) + 1} />
+              </li>
             ))}
           </ol>
           {analysis.comment && (
@@ -374,11 +374,15 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
   );
 }
 
-// Round gauge that fills with water to the score.
+// Round tank that fills with water to the score. The water rises on load, then two wave
+// layers drift past each other and a few bubbles float up (animations in globals.css).
 function WaterGauge({ value }: { value: number }) {
   // The card can render twice (laptop and phone layouts), so SVG ids must be unique.
   const id = useId();
   const level = 86 - (value / 100) * 72; // y of the water surface inside the circle
+  // One wave period is 50 units; the path is 4 periods long so sliding it by 50 loops cleanly.
+  const wave = (y: number, amp: number) =>
+    `M-50 ${y} Q-37.5 ${y - amp} -25 ${y} T0 ${y} T25 ${y} T50 ${y} T75 ${y} T100 ${y} T125 ${y} T150 ${y} V120 H-50 Z`;
   return (
     <div className="flex flex-1 flex-col items-center justify-center">
       <svg
@@ -407,10 +411,33 @@ function WaterGauge({ value }: { value: number }) {
         />
         <circle cx="50" cy="50" r="36" fill="#f0f9ff" />
         <g clipPath={`url(#${id}-circle)`}>
-          <path
-            d={`M0 ${level} Q12.5 ${level - 5} 25 ${level} T50 ${level} T75 ${level} T100 ${level} V100 H0 Z`}
-            fill={`url(#${id}-water)`}
-          />
+          <g className="water-rise" style={{ "--rise": `${100 - level}px` } as CSSProperties}>
+            <g className="water-bob">
+              {/* Back wave: lighter, slower, drifting the other way */}
+              <path
+                className="wave-slide wave-slide-back"
+                d={wave(level - 2, 3)}
+                fill="#7dd3fc"
+                opacity="0.6"
+              />
+              <path className="wave-slide" d={wave(level, 4)} fill={`url(#${id}-water)`} />
+            </g>
+            {[
+              [38, 0],
+              [57, 1.4],
+              [47, 2.6],
+            ].map(([cx, delay]) => (
+              <circle
+                key={cx}
+                className="water-bubble"
+                cx={cx}
+                cy="84"
+                r="1.6"
+                fill="#e0f2fe"
+                style={{ animationDelay: `${delay}s` }}
+              />
+            ))}
+          </g>
         </g>
         <text
           x="50"
@@ -554,7 +581,7 @@ function PoolBackdrop() {
 
 function FeedbackItem({ point, n }: { point: FeedbackPoint; n: number }) {
   return (
-    <li className="flex gap-3">
+    <div className="flex gap-3">
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800">
         {n}
       </span>
@@ -569,6 +596,71 @@ function FeedbackItem({ point, n }: { point: FeedbackPoint; n: number }) {
           {point.drill}
         </p>
       </div>
-    </li>
+    </div>
+  );
+}
+
+// Segmented filter with a white pill that slides to the chosen option.
+function FilterTabs({
+  value,
+  onChange,
+  count,
+}: {
+  value: Filter;
+  onChange: (f: Filter) => void;
+  count: (f: Filter) => number;
+}) {
+  const buttons = useRef<Partial<Record<Filter, HTMLButtonElement | null>>>({});
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = buttons.current[value];
+      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [value]);
+
+  return (
+    <div
+      className="relative flex max-w-full overflow-x-auto rounded-full bg-slate-100 p-1 text-sm"
+      role="group"
+      aria-label="Show"
+    >
+      {pill && (
+        <span
+          aria-hidden="true"
+          className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ left: pill.left, width: pill.width }}
+        />
+      )}
+      {filters.map((f) => {
+        const on = value === f;
+        return (
+          <button
+            key={f}
+            ref={(el) => {
+              buttons.current[f] = el;
+            }}
+            onClick={() => onChange(f)}
+            aria-pressed={on}
+            className={`relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
+              on ? "text-slate-900" : "text-slate-500 hover:text-slate-700"
+            } ${pill ? "" : on ? "bg-white shadow-sm" : ""}`}
+          >
+            {f}
+            <span
+              className={`rounded-full px-1.5 text-xs transition-colors duration-300 ${
+                on ? "bg-sky-700 text-white" : "bg-slate-200 text-slate-600"
+              }`}
+            >
+              {count(f)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
