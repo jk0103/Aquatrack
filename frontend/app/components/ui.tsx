@@ -237,13 +237,13 @@ export function GlassCard({
 }) {
   return (
     <section
-      className={`glass glass-glow rounded-3xl p-5 sm:p-6 ${className}`}
+      className={`glass glass-glow rounded-2xl p-5 sm:p-6 ${className}`}
       style={glow ? ({ "--glow": glow } as CSSProperties) : undefined}
     >
       {title && (
         <div className="mb-4 flex items-center gap-3">
           {icon && (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70 text-sky-700 shadow-sm ring-1 ring-white/80 dark:bg-white/10 dark:ring-white/10">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
               {icon}
             </span>
           )}
@@ -252,7 +252,7 @@ export function GlassCard({
             <Link
               href={href}
               aria-label={linkLabel ?? title}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-slate-700 ring-1 ring-white/80 transition duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-white hover:text-sky-700 dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/15"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-slate-50 hover:text-sky-700"
             >
               <ArrowUpRightIcon className="h-4 w-4" />
             </Link>

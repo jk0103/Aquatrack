@@ -95,21 +95,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-current={active ? "page" : undefined}
               className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-2 py-2 text-sm font-medium transition duration-300 ${
                 active
-                  ? "bg-gradient-to-r from-sky-400/25 via-cyan-300/10 to-white/5 text-white shadow-[0_0_28px_-8px_rgba(56,189,248,0.75)] ring-1 ring-white/20 backdrop-blur-md"
+                  ? "bg-white/10 text-white ring-1 ring-white/10"
                   : "text-sky-100/75 ring-white/10 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-white hover:ring-1"
               }`}
             >
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition duration-300 ${
                   active
-                    ? "bg-gradient-to-br from-cyan-300 to-sky-500 text-sky-950 shadow-[0_0_16px_rgba(103,232,249,0.65)]"
+                    ? "bg-cyan-300 text-sky-950"
                     : "bg-white/[0.06] ring-1 ring-white/10 group-hover:bg-white/10"
                 }`}
               >
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               {label}
-              {active && <Sparkles />}
             </Link>
           </li>
         );
@@ -138,11 +137,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Soft light behind the glass */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl"
+          className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-24 bottom-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl"
+          className="pointer-events-none absolute -right-24 bottom-24 h-64 w-64 rounded-full bg-sky-500/[0.08] blur-3xl"
         />
         <div className="relative">
           <Link href="/" className="mb-8 block px-2 text-white">
@@ -251,24 +250,5 @@ function LaneLines() {
         />
       ))}
     </svg>
-  );
-}
-
-// Tiny twinkling dots on the selected page, like light catching the water.
-function Sparkles() {
-  return (
-    <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 w-10">
-      {[
-        ["top-2 right-1", "0s"],
-        ["top-5 right-5", "0.8s"],
-        ["bottom-2 right-2", "1.6s"],
-      ].map(([pos, delay]) => (
-        <span
-          key={pos}
-          className={`sparkle absolute h-1 w-1 rounded-full bg-white ${pos}`}
-          style={{ animationDelay: delay }}
-        />
-      ))}
-    </span>
   );
 }

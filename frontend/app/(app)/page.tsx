@@ -59,7 +59,7 @@ export default function HomePage() {
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Hero */}
-        <section className="relative min-h-[260px] overflow-hidden rounded-3xl bg-gradient-to-br from-sky-800 via-sky-600 to-cyan-500 p-6 text-white shadow-lg shadow-sky-900/20 sm:p-8 lg:col-span-2">
+        <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:p-8 lg:col-span-2">
           <Caustics />
           <SwimmerArt />
           <div className="relative z-10 max-w-md">
@@ -82,7 +82,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href={`/feedback/${latest.id}`}
-                className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/30 backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
               >
                 Latest feedback
               </Link>
@@ -98,7 +98,7 @@ export default function HomePage() {
               icon={<TrophyIcon className="h-5 w-5" />}
               href="/calendar"
               linkLabel="Open calendar"
-              glow="rgb(129 140 248 / 0.45)"
+              glow="rgb(129 140 248 / 0.16)"
             >
               <p className="text-xl font-semibold tracking-tight text-slate-900">
                 {nextMeet.title}
@@ -116,7 +116,7 @@ export default function HomePage() {
             icon={<VideoIcon className="h-5 w-5" />}
             href={`/feedback/${latest.id}`}
             linkLabel="Open feedback"
-            glow="rgb(45 212 191 / 0.4)"
+            glow="rgb(45 212 191 / 0.14)"
           >
             <div className="flex items-end gap-3">
               <p className="text-4xl font-semibold tracking-tight text-slate-900">{latest.score}</p>
@@ -143,7 +143,7 @@ export default function HomePage() {
               {upcoming.map((e) => (
                 <li
                   key={e.date + e.title}
-                  className="flex items-center gap-3 rounded-2xl bg-white/50 p-3 ring-1 ring-white/70 transition duration-300 hover:-translate-y-0.5 hover:bg-white/80 dark:bg-white/[0.04] dark:ring-white/10 dark:hover:bg-white/[0.08]"
+                  className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
                 >
                   <DateChip iso={e.date} meet={e.kind === "Meet"} />
                   <div className="min-w-0">
@@ -222,9 +222,7 @@ function WeekStrip({ days }: { days: string[] }) {
               <Link
                 href="/calendar"
                 className={`flex h-full min-h-[132px] flex-col rounded-2xl p-2.5 transition duration-300 hover:-translate-y-0.5 ${
-                  isToday
-                    ? "bg-gradient-to-b from-sky-600 to-cyan-500 text-white shadow-lg shadow-sky-600/30"
-                    : "bg-white/50 ring-1 ring-white/70 hover:bg-white/80 dark:bg-white/[0.04] dark:ring-white/10 dark:hover:bg-white/[0.08]"
+                  isToday ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 hover:bg-slate-100"
                 } ${past ? "opacity-70" : ""}`}
               >
                 <span
@@ -292,9 +290,9 @@ function WaterBackdrop() {
       aria-hidden="true"
       className="pointer-events-none absolute -inset-x-4 -top-6 -bottom-6 -z-10 overflow-hidden sm:-inset-x-8"
     >
-      <div className="drift absolute top-[-6%] left-[8%] h-[420px] w-[420px] rounded-full bg-sky-300/50 blur-3xl dark:bg-sky-500/25" />
-      <div className="drift-slow absolute top-[30%] right-[-4%] h-[460px] w-[460px] rounded-full bg-cyan-300/45 blur-3xl dark:bg-cyan-400/15" />
-      <div className="drift absolute bottom-[-8%] left-[30%] h-[380px] w-[380px] rounded-full bg-indigo-300/35 blur-3xl dark:bg-indigo-500/20" />
+      <div className="drift absolute top-[-6%] left-[8%] h-[420px] w-[420px] rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-500/10" />
+      <div className="drift-slow absolute top-[30%] right-[-4%] h-[460px] w-[460px] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/[0.06]" />
+      <div className="drift absolute bottom-[-8%] left-[30%] h-[380px] w-[380px] rounded-full bg-indigo-300/15 blur-3xl dark:bg-indigo-500/[0.08]" />
     </div>
   );
 }
@@ -304,7 +302,7 @@ function Caustics() {
   return (
     <svg
       aria-hidden="true"
-      className="absolute inset-0 h-full w-full text-white/[0.12]"
+      className="absolute inset-0 h-full w-full text-white/[0.08]"
       viewBox="0 0 400 200"
       preserveAspectRatio="none"
     >
@@ -328,7 +326,7 @@ function SwimmerArt() {
     <svg
       aria-hidden="true"
       viewBox="0 0 320 160"
-      className="absolute right-[-30px] bottom-2 hidden w-[52%] max-w-[420px] text-white/85 md:block"
+      className="absolute right-[-30px] bottom-2 hidden w-[52%] max-w-[420px] text-white/60 md:block"
     >
       <circle cx="252" cy="70" r="15" fill="currentColor" />
       <path
