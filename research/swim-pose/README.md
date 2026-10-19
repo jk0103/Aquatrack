@@ -52,8 +52,12 @@ the hips in most frames, so its extra hand and foot points weren't trustworthy t
   same 17 joints, so the rest of the app stays the same. Switching the app over is on hold until more clips are
   tested.
 - **Hand and foot points are wanted too.** The Hugging Face ViTPose only outputs 17 body points. Part 4 tests
-  whole-body models (133 points: body, 3 per foot, 21 per hand, face): ViTPose-B whole-body and RTMW-x, through
+  whole-body models (133 points: body, 3 per foot, 21 per hand, face): ViTPose-B whole-body and RTMW-l, through
   [rtmlib](https://github.com/Tau-J/rtmlib).
+- **Whole-body scores (COCO-WholeBody AP, published, land photos):** RTMW-x 384x288 70.2, RTMW-l 384x288 70.1,
+  RTMW-x 256x192 67.2, RTMW-l 256x192 66.0, RTMW-m 256x192 58.2; ViTPose whole-body H 61.2, L 60.6, B 57.4,
+  S 54.4. RTMW's lead is not just model size: RTMW-l beats the much bigger ViTPose-H. Only the RTMW-l and RTMW-m
+  models have ONNX downloads, so those are the ones rtmlib can run.
 - **Licenses:** Ultralytics YOLO is AGPL-3.0, which is fine for personal and school use, but a paid product
   would need to be open source or buy a commercial license. ViTPose and rtmlib are Apache 2.0. The SwimXYZ
   license isn't stated, so its data isn't shared here.
