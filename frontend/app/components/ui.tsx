@@ -1,5 +1,7 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import { ArrowUpRightIcon } from "@/app/components/icons";
 
 export function PageHeader({
   title,
@@ -13,7 +15,9 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          {title}
+        </h1>
         {subtitle && <p className="mt-1.5 text-slate-600">{subtitle}</p>}
       </div>
       {action}
@@ -34,7 +38,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-6 ${className}`}
     >
       {title && (
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -56,10 +60,9 @@ export function CardLink({ href, children }: { href: string; children: ReactNode
 }
 
 const buttonStyles = {
-  primary:
-    "bg-sky-700 text-white shadow-sm hover:bg-sky-800 focus:ring-sky-600/30",
+  primary: "bg-sky-700 text-white shadow-sm hover:bg-sky-800 focus:ring-sky-600/30",
   secondary:
-    "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 focus:ring-sky-600/15",
+    "border border-slate-300 bg-surface text-slate-700 shadow-sm hover:bg-slate-50 focus:ring-sky-600/15",
 };
 
 export function ButtonLink({
@@ -155,7 +158,7 @@ export function LaneProgress({ value, label }: { value: number; label: string })
 
 export function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-sm sm:p-5">
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
       {note && <p className="mt-1 text-xs font-medium text-teal-700">{note}</p>}
@@ -210,5 +213,53 @@ export function DateChip({ iso, meet = false }: { iso: string; meet?: boolean })
       </span>
       <span className="text-lg font-semibold leading-none">{d.getDate()}</span>
     </span>
+  );
+}
+
+// Frosted glass panel with an icon chip, a title and an optional ↗ link, used on the Home
+// page over its water backdrop. `glow` tints the light in the top-right corner.
+export function GlassCard({
+  title,
+  icon,
+  href,
+  linkLabel,
+  glow,
+  className = "",
+  children,
+}: {
+  title?: string;
+  icon?: ReactNode;
+  href?: string;
+  linkLabel?: string;
+  glow?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className={`glass glass-glow rounded-3xl p-5 sm:p-6 ${className}`}
+      style={glow ? ({ "--glow": glow } as CSSProperties) : undefined}
+    >
+      {title && (
+        <div className="mb-4 flex items-center gap-3">
+          {icon && (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70 text-sky-700 shadow-sm ring-1 ring-white/80 dark:bg-white/10 dark:ring-white/10">
+              {icon}
+            </span>
+          )}
+          <h2 className="flex-1 font-semibold text-slate-900">{title}</h2>
+          {href && (
+            <Link
+              href={href}
+              aria-label={linkLabel ?? title}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-slate-700 ring-1 ring-white/80 transition duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-white hover:text-sky-700 dark:bg-white/5 dark:ring-white/10 dark:hover:bg-white/15"
+            >
+              <ArrowUpRightIcon className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
+      )}
+      {children}
+    </section>
   );
 }

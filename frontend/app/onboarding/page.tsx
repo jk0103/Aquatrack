@@ -134,7 +134,7 @@ export default function OnboardingPage() {
           <form
             onSubmit={onSubmit}
             noValidate
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+            className="rounded-2xl border border-slate-200 bg-surface p-6 shadow-sm sm:p-8"
           >
             <p className="text-sm font-medium text-sky-700">
               Step {step + 1} of {steps.length}

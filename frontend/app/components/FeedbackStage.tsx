@@ -35,7 +35,7 @@ export function StatPills({ analysis }: { analysis: Analysis }) {
       {pills.map(([label, value]) => (
         <li
           key={label}
-          className="group relative flex shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm shadow-sm transition duration-300 ease-out hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md hover:shadow-sky-900/10"
+          className="group relative flex shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-full border border-slate-200 bg-surface px-3.5 py-1.5 text-sm shadow-sm transition duration-300 ease-out hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md hover:shadow-sky-900/10"
         >
           {/* A soft ripple of light sweeps across on hover */}
           <span
@@ -133,7 +133,7 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
           ) : (
             <button
               onClick={() => setCardOpen(true)}
-              className="absolute top-5 left-5 hidden rounded-full bg-white px-4 py-2 text-sm font-semibold text-sky-800 shadow-lg lg:block"
+              className="absolute top-5 left-5 hidden rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#075985] shadow-lg lg:block"
             >
               Show stats
             </button>
@@ -151,7 +151,7 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-3">
+        <section className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-6 lg:col-span-3">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold text-slate-900">Feedback</h2>
             <FilterTabs value={filter} onChange={setFilter} count={count} />
@@ -194,7 +194,7 @@ function StatsCard({
   const m = swimMetrics;
   const pct = Math.round((m.atMeters / m.lapMeters) * 100);
   return (
-    <div className="flex h-full flex-col gap-3 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-sky-900/5">
+    <div className="flex h-full flex-col gap-3 rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-sky-900/5">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
           <svg
@@ -331,7 +331,7 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
         <path
           d={arc(0, max, 40)}
           fill="none"
-          stroke="#e2e8f0"
+          className="stroke-slate-200"
           strokeWidth="7"
           strokeLinecap="round"
         />
@@ -349,8 +349,8 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
           const [tx, ty] = point(t, 24);
           return (
             <g key={t}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#94a3b8" strokeWidth="1" />
-              <text x={tx} y={ty + 2} textAnchor="middle" fontSize="5.5" fill="#94a3b8">
+              <line x1={x1} y1={y1} x2={x2} y2={y2} className="stroke-slate-400" strokeWidth="1" />
+              <text x={tx} y={ty + 2} textAnchor="middle" fontSize="5.5" className="fill-slate-400">
                 {t}
               </text>
             </g>
@@ -361,12 +361,12 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
           y1="50"
           x2={nx}
           y2={ny}
-          stroke="#0f172a"
+          className="stroke-slate-900"
           strokeWidth="2.5"
           strokeLinecap="round"
         />
-        <circle cx="50" cy="50" r="3.5" fill="#0f172a" />
-        <text x="50" y="84" textAnchor="middle" fontSize="11" fontWeight="700" fill="#0f172a">
+        <circle cx="50" cy="50" r="3.5" className="fill-slate-900" />
+        <text x="50" y="84" textAnchor="middle" fontSize="11" fontWeight="700" className="fill-slate-900">
           {value}/min
         </text>
       </svg>
@@ -405,11 +405,11 @@ function WaterGauge({ value }: { value: number }) {
           cy="50"
           r="42"
           fill="none"
-          stroke="#e0f2fe"
+          className="stroke-slate-200"
           strokeWidth="4"
           strokeDasharray="2 3"
         />
-        <circle cx="50" cy="50" r="36" fill="#f0f9ff" />
+        <circle cx="50" cy="50" r="36" className="fill-slate-50" />
         <g clipPath={`url(#${id}-circle)`}>
           <g className="water-rise" style={{ "--rise": `${100 - level}px` } as CSSProperties}>
             <g className="water-bob">
@@ -445,7 +445,7 @@ function WaterGauge({ value }: { value: number }) {
           textAnchor="middle"
           fontSize="20"
           fontWeight="700"
-          fill={value > 55 ? "#ffffff" : "#0f172a"}
+          className={value > 55 ? "fill-white" : "fill-slate-900"}
         >
           {value}
         </text>
@@ -454,7 +454,7 @@ function WaterGauge({ value }: { value: number }) {
           y="60"
           textAnchor="middle"
           fontSize="7"
-          fill={value > 45 ? "#e0f2fe" : "#64748b"}
+          className={value > 45 ? "fill-sky-50/90" : "fill-slate-500"}
         >
           out of 100
         </text>
@@ -523,7 +523,7 @@ function RoundButton({
       aria-label={label}
       title={label}
       className={`flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-full shadow-md transition ${
-        active ? "bg-white text-sky-800" : "bg-white/20 text-white backdrop-blur hover:bg-white/30"
+        active ? "bg-white text-[#075985]" : "bg-white/20 text-white backdrop-blur hover:bg-white/30"
       }`}
     >
       <svg
@@ -632,7 +632,7 @@ function FilterTabs({
       {pill && (
         <span
           aria-hidden="true"
-          className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className="absolute top-1 bottom-1 rounded-full bg-surface shadow-sm transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
           style={{ left: pill.left, width: pill.width }}
         />
       )}
@@ -648,7 +648,7 @@ function FilterTabs({
             aria-pressed={on}
             className={`group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
               on ? "text-slate-900" : "text-slate-500 hover:text-sky-800"
-            } ${pill ? "" : on ? "bg-white shadow-sm" : ""}`}
+            } ${pill ? "" : on ? "bg-surface shadow-sm" : ""}`}
           >
             {/* Hover: a faint pill grows in behind the option you're pointing at */}
             {!on && (

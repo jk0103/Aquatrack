@@ -1,148 +1,373 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
 import { useUser } from "@/app/components/AppShell";
-import { ChevronIcon, TrophyIcon, UploadIcon } from "@/app/components/icons";
+import {
+  CalendarIcon,
+  ChartIcon,
+  PlanIcon,
+  TrophyIcon,
+  UploadIcon,
+  VideoIcon,
+} from "@/app/components/icons";
 import { TimeChart } from "@/app/components/TimeChart";
-import { Badge, Card, CardLink, DateChip, LaneProgress, Stat } from "@/app/components/ui";
+import { DateChip, GlassCard, LaneProgress } from "@/app/components/ui";
 import {
   analyses,
   events,
   formatDate,
-  formatTime,
   progression,
   TODAY,
   trainingPlans,
+  type CalendarEvent,
 } from "@/app/lib/mock";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function isoDay(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Monday to Sunday of the week containing TODAY.
+function thisWeek() {
+  const today = new Date(`${TODAY}T00:00:00`);
+  const monday = new Date(today.getTime() - ((today.getDay() + 6) % 7) * DAY);
+  return Array.from({ length: 7 }, (_, i) => isoDay(new Date(monday.getTime() + i * DAY)));
+}
 
 export default function HomePage() {
   const user = useUser();
   const firstName = user?.name.split(" ")[0];
-  const upcoming = events.filter((e) => e.date >= TODAY).slice(0, 4);
+  const week = thisWeek();
+  const weekEnd = week[6];
+  const upcoming = events.filter((e) => e.date > weekEnd).slice(0, 4);
   const nextMeet = events.find((e) => e.kind === "Meet" && e.date >= TODAY);
+  const daysToMeet = nextMeet
+    ? Math.round(
+        (new Date(`${nextMeet.date}T00:00:00`).getTime() -
+          new Date(`${TODAY}T00:00:00`).getTime()) /
+          DAY,
+      )
+    : null;
   const latest = analyses.find((a) => a.status === "Ready")!;
-  const free100 = progression["100 m Freestyle"];
-  const best = Math.min(...free100.map((e) => e.seconds));
 
   return (
-    <>
-      {/* Hero: a pool-coloured banner with the main action */}
-      <section className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:mb-8 sm:p-8">
-        <div className="relative z-10 max-w-xl">
-          <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
-          </h1>
-          <p className="mt-2 text-sky-100">
-            {nextMeet
-              ? `${nextMeet.title} is on ${formatDate(nextMeet.date)}. Upload a swim to see what to work on before then.`
-              : "Upload a swim to get feedback on your technique."}
-          </p>
-          <Link
-            href="/analyze"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-sky-800 shadow-sm hover:bg-sky-50"
-          >
-            <UploadIcon className="h-4 w-4" />
-            Analyze a swim
-          </Link>
-        </div>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 400 120"
-          preserveAspectRatio="none"
-          className="absolute inset-x-0 bottom-0 h-24 w-full text-white/10"
-        >
-          {[40, 80, 120].map((y) => (
-            <path
-              key={y}
-              d={`M0 ${y} Q50 ${y - 12} 100 ${y} T200 ${y} T300 ${y} T400 ${y}`}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
-          ))}
-        </svg>
-      </section>
+    <div className="relative isolate">
+      <WaterBackdrop />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:gap-4 lg:grid-cols-4">
-        <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
-        <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />
-        <Stat label="Swims analyzed" value={`${analyses.length}`} />
-        <Stat label="Sessions this week" value="2 of 5" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card
-          title="Training in progress"
-          action={<CardLink href="/training">All plans</CardLink>}
-          className="lg:col-span-2"
-        >
-          <ul className="space-y-5">
-            {trainingPlans.map((plan) => (
-              <li key={plan.id}>
-                <div className="mb-2 flex items-baseline justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{plan.name}</p>
-                    <p className="truncate text-sm text-slate-500">Next: {plan.next}</p>
-                  </div>
-                  <span className="shrink-0 text-sm text-slate-500">
-                    {plan.done}/{plan.total}
-                  </span>
-                </div>
-                <LaneProgress value={(plan.done / plan.total) * 100} label={`${plan.name} progress`} />
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Coming up" action={<CardLink href="/calendar">Calendar</CardLink>}>
-          <ul className="divide-y divide-slate-100">
-            {upcoming.map((e) => (
-              <li key={e.date + e.title} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <DateChip iso={e.date} meet={e.kind === "Meet"} />
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">{e.title}</p>
-                  <p className="text-sm text-slate-500">
-                    {e.kind === "Meet" ? (
-                      <span className="inline-flex items-center gap-1 text-indigo-700">
-                        <TrophyIcon className="h-3.5 w-3.5" /> Meet
-                      </span>
-                    ) : (
-                      "Training"
-                    )}{" "}
-                    · {e.time}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card
-          title="100 m freestyle"
-          action={<CardLink href="/progress">Progress</CardLink>}
-          className="lg:col-span-2"
-        >
-          <TimeChart entries={free100} goal={60} compact />
-        </Card>
-
-        <Card title="Latest feedback" action={<CardLink href="/history">History</CardLink>}>
-          <Link href={`/feedback/${latest.id}`} className="group block">
-            <div className="mb-3 flex flex-wrap gap-2">
-              <Badge>{latest.stroke}</Badge>
-              <Badge tone="slate">{latest.camera}</Badge>
-            </div>
-            <p className="font-medium text-slate-900 group-hover:text-sky-800">{latest.headline}</p>
-            <p className="mt-1 text-sm text-slate-500">
-              {formatDate(latest.date)} · Score {latest.score}
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+        {/* Hero */}
+        <section className="relative min-h-[260px] overflow-hidden rounded-3xl bg-gradient-to-br from-sky-800 via-sky-600 to-cyan-500 p-6 text-white shadow-lg shadow-sky-900/20 sm:p-8 lg:col-span-2">
+          <Caustics />
+          <SwimmerArt />
+          <div className="relative z-10 max-w-md">
+            <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+              {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+            </h1>
+            <p className="mt-3 text-sky-50/90">
+              {nextMeet
+                ? `${nextMeet.title} is ${daysToMeet === 0 ? "today" : `in ${daysToMeet} days`}. Upload a swim to see what to sharpen before race day.`
+                : "Upload a swim to get feedback on your technique."}
             </p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-sky-700">
-              View feedback <ChevronIcon className="h-4 w-4" />
-            </span>
-          </Link>
-        </Card>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/analyze"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#075985] shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <UploadIcon className="h-4 w-4" />
+                Analyze a swim
+              </Link>
+              <Link
+                href={`/feedback/${latest.id}`}
+                className="inline-flex items-center gap-2 rounded-full bg-white/15 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/30 backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
+              >
+                Latest feedback
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Two glass tiles beside the hero */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1 lg:gap-6">
+          {nextMeet && (
+            <GlassCard
+              title="Next meet"
+              icon={<TrophyIcon className="h-5 w-5" />}
+              href="/calendar"
+              linkLabel="Open calendar"
+              glow="rgb(129 140 248 / 0.45)"
+            >
+              <p className="text-xl font-semibold tracking-tight text-slate-900">
+                {nextMeet.title}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                {formatDate(nextMeet.date, { weekday: "short" })} · {nextMeet.time}
+              </p>
+              <p className="mt-3 inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                {daysToMeet === 0 ? "Today" : `In ${daysToMeet} days`}
+              </p>
+            </GlassCard>
+          )}
+          <GlassCard
+            title="Latest feedback"
+            icon={<VideoIcon className="h-5 w-5" />}
+            href={`/feedback/${latest.id}`}
+            linkLabel="Open feedback"
+            glow="rgb(45 212 191 / 0.4)"
+          >
+            <div className="flex items-end gap-3">
+              <p className="text-4xl font-semibold tracking-tight text-slate-900">{latest.score}</p>
+              <p className="pb-1 text-sm font-medium text-teal-700">+4 this month</p>
+            </div>
+            <p className="mt-1 truncate text-sm text-slate-600">{latest.headline}</p>
+          </GlassCard>
+        </div>
+
+        {/* Left: this week, then what's after it */}
+        <div className="min-w-0 space-y-5 lg:col-span-2 lg:space-y-6">
+          <GlassCard
+            title="This week"
+            icon={<CalendarIcon className="h-5 w-5" />}
+            href="/calendar"
+            linkLabel="Open calendar"
+          >
+            <WeekStrip days={week} />
+          </GlassCard>
+
+          <GlassCard title="Coming up" icon={<CalendarIcon className="h-5 w-5" />}>
+            <p className="-mt-2 mb-3 text-sm text-slate-500">After this week</p>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {upcoming.map((e) => (
+                <li
+                  key={e.date + e.title}
+                  className="flex items-center gap-3 rounded-2xl bg-white/50 p-3 ring-1 ring-white/70 transition duration-300 hover:-translate-y-0.5 hover:bg-white/80 dark:bg-white/[0.04] dark:ring-white/10 dark:hover:bg-white/[0.08]"
+                >
+                  <DateChip iso={e.date} meet={e.kind === "Meet"} />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{e.title}</p>
+                    <p className="truncate text-sm text-slate-500">
+                      {e.kind === "Meet" ? "Meet" : "Training"} · {e.time}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </GlassCard>
+        </div>
+
+        {/* Right: training and times */}
+        <div className="min-w-0 space-y-5 lg:space-y-6">
+          <GlassCard
+            title="Training"
+            icon={<PlanIcon className="h-5 w-5" />}
+            href="/training"
+            linkLabel="All plans"
+          >
+            <ul className="space-y-4">
+              {trainingPlans.map((plan) => (
+                <li key={plan.id}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <p className="truncate text-sm font-medium text-slate-900">{plan.name}</p>
+                    <span className="shrink-0 text-xs text-slate-500">
+                      {plan.done}/{plan.total}
+                    </span>
+                  </div>
+                  <LaneProgress
+                    value={(plan.done / plan.total) * 100}
+                    label={`${plan.name} progress`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </GlassCard>
+
+          <GlassCard
+            title="100 m freestyle"
+            icon={<ChartIcon className="h-5 w-5" />}
+            href="/progress"
+            linkLabel="Progress"
+          >
+            <TimeChart entries={progression["100 m Freestyle"]} goal={60} compact />
+          </GlassCard>
+        </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+// Seven day columns for the current week, with today highlighted.
+function WeekStrip({ days }: { days: string[] }) {
+  // On narrow screens the strip scrolls sideways; start with today in view.
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    const today = el?.querySelector<HTMLElement>("[data-today]");
+    if (el && today && el.scrollWidth > el.clientWidth) {
+      el.scrollLeft = today.offsetLeft - (el.clientWidth - today.offsetWidth) / 2;
+    }
+  }, []);
+  return (
+    <div ref={scroller} className="relative -mx-1 overflow-x-auto px-1 pt-1 pb-2">
+      <ol className="grid min-w-[560px] grid-cols-7 gap-2">
+        {days.map((iso) => {
+          const d = new Date(`${iso}T00:00:00`);
+          const isToday = iso === TODAY;
+          const past = iso < TODAY;
+          const dayEvents = events.filter((e) => e.date === iso);
+          return (
+            <li key={iso} data-today={isToday || undefined}>
+              <Link
+                href="/calendar"
+                className={`flex h-full min-h-[132px] flex-col rounded-2xl p-2.5 transition duration-300 hover:-translate-y-0.5 ${
+                  isToday
+                    ? "bg-gradient-to-b from-sky-600 to-cyan-500 text-white shadow-lg shadow-sky-600/30"
+                    : "bg-white/50 ring-1 ring-white/70 hover:bg-white/80 dark:bg-white/[0.04] dark:ring-white/10 dark:hover:bg-white/[0.08]"
+                } ${past ? "opacity-70" : ""}`}
+              >
+                <span
+                  className={`text-xs font-semibold uppercase ${isToday ? "text-sky-100" : "text-slate-500"}`}
+                >
+                  {d.toLocaleDateString("en-US", { weekday: "short" })}
+                </span>
+                <span
+                  className={`text-xl font-semibold ${isToday ? "text-white" : "text-slate-900"}`}
+                >
+                  {d.getDate()}
+                </span>
+                <span className="mt-auto space-y-1.5 pt-2">
+                  {dayEvents.length ? (
+                    dayEvents.map((e) => (
+                      <WeekEvent key={e.title} event={e} onToday={isToday} done={past} />
+                    ))
+                  ) : (
+                    <span
+                      className={`block text-xs ${isToday ? "text-sky-100" : "text-slate-400"}`}
+                    >
+                      Rest
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function WeekEvent({
+  event,
+  onToday,
+  done,
+}: {
+  event: CalendarEvent;
+  onToday: boolean;
+  done: boolean;
+}) {
+  const meet = event.kind === "Meet";
+  const tone = onToday
+    ? "bg-white/20 text-white"
+    : meet
+      ? "bg-indigo-50 text-indigo-700"
+      : "bg-sky-50 text-sky-800";
+  return (
+    <span className={`block rounded-lg px-2 py-1 text-[11px] leading-tight font-medium ${tone}`}>
+      <span className="block truncate">
+        {done && !meet ? "✓ " : ""}
+        {event.title}
+      </span>
+      <span className="block opacity-75">{event.time}</span>
+    </span>
+  );
+}
+
+// Soft, slowly drifting colour behind the glass so it has something to blur.
+function WaterBackdrop() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -inset-x-4 -top-6 -bottom-6 -z-10 overflow-hidden sm:-inset-x-8"
+    >
+      <div className="drift absolute top-[-6%] left-[8%] h-[420px] w-[420px] rounded-full bg-sky-300/50 blur-3xl dark:bg-sky-500/25" />
+      <div className="drift-slow absolute top-[30%] right-[-4%] h-[460px] w-[460px] rounded-full bg-cyan-300/45 blur-3xl dark:bg-cyan-400/15" />
+      <div className="drift absolute bottom-[-8%] left-[30%] h-[380px] w-[380px] rounded-full bg-indigo-300/35 blur-3xl dark:bg-indigo-500/20" />
+    </div>
+  );
+}
+
+// Light rippling across a pool floor.
+function Caustics() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="absolute inset-0 h-full w-full text-white/[0.12]"
+      viewBox="0 0 400 200"
+      preserveAspectRatio="none"
+    >
+      {[30, 70, 110, 150, 190].map((y, i) => (
+        <path
+          key={y}
+          className={i % 2 ? "drift-slow" : "drift"}
+          d={`M-20 ${y} Q30 ${y - 16} 80 ${y} T180 ${y} T280 ${y} T380 ${y} T480 ${y}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+        />
+      ))}
+    </svg>
+  );
+}
+
+// A freestyle swimmer gliding through the hero, drawn simply.
+function SwimmerArt() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 320 160"
+      className="absolute right-[-30px] bottom-2 hidden w-[52%] max-w-[420px] text-white/85 md:block"
+    >
+      <circle cx="252" cy="70" r="15" fill="currentColor" />
+      <path
+        d="M236 74 C200 80 160 86 120 84 C96 83 78 80 60 76"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="16"
+        strokeLinecap="round"
+      />
+      <path
+        d="M228 70 C252 52 278 46 306 48"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M200 84 C190 104 172 116 150 120"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="9"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <path
+        d="M64 76 C46 70 30 72 14 78 M66 82 C48 92 32 96 16 96"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+        opacity="0.8"
+      />
+      <path
+        d="M0 104 Q40 94 80 104 T160 104 T240 104 T320 104"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity="0.5"
+      />
+    </svg>
   );
 }

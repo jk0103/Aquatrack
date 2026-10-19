@@ -47,7 +47,7 @@ export default function HistoryPage() {
           <select
             value={stroke}
             onChange={(e) => setStroke(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15"
+            className="rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15"
           >
             {strokes.map((s) => (
               <option key={s}>{s}</option>
@@ -64,7 +64,7 @@ export default function HistoryPage() {
           {myUploads.map((v) => (
             <li
               key={v.id}
-              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
+              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-surface p-3 shadow-sm sm:p-4"
             >
               <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 text-white/80 sm:h-20 sm:w-32">
                 <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
@@ -112,7 +112,7 @@ export default function HistoryPage() {
           <li key={a.id}>
             <Link
               href={`/feedback/${a.id}`}
-              className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-300 hover:shadow sm:p-4"
+              className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-surface p-3 shadow-sm transition hover:border-sky-300 hover:shadow sm:p-4"
             >
               <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 sm:h-20 sm:w-32">
                 <svg viewBox="0 0 120 80" className="absolute inset-0 h-full w-full text-white/15" aria-hidden="true">

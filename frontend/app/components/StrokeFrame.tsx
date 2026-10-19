@@ -152,7 +152,7 @@ export function StrokeFrame({
             <span className="h-0 w-5 border-t-2 border-dashed border-teal-400" /> Target entry
           </span>
           <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full border border-sky-900 bg-white" /> Tracked
+            <span className="h-2.5 w-2.5 rounded-full border border-sky-900 bg-surface" /> Tracked
             joints
           </span>
         </figcaption>

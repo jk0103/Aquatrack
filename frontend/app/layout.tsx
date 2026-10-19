@@ -17,12 +17,24 @@ export const metadata: Metadata = {
   description: "Personalized swim technique feedback from your swim videos",
 };
 
+// Runs before the page paints so a dark-mode visitor never sees a white flash.
+const themeScript = `try {
+  var t = localStorage.getItem("aquatrack-theme");
+  if (t === "dark" || (!t && matchMedia("(prefers-color-scheme: dark)").matches)) {
+    document.documentElement.classList.add("dark");
+  }
+} catch (e) {}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

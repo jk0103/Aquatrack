@@ -5,8 +5,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
 import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
-import { Badge, Button, ButtonLink, Card, PageHeader } from "@/app/components/ui";
+import { Badge, Button, ButtonLink, Card, PageHeader, Stat } from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
+import { analyses, formatTime, progression } from "@/app/lib/mock";
 import {
   BODY_CHECKS,
   checkDraft,
@@ -116,6 +117,8 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      {!editing && <SwimStats />}
+
       {loadError ? (
         <FormError message={loadError} />
       ) : profile === undefined ? (
@@ -135,7 +138,7 @@ export default function ProfilePage() {
           <Card title="Personal bests">
             <PbFields draft={draft} set={set} />
           </Card>
-          <div className="sticky bottom-20 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur sm:bottom-4">
+          <div className="sticky bottom-20 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-surface/95 p-3 shadow-sm backdrop-blur sm:bottom-4">
             <button
               type="button"
               onClick={() => setEditing(false)}
@@ -206,6 +209,20 @@ function Item({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-sm text-slate-500">{label}</dt>
       <dd className="mt-0.5 text-lg font-semibold text-slate-900">{value}</dd>
+    </div>
+  );
+}
+
+// Headline numbers, moved here from the Home page. Placeholder data until analysis is live.
+function SwimStats() {
+  const best = Math.min(...progression["100 m Freestyle"].map((e) => e.seconds));
+  const latest = analyses.find((a) => a.status === "Ready")!;
+  return (
+    <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
+      <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />
+      <Stat label="Swims analyzed" value={`${analyses.length}`} />
+      <Stat label="Sessions this week" value="2 of 5" />
     </div>
   );
 }

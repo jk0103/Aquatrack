@@ -8,7 +8,7 @@ const highlights = [
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-1 bg-white">
+    <div className="flex min-h-screen flex-1 bg-surface">
       <aside className="relative hidden w-[44%] overflow-hidden bg-gradient-to-br from-sky-900 via-sky-800 to-cyan-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div className="relative z-10 max-w-md">

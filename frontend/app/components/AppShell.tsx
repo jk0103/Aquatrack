@@ -17,6 +17,7 @@ import {
   VideoIcon,
 } from "@/app/components/icons";
 import { Logo } from "@/app/components/Logo";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { auth } from "@/app/lib/firebase";
 
 const nav = [
@@ -43,7 +44,8 @@ const tabs = ["/", "/analyze", "/training", "/calendar", "/progress"];
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/history") return pathname.startsWith("/history") || pathname.startsWith("/feedback");
+  if (href === "/history")
+    return pathname.startsWith("/history") || pathname.startsWith("/feedback");
   return pathname.startsWith(href);
 }
 
@@ -91,14 +93,23 @@ export function AppShell({ children }: { children: ReactNode }) {
               href={href}
               onClick={() => setMenuOpen(false)}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+              className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-2 py-2 text-sm font-medium transition duration-300 ${
                 active
-                  ? "bg-white/15 text-white"
-                  : "text-sky-100/80 hover:bg-white/10 hover:text-white"
+                  ? "bg-gradient-to-r from-sky-400/25 via-cyan-300/10 to-white/5 text-white shadow-[0_0_28px_-8px_rgba(56,189,248,0.75)] ring-1 ring-white/20 backdrop-blur-md"
+                  : "text-sky-100/75 ring-white/10 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-white hover:ring-1"
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition duration-300 ${
+                  active
+                    ? "bg-gradient-to-br from-cyan-300 to-sky-500 text-sky-950 shadow-[0_0_16px_rgba(103,232,249,0.65)]"
+                    : "bg-white/[0.06] ring-1 ring-white/10 group-hover:bg-white/10"
+                }`}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+              </span>
               {label}
+              {active && <Sparkles />}
             </Link>
           </li>
         );
@@ -121,16 +132,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen flex-1 bg-slate-50">
+    <div className="flex min-h-screen flex-1 bg-slate-50 transition-colors duration-300">
       {/* Sidebar on laptops */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden bg-gradient-to-b from-sky-900 to-sky-950 p-5 lg:flex">
-        <div>
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden bg-gradient-to-b from-sky-900 to-[#04121f] p-5 lg:flex">
+        {/* Soft light behind the glass */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 bottom-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl"
+        />
+        <div className="relative">
           <Link href="/" className="mb-8 block px-2 text-white">
             <Logo />
           </Link>
           <nav aria-label="Main">{navLinks}</nav>
         </div>
-        <div className="relative z-10">{account}</div>
+        <div className="relative z-10 space-y-4">
+          <ThemeToggle className="w-fit" />
+          {account}
+        </div>
         <LaneLines />
       </aside>
 
@@ -140,19 +163,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/">
             <Logo />
           </Link>
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="rounded-lg p-2 hover:bg-white/10"
-            aria-label="Open menu"
-          >
-            <MenuIcon className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="rounded-lg p-2 hover:bg-white/10"
+              aria-label="Open menu"
+            >
+              <MenuIcon className="h-6 w-6" />
+            </button>
+          </div>
         </header>
 
         {menuOpen && (
           <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
             <button
-              className="absolute inset-0 bg-slate-900/50"
+              className="absolute inset-0 bg-black/50"
               aria-label="Close menu"
               onClick={() => setMenuOpen(false)}
             />
@@ -182,7 +208,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Bottom tabs on phones */}
         <nav
           aria-label="Quick links"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
         >
           {nav
             .filter(({ href }) => tabs.includes(href))
@@ -225,5 +251,24 @@ function LaneLines() {
         />
       ))}
     </svg>
+  );
+}
+
+// Tiny twinkling dots on the selected page, like light catching the water.
+function Sparkles() {
+  return (
+    <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 w-10">
+      {[
+        ["top-2 right-1", "0s"],
+        ["top-5 right-5", "0.8s"],
+        ["bottom-2 right-2", "1.6s"],
+      ].map(([pos, delay]) => (
+        <span
+          key={pos}
+          className={`sparkle absolute h-1 w-1 rounded-full bg-white ${pos}`}
+          style={{ animationDelay: delay }}
+        />
+      ))}
+    </span>
   );
 }

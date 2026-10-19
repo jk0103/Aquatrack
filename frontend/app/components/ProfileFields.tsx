@@ -12,7 +12,7 @@ type FieldsProps = {
 };
 
 const inputClass =
-  "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm " +
+  "block w-full rounded-lg border border-slate-300 bg-surface px-3.5 py-2.5 text-slate-900 shadow-sm " +
   "placeholder:text-slate-400 focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
 
 function NumberField({
@@ -69,7 +69,7 @@ function Chip({
       className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
         on
           ? "bg-sky-700 text-white shadow-sm"
-          : "border border-slate-300 bg-white text-slate-700 hover:border-sky-400"
+          : "border border-slate-300 bg-surface text-slate-700 hover:border-sky-400"
       }`}
     >
       {children}
@@ -250,7 +250,7 @@ export function PbFields({ draft, set }: FieldsProps) {
               type="button"
               onClick={() => set({ pbs: rows.filter((_, j) => j !== i) })}
               aria-label="Remove this time"
-              className="col-start-2 row-start-1 self-start rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-white hover:text-slate-700 sm:col-start-auto sm:row-start-auto sm:self-end sm:py-2.5"
+              className="col-start-2 row-start-1 self-start rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-surface hover:text-slate-700 sm:col-start-auto sm:row-start-auto sm:self-end sm:py-2.5"
             >
               ×
             </button>

@@ -53,7 +53,7 @@ export function TimeChart({
               x2={width - pad.right}
               y1={y(t)}
               y2={y(t)}
-              stroke="#e2e8f0"
+              className="stroke-slate-200"
               strokeDasharray="4 6"
             />
             <text x={pad.left - 10} y={y(t) + 4} textAnchor="end" className="fill-slate-400 text-[12px]">
@@ -85,7 +85,7 @@ export function TimeChart({
       )}
 
       <path d={area} fill="url(#water)" />
-      <path d={line} fill="none" stroke="#0369a1" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={line} fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinejoin="round" />
 
       {entries.map((e) => (
         <circle
@@ -94,7 +94,7 @@ export function TimeChart({
           cy={y(e.seconds)}
           r={e.meet ? 5.5 : 4}
           fill={e.meet ? "#4f46e5" : "#fff"}
-          stroke={e.meet ? "#fff" : "#0369a1"}
+          stroke={e.meet ? "#fff" : "#0284c7"}
           strokeWidth="2"
         >
           <title>{`${formatDate(e.date)}: ${formatTime(e.seconds)}${e.meet ? " (meet)" : ""}`}</title>

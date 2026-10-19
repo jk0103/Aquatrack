@@ -16,7 +16,7 @@ const cameras = [
 ];
 
 const selectClass =
-  "block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
+  "block w-full rounded-lg border border-slate-300 bg-surface px-3.5 py-2.5 text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15";
 
 export default function AnalyzePage() {
   const user = useUser();
@@ -95,7 +95,7 @@ export default function AnalyzePage() {
             htmlFor="video"
             className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-sky-300 bg-sky-50/60 px-6 py-12 text-center transition hover:border-sky-500 hover:bg-sky-50"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-sky-700 shadow-sm">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-sky-700 shadow-sm">
               <UploadIcon className="h-6 w-6" />
             </span>
             <span className="mt-4 font-semibold text-slate-900">

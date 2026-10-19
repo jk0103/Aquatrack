@@ -76,7 +76,7 @@ export default function CalendarPage() {
                   onClick={() => setFilter(f)}
                   aria-pressed={filter === f}
                   className={`rounded-md px-3 py-1.5 font-medium ${
-                    filter === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                    filter === f ? "bg-surface text-slate-900 shadow-sm" : "text-slate-500"
                   }`}
                 >
                   {f === "Meet" ? "Meets" : f}
@@ -93,7 +93,7 @@ export default function CalendarPage() {
               </div>
             ))}
             {days.map((d, i) => {
-              if (!d) return <div key={i} className="min-h-14 bg-white sm:min-h-24" />;
+              if (!d) return <div key={i} className="min-h-14 bg-surface sm:min-h-24" />;
               const key = iso(d);
               const dayEvents = byDate.get(key) ?? [];
               const isToday = key === TODAY;
@@ -102,7 +102,7 @@ export default function CalendarPage() {
                 <button
                   key={key}
                   onClick={() => setSelected(key)}
-                  className={`flex min-h-14 flex-col items-stretch gap-1 bg-white p-1 text-left transition hover:bg-sky-50/60 sm:min-h-24 sm:p-1.5 ${
+                  className={`flex min-h-14 flex-col items-stretch gap-1 bg-surface p-1 text-left transition hover:bg-sky-50/60 sm:min-h-24 sm:p-1.5 ${
                     isSelected ? "ring-2 ring-inset ring-sky-600" : ""
                   }`}
                 >

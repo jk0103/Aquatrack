@@ -35,7 +35,7 @@ export default function ProgressPage() {
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition ${
               event === name
                 ? "bg-sky-700 text-white shadow-sm"
-                : "border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                : "border border-slate-300 bg-surface text-slate-600 hover:bg-slate-50"
             }`}
           >
             {name}
@@ -59,7 +59,7 @@ export default function ProgressPage() {
         action={
           <div className="flex gap-4 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-sky-700 bg-white" /> Practice
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-sky-700 bg-surface" /> Practice
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-indigo-600" /> Meet

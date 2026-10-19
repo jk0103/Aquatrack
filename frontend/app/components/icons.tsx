@@ -99,3 +99,9 @@ export const TrophyIcon = (p: P) => (
     <path d="M12 13v4M8.5 21h7M9.5 17h5v4h-5z" />
   </Icon>
 );
+
+export const ArrowUpRightIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M7 17 17 7M8 7h9v9" />
+  </Icon>
+);
