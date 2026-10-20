@@ -10,7 +10,8 @@ research/swim-pose/
 ├── notebooks/
 │   ├── aquatrack_swimxyz_finetune.ipynb         first Colab training (small SwimXYZ subset)
 │   ├── aquatrack_swimxyz_full_freestyle.ipynb   training on all SwimXYZ freestyle videos
-│   └── aquatrack_vitpose_vs_yolo.ipynb          side-by-side model comparisons (Parts 1 to 4)
+│   ├── aquatrack_vitpose_vs_yolo.ipynb          side-by-side model comparisons (Parts 1 to 4)
+│   └── aquatrack_rtmw_swim_finetune.ipynb       fine-tuning RTMW-x on swimmers (body and feet)
 └── docs/
     ├── swim-pose-model-review.md                review of the model work as of 2026-10-12
     └── real-swim-pose-datasets.md               search for real (not computer-generated) swim data
@@ -30,6 +31,7 @@ research/swim-pose/
 | Oct 14 to 15 | Search for real swim datasets | No public dataset of real swimmers has both labels and videos. [docs/real-swim-pose-datasets.md](docs/real-swim-pose-datasets.md) |
 | Oct 19 | Off-the-shelf ViTPose-B inside our YOLO's swimmer box, against our YOLO (Part 1) | ViTPose placed the joints clearly better on both photos and on the underwater video |
 | Oct 19 | More comparisons added: original `yolo11n` against ours (Part 2), ViTPose against MediaPipe (Part 3), hands and feet (Part 4) | Results pending |
+| Oct 20 | RTMW-x chosen for whole-body points; fine-tuning notebook written | Not run yet. It reuses the YOLO shards and only adds SwimXYZ's 25-point labels (feet) |
 
 ## Results
 
@@ -58,6 +60,8 @@ the hips in most frames, so its extra hand and foot points weren't trustworthy t
   RTMW-x 256x192 67.2, RTMW-l 256x192 66.0, RTMW-m 256x192 58.2; ViTPose whole-body H 61.2, L 60.6, B 57.4,
   S 54.4. RTMW's lead is not just model size: RTMW-l beats the much bigger ViTPose-H. Only the RTMW-l and RTMW-m
   models have ONNX downloads, so those are the ones rtmlib can run.
+- **RTMW-x is the whole-body model** (2026-10-20). It is fine-tuned on SwimXYZ for the body and feet only, because
+  SwimXYZ has no finger or face labels.
 - **Licenses:** Ultralytics YOLO is AGPL-3.0, which is fine for personal and school use, but a paid product
   would need to be open source or buy a commercial license. ViTPose and rtmlib are Apache 2.0. The SwimXYZ
   license isn't stated, so its data isn't shared here.
@@ -80,6 +84,13 @@ explains its own steps at the top.
   - Part 2: the original `yolo11n` against ours.
   - Part 3: ViTPose-B against MediaPipe.
   - Part 4: whole-body models for hands and feet.
+- **`aquatrack_rtmw_swim_finetune.ipynb`**: fine-tunes RTMW-x with MMPose.
+  - Part A runs on a CPU. It adds SwimXYZ's 25-point labels to the frames already in the YOLO shards, checking them
+    against the old labels, and writes COCO-WholeBody files to `MyDrive/aquatrack_swim_full/rtmw/annotations/`.
+  - Part B runs on a T4 GPU. It fine-tunes the official RTMW-x (384x288) with hand and face points unlabeled, and
+    resumes after a disconnect.
+  - Part C exports ONNX files of the stock and swim models (for rtmlib, Part 4 and the app) and scores both on the
+    held-out swimmer.
 
 ## Not in this repository
 
