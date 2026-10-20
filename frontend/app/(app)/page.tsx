@@ -8,7 +8,6 @@ import {
   CalendarIcon,
   ChartIcon,
   PlanIcon,
-  TrophyIcon,
   UploadIcon,
   VideoIcon,
 } from "@/app/components/icons";
@@ -54,112 +53,51 @@ export default function HomePage() {
   const latest = analyses.find((a) => a.status === "Ready")!;
 
   return (
-    <div className="relative isolate">
-      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-        {/* Hero */}
-        <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:p-8 lg:col-span-2">
-          <Caustics />
-          <SwimmerArt />
-          <div className="relative z-10 max-w-md">
-            <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
-            </h1>
-            <p className="mt-3 text-sky-50/90">
-              {nextMeet
-                ? `${nextMeet.title} is ${daysToMeet === 0 ? "today" : `in ${daysToMeet} days`}. Upload a swim to see what to sharpen before race day.`
-                : "Upload a swim to get feedback on your technique."}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/analyze"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#075985] shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <UploadIcon className="h-4 w-4" />
-                Analyze a swim
-              </Link>
-              <Link
-                href={`/feedback/${latest.id}`}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
-              >
-                Latest feedback
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Two glass tiles beside the hero */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1 lg:gap-6">
-          {nextMeet && (
-            <GlassCard
-              title="Next meet"
-              icon={<TrophyIcon className="h-5 w-5" />}
-              href="/calendar"
-              linkLabel="Open calendar"
-              glow="rgb(129 140 248 / 0.16)"
+    <div className="space-y-5 lg:space-y-6">
+      <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:p-8">
+        <Caustics />
+        <SwimmerArt />
+        <div className="relative z-10 max-w-md">
+          <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+            {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+          </h1>
+          <p className="mt-3 text-sky-50/90">
+            {nextMeet
+              ? `${nextMeet.title} is ${daysToMeet === 0 ? "today" : `in ${daysToMeet} days`}. Upload a swim to see what to sharpen before race day.`
+              : "Upload a swim to get feedback on your technique."}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/analyze"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#075985] shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <p className="text-xl font-semibold tracking-tight text-slate-900">
-                {nextMeet.title}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                {formatDate(nextMeet.date, { weekday: "short" })} · {nextMeet.time}
-              </p>
-              <p className="mt-3 inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                {daysToMeet === 0 ? "Today" : `In ${daysToMeet} days`}
-              </p>
-            </GlassCard>
-          )}
-          <GlassCard
-            title="Latest feedback"
-            icon={<VideoIcon className="h-5 w-5" />}
-            href={`/feedback/${latest.id}`}
-            linkLabel="Open feedback"
-            glow="rgb(45 212 191 / 0.14)"
-          >
-            <div className="flex items-end gap-3">
-              <p className="text-4xl font-semibold tracking-tight text-slate-900">{latest.score}</p>
-              <p className="pb-1 text-sm font-medium text-teal-700">+4 this month</p>
-            </div>
-            <p className="mt-1 truncate text-sm text-slate-600">{latest.headline}</p>
-          </GlassCard>
+              <UploadIcon className="h-4 w-4" />
+              Analyze a swim
+            </Link>
+            <Link
+              href={`/feedback/${latest.id}`}
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
+            >
+              Latest feedback
+            </Link>
+          </div>
         </div>
+      </section>
 
-        {/* Left: this week, then what's after it */}
-        <div className="min-w-0 space-y-5 lg:col-span-2 lg:space-y-6">
+      <GlassCard
+        title="This week"
+        icon={<CalendarIcon className="h-5 w-5" />}
+        href="/calendar"
+        linkLabel="Open calendar"
+      >
+        <WeekStrip days={week} />
+      </GlassCard>
+
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="min-w-0 lg:col-span-2">
           <GlassCard
-            title="This week"
-            icon={<CalendarIcon className="h-5 w-5" />}
-            href="/calendar"
-            linkLabel="Open calendar"
-          >
-            <WeekStrip days={week} />
-          </GlassCard>
-
-          <GlassCard title="Coming up" icon={<CalendarIcon className="h-5 w-5" />}>
-            <p className="-mt-2 mb-3 text-sm text-slate-500">After this week</p>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {upcoming.map((e) => (
-                <li
-                  key={e.date + e.title}
-                  className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
-                >
-                  <DateChip iso={e.date} meet={e.kind === "Meet"} />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{e.title}</p>
-                    <p className="truncate text-sm text-slate-500">
-                      {e.kind === "Meet" ? "Meet" : "Training"} · {e.time}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </GlassCard>
-        </div>
-
-        {/* Right: training and times */}
-        <div className="min-w-0 space-y-5 lg:space-y-6">
-          <GlassCard
-            title="Training"
+            title="Training in progress"
             icon={<PlanIcon className="h-5 w-5" />}
             href="/training"
             linkLabel="All plans"
@@ -181,7 +119,29 @@ export default function HomePage() {
               ))}
             </ul>
           </GlassCard>
-
+        </div>
+        <div className="min-w-0">
+          <GlassCard title="Coming up" icon={<CalendarIcon className="h-5 w-5" />}>
+            <p className="-mt-2 mb-3 text-sm text-slate-500">After this week</p>
+            <ul className="space-y-3">
+              {upcoming.map((e) => (
+                <li
+                  key={e.date + e.title}
+                  className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-100"
+                >
+                  <DateChip iso={e.date} meet={e.kind === "Meet"} />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{e.title}</p>
+                    <p className="truncate text-sm text-slate-500">
+                      {e.kind === "Meet" ? "Meet" : "Training"} · {e.time}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </GlassCard>
+        </div>
+        <div className="min-w-0 lg:col-span-2">
           <GlassCard
             title="100 m freestyle"
             icon={<ChartIcon className="h-5 w-5" />}
@@ -189,6 +149,21 @@ export default function HomePage() {
             linkLabel="Progress"
           >
             <TimeChart entries={progression["100 m Freestyle"]} goal={60} compact />
+          </GlassCard>
+        </div>
+        <div className="min-w-0">
+          <GlassCard
+            title="Latest feedback"
+            icon={<VideoIcon className="h-5 w-5" />}
+            href={`/feedback/${latest.id}`}
+            linkLabel="Open feedback"
+            glow="rgb(45 212 191 / 0.14)"
+          >
+            <div className="flex items-end gap-3">
+              <p className="text-4xl font-semibold tracking-tight text-slate-900">{latest.score}</p>
+              <p className="pb-1 text-sm font-medium text-teal-700">+4 this month</p>
+            </div>
+            <p className="mt-1 truncate text-sm text-slate-600">{latest.headline}</p>
           </GlassCard>
         </div>
       </div>
@@ -220,8 +195,10 @@ function WeekStrip({ days }: { days: string[] }) {
               <Link
                 href="/calendar"
                 className={`flex h-full min-h-[132px] flex-col rounded-2xl p-2.5 transition duration-300 hover:-translate-y-0.5 ${
-                  isToday ? "bg-sky-700 text-white shadow-sm" : "bg-slate-50 hover:bg-slate-100"
-                } ${past ? "opacity-70" : ""}`}
+                  isToday
+                    ? "bg-sky-700 text-white shadow-sm"
+                    : "bg-surface ring-1 ring-slate-300/80 shadow-sm hover:ring-sky-400"
+                } ${past ? "opacity-80" : ""}`}
               >
                 <span
                   className={`text-xs font-semibold uppercase ${isToday ? "text-sky-100" : "text-slate-500"}`}
