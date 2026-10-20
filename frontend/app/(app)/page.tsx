@@ -4,13 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 import { useUser } from "@/app/components/AppShell";
-import {
-  CalendarIcon,
-  ChartIcon,
-  PlanIcon,
-  UploadIcon,
-  VideoIcon,
-} from "@/app/components/icons";
+import { CalendarIcon, ChartIcon, PlanIcon, UploadIcon, VideoIcon } from "@/app/components/icons";
 import { TimeChart } from "@/app/components/TimeChart";
 import { DateChip, GlassCard, LaneProgress } from "@/app/components/ui";
 import {
@@ -94,8 +88,9 @@ export default function HomePage() {
         <WeekStrip days={week} />
       </GlassCard>
 
-      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
-        <div className="min-w-0 lg:col-span-2">
+      {/* Two stacked columns, so a short card never leaves a gap beside a tall one */}
+      <div className="grid items-start gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="min-w-0 space-y-5 lg:col-span-2 lg:space-y-6">
           <GlassCard
             title="Training in progress"
             icon={<PlanIcon className="h-5 w-5" />}
@@ -119,8 +114,16 @@ export default function HomePage() {
               ))}
             </ul>
           </GlassCard>
+          <GlassCard
+            title="100 m freestyle"
+            icon={<ChartIcon className="h-5 w-5" />}
+            href="/progress"
+            linkLabel="Progress"
+          >
+            <TimeChart entries={progression["100 m Freestyle"]} goal={60} compact />
+          </GlassCard>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-5 lg:space-y-6">
           <GlassCard title="Coming up" icon={<CalendarIcon className="h-5 w-5" />}>
             <p className="-mt-2 mb-3 text-sm text-slate-500">After this week</p>
             <ul className="space-y-3">
@@ -140,18 +143,6 @@ export default function HomePage() {
               ))}
             </ul>
           </GlassCard>
-        </div>
-        <div className="min-w-0 lg:col-span-2">
-          <GlassCard
-            title="100 m freestyle"
-            icon={<ChartIcon className="h-5 w-5" />}
-            href="/progress"
-            linkLabel="Progress"
-          >
-            <TimeChart entries={progression["100 m Freestyle"]} goal={60} compact />
-          </GlassCard>
-        </div>
-        <div className="min-w-0">
           <GlassCard
             title="Latest feedback"
             icon={<VideoIcon className="h-5 w-5" />}
