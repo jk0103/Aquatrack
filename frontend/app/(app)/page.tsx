@@ -18,6 +18,8 @@ import {
   type CalendarEvent,
 } from "@/app/lib/mock";
 
+import heroPhoto from "@/public/images/hero-butterfly.jpg";
+
 const DAY = 24 * 60 * 60 * 1000;
 
 function isoDay(d: Date) {
@@ -50,10 +52,11 @@ export default function HomePage() {
   return (
     <div className="space-y-5 lg:space-y-6">
       <section className="relative min-h-[280px] overflow-hidden rounded-2xl bg-sky-950 p-6 text-white shadow-sm sm:p-8">
-        {/* Butterfly swimmer by Gentrit Sylejmani on Unsplash, on the right so the text stays clear */}
+        {/* Butterfly swimmer photo, on the right so the text stays clear */}
         <div className="absolute inset-y-0 right-0 w-full md:w-[68%]">
           <Image
-            src="https://images.unsplash.com/photo-1530549387789-4c1017266635"
+            src={heroPhoto}
+            placeholder="blur"
             alt=""
             fill
             priority
@@ -92,14 +95,6 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        <a
-          href="https://unsplash.com/photos/man-doing-butterfly-stroke-JjUyjE-oEbM"
-          target="_blank"
-          rel="noreferrer"
-          className="absolute right-3 bottom-2 z-10 text-[10px] text-white/60 hover:text-white"
-        >
-          Photo: Gentrit Sylejmani / Unsplash
-        </a>
       </section>
 
       <GlassCard
