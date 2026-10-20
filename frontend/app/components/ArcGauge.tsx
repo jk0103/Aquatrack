@@ -44,7 +44,7 @@ export function ArcGauge({
           fill="none"
           strokeWidth="11"
           strokeLinecap="round"
-          className="stroke-slate-100"
+          className="stroke-slate-200"
         />
         <path
           d={arc}

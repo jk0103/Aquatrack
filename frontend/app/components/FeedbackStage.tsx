@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -250,7 +251,7 @@ function StatsCard({
             <span className="font-semibold text-slate-900">{m.atMeters} m</span> {pct}%
           </span>
         </div>
-        <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-sky-100">
+        <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300/70 ring-inset">
           <div
             className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
             style={{ width: `${pct}%` }}
@@ -300,7 +301,9 @@ function StatsCard({
 }
 
 // Speedometer-style gauge, 0 to 70 strokes per minute, with the target band marked.
-function RateGauge({ value, target }: { value: number; target: [number, number] }) {
+function RateGauge({ value: target_value, target }: { value: number; target: [number, number] }) {
+  // Needle and arc sweep up from 0 when the page opens.
+  const value = useCountUp(target_value);
   const max = 70;
   const start = 135;
   const sweep = 270;
@@ -322,23 +325,25 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
         viewBox="0 0 100 88"
         className="w-full max-w-[150px]"
         role="img"
-        aria-label={`${value} strokes per minute`}
+        aria-label={`${target_value} strokes per minute`}
       >
         <path
           d={arc(0, max, 40)}
           fill="none"
-          className="stroke-slate-200"
+          className="stroke-slate-300"
           strokeWidth="7"
           strokeLinecap="round"
         />
         <path d={arc(target[0], target[1], 40)} fill="none" stroke="#2dd4bf" strokeWidth="7" />
-        <path
-          d={arc(0, value, 40)}
-          fill="none"
-          stroke="#0284c7"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
+        {value > 0.5 && (
+          <path
+            d={arc(0, value, 40)}
+            fill="none"
+            stroke="#0284c7"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        )}
         {[0, 10, 20, 30, 40, 50, 60, 70].map((t) => {
           const [x1, y1] = point(t, 31);
           const [x2, y2] = point(t, 34);
@@ -370,7 +375,7 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
           fontWeight="700"
           className="fill-slate-900"
         >
-          {value}/min
+          {Math.round(value)}/min
         </text>
       </svg>
     </div>
@@ -408,7 +413,7 @@ function WaterGauge({ value }: { value: number }) {
           cy="50"
           r="42"
           fill="none"
-          className="stroke-slate-200"
+          className="stroke-slate-300"
           strokeWidth="4"
           strokeDasharray="2 3"
         />
@@ -679,4 +684,23 @@ function FilterTabs({
       })}
     </div>
   );
+}
+
+// Counts from 0 up to `target` over `ms`, easing out, then stays there. Skipped when the
+// visitor prefers reduced motion.
+function useCountUp(target: number, ms = 1400) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms;
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = duration ? Math.min(1, (now - start) / duration) : 1;
+      setValue(target * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, ms]);
+  return value;
 }

@@ -140,7 +140,7 @@ export function LaneProgress({ value, label }: { value: number; label: string })
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
-      className="h-2.5 overflow-hidden rounded-full bg-sky-100"
+      className="h-2.5 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300/70 ring-inset"
     >
       <div
         className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
