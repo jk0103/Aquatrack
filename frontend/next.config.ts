@@ -5,6 +5,10 @@ import type { NextConfig } from "next";
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+  // Free-to-use photos from Unsplash (unsplash.com/license).
+  images: {
+    remotePatterns: [new URL("https://images.unsplash.com/photo-**")],
+  },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_URL}/:path*` }];
   },

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
@@ -48,9 +49,23 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5 lg:space-y-6">
-      <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:p-8">
-        <Caustics />
-        <SwimmerArt />
+      <section className="relative min-h-[280px] overflow-hidden rounded-2xl bg-sky-950 p-6 text-white shadow-sm sm:p-8">
+        {/* Butterfly swimmer by Gentrit Sylejmani on Unsplash, on the right so the text stays clear */}
+        <div className="absolute inset-y-0 right-0 w-full md:w-[68%]">
+          <Image
+            src="https://images.unsplash.com/photo-1530549387789-4c1017266635"
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="object-cover object-[center_45%]"
+          />
+        </div>
+        {/* Darkens the left side so the text stays readable over the photo */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-sky-950 via-sky-950/70 via-45% to-transparent"
+        />
         <div className="relative z-10 max-w-md">
           <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -77,6 +92,14 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+        <a
+          href="https://unsplash.com/photos/man-doing-butterfly-stroke-JjUyjE-oEbM"
+          target="_blank"
+          rel="noreferrer"
+          className="absolute right-3 bottom-2 z-10 text-[10px] text-white/60 hover:text-white"
+        >
+          Photo: Gentrit Sylejmani / Unsplash
+        </a>
       </section>
 
       <GlassCard
@@ -246,78 +269,5 @@ function WeekEvent({
       </span>
       <span className="block opacity-75">{event.time}</span>
     </span>
-  );
-}
-
-// Light rippling across a pool floor.
-function Caustics() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="absolute inset-0 h-full w-full text-white/[0.08]"
-      viewBox="0 0 400 200"
-      preserveAspectRatio="none"
-    >
-      {[30, 70, 110, 150, 190].map((y, i) => (
-        <path
-          key={y}
-          className={i % 2 ? "drift-slow" : "drift"}
-          d={`M-20 ${y} Q30 ${y - 16} 80 ${y} T180 ${y} T280 ${y} T380 ${y} T480 ${y}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-        />
-      ))}
-    </svg>
-  );
-}
-
-// A freestyle swimmer gliding through the hero, drawn simply.
-function SwimmerArt() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 320 160"
-      className="absolute right-[-30px] bottom-2 hidden w-[52%] max-w-[420px] text-white/60 md:block"
-    >
-      <circle cx="252" cy="70" r="15" fill="currentColor" />
-      <path
-        d="M236 74 C200 80 160 86 120 84 C96 83 78 80 60 76"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="16"
-        strokeLinecap="round"
-      />
-      <path
-        d="M228 70 C252 52 278 46 306 48"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="9"
-        strokeLinecap="round"
-      />
-      <path
-        d="M200 84 C190 104 172 116 150 120"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="9"
-        strokeLinecap="round"
-        opacity="0.7"
-      />
-      <path
-        d="M64 76 C46 70 30 72 14 78 M66 82 C48 92 32 96 16 96"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="8"
-        strokeLinecap="round"
-        opacity="0.8"
-      />
-      <path
-        d="M0 104 Q40 94 80 104 T160 104 T240 104 T320 104"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        opacity="0.5"
-      />
-    </svg>
   );
 }
