@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useUser } from "@/app/components/AppShell";
 import { CalendarIcon, ChartIcon, PlanIcon, UploadIcon, VideoIcon } from "@/app/components/icons";
 import { TimeChart } from "@/app/components/TimeChart";
-import { DateChip, GlassCard, LaneProgress } from "@/app/components/ui";
+import { ArcGauge, DateChip, GlassCard } from "@/app/components/ui";
 import {
   analyses,
   events,
@@ -115,19 +115,22 @@ export default function HomePage() {
             href="/training"
             linkLabel="All plans"
           >
-            <ul className="space-y-4">
+            <ul className="grid grid-cols-3 gap-2 sm:gap-4">
               {trainingPlans.map((plan) => (
-                <li key={plan.id}>
-                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
-                    <p className="truncate text-sm font-medium text-slate-900">{plan.name}</p>
-                    <span className="shrink-0 text-xs text-slate-500">
-                      {plan.done}/{plan.total}
-                    </span>
-                  </div>
-                  <LaneProgress
-                    value={(plan.done / plan.total) * 100}
-                    label={`${plan.name} progress`}
-                  />
+                <li key={plan.id} className="min-w-0 text-center">
+                  <ArcGauge value={(plan.done / plan.total) * 100} label={`${plan.name} progress`}>
+                    <p className="text-lg font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                      {plan.done}
+                      <span className="text-sm font-medium text-slate-400 sm:text-base">
+                        /{plan.total}
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">sessions</p>
+                  </ArcGauge>
+                  <p className="-mt-2 truncate text-sm font-medium text-slate-900">{plan.name}</p>
+                  <p className="text-xs text-slate-500">
+                    Week {plan.week} of {plan.weeks}
+                  </p>
                 </li>
               ))}
             </ul>

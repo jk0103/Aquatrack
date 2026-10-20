@@ -252,12 +252,8 @@ function StatsCard({
         </div>
         <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-sky-100">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
+            className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
             style={{ width: `${pct}%` }}
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0_10px,rgba(255,255,255,0.5)_10px_12px)]"
           />
         </div>
         <div className="mt-2 flex justify-between text-xs text-slate-500">
@@ -366,7 +362,14 @@ function RateGauge({ value, target }: { value: number; target: [number, number] 
           strokeLinecap="round"
         />
         <circle cx="50" cy="50" r="3.5" className="fill-slate-900" />
-        <text x="50" y="84" textAnchor="middle" fontSize="11" fontWeight="700" className="fill-slate-900">
+        <text
+          x="50"
+          y="84"
+          textAnchor="middle"
+          fontSize="11"
+          fontWeight="700"
+          className="fill-slate-900"
+        >
           {value}/min
         </text>
       </svg>
@@ -523,7 +526,9 @@ function RoundButton({
       aria-label={label}
       title={label}
       className={`flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-full shadow-md transition ${
-        active ? "bg-white text-[#075985]" : "bg-white/20 text-white backdrop-blur hover:bg-white/30"
+        active
+          ? "bg-white text-[#075985]"
+          : "bg-white/20 text-white backdrop-blur hover:bg-white/30"
       }`}
     >
       <svg

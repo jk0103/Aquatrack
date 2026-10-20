@@ -37,9 +37,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section
-      className={`rounded-2xl glass p-5 sm:p-6 ${className}`}
-    >
+    <section className={`rounded-2xl glass p-5 sm:p-6 ${className}`}>
       {title && (
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="font-semibold text-slate-900">{title}</h2>
@@ -132,7 +130,7 @@ export function Badge({
   );
 }
 
-// A progress bar drawn as a swim lane: a rope-like track with a filled stretch.
+// A smooth progress bar that fills from empty when the page opens.
 export function LaneProgress({ value, label }: { value: number; label: string }) {
   const pct = Math.max(0, Math.min(100, value));
   return (
@@ -142,15 +140,11 @@ export function LaneProgress({ value, label }: { value: number; label: string })
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
-      className="relative h-2.5 overflow-hidden rounded-full bg-sky-100"
+      className="h-2.5 overflow-hidden rounded-full bg-sky-100"
     >
       <div
-        className="h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
+        className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
         style={{ width: `${pct}%` }}
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0_10px,rgba(255,255,255,0.45)_10px_12px)]"
       />
     </div>
   );
@@ -263,3 +257,5 @@ export function GlassCard({
     </section>
   );
 }
+
+export { ArcGauge } from "@/app/components/ArcGauge";
