@@ -38,7 +38,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-6 ${className}`}
+      className={`rounded-2xl glass p-5 sm:p-6 ${className}`}
     >
       {title && (
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -158,7 +158,7 @@ export function LaneProgress({ value, label }: { value: number; label: string })
 
 export function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-surface p-4 shadow-sm sm:p-5">
+    <div className="rounded-2xl glass p-4 sm:p-5">
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
       {note && <p className="mt-1 text-xs font-medium text-teal-700">{note}</p>}

@@ -95,15 +95,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-current={active ? "page" : undefined}
               className={`group relative flex items-center gap-3 overflow-hidden rounded-xl px-2 py-2 text-sm font-medium transition duration-300 ${
                 active
-                  ? "bg-white/10 text-white ring-1 ring-white/10"
-                  : "text-sky-100/75 ring-white/10 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-white hover:ring-1"
+                  ? "bg-sky-50 text-sky-800"
+                  : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition duration-300 ${
                   active
-                    ? "bg-cyan-300 text-sky-950"
-                    : "bg-white/[0.06] ring-1 ring-white/10 group-hover:bg-white/10"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700"
                 }`}
               >
                 <Icon className="h-[18px] w-[18px]" />
@@ -117,13 +117,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   const account = user && (
-    <div className="flex items-center gap-3 border-t border-white/10 pt-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-400/20 text-sm font-semibold text-cyan-100">
+    <div className="flex items-center gap-3 border-t border-slate-200/70 pt-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800">
         {initials}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">{user.name}</p>
-        <button onClick={logout} className="text-xs text-sky-200 hover:text-white">
+        <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
+        <button onClick={logout} className="text-xs text-slate-500 hover:text-sky-700">
           Log out
         </button>
       </div>
@@ -131,20 +131,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen flex-1 bg-slate-50 transition-colors duration-300">
+    <div className="relative isolate flex min-h-screen flex-1 bg-slate-50 transition-colors duration-300">
+      <WaterBackdrop />
       {/* Sidebar on laptops */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden bg-gradient-to-b from-sky-900 to-[#04121f] p-5 lg:flex">
-        {/* Soft light behind the glass */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-24 bottom-24 h-64 w-64 rounded-full bg-sky-500/[0.08] blur-3xl"
-        />
+      {/* Sidebar on laptops: frosted, so the page's water light shows through */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden border-r border-slate-200/70 bg-surface/60 p-5 backdrop-blur-xl lg:flex">
         <div className="relative">
-          <Link href="/" className="mb-8 block px-2 text-white">
+          <Link href="/" className="mb-8 block px-2 text-sky-800">
             <Logo />
           </Link>
           <nav aria-label="Main">{navLinks}</nav>
@@ -158,15 +151,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar on phones and tablets */}
-        <header className="sticky top-0 z-30 flex items-center justify-between bg-sky-900 px-4 py-3 text-white lg:hidden">
-          <Link href="/">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/70 bg-surface/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <Link href="/" className="text-sky-800">
             <Logo />
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
               onClick={() => setMenuOpen(true)}
-              className="rounded-lg p-2 hover:bg-white/10"
+              className="rounded-lg p-2 text-slate-700 hover:bg-slate-100"
               aria-label="Open menu"
             >
               <MenuIcon className="h-6 w-6" />
@@ -181,13 +174,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Close menu"
               onClick={() => setMenuOpen(false)}
             />
-            <div className="absolute inset-y-0 right-0 flex w-72 max-w-[85%] flex-col justify-between bg-sky-900 p-5">
+            <div className="absolute inset-y-0 right-0 flex w-72 max-w-[85%] flex-col justify-between bg-surface p-5">
               <div>
-                <div className="mb-6 flex items-center justify-between text-white">
+                <div className="mb-6 flex items-center justify-between text-sky-800">
                   <Logo />
                   <button
                     onClick={() => setMenuOpen(false)}
-                    className="rounded-lg p-2 hover:bg-white/10"
+                    className="rounded-lg p-2 text-slate-700 hover:bg-slate-100"
                     aria-label="Close menu"
                   >
                     <CloseIcon className="h-6 w-6" />
@@ -236,7 +229,7 @@ function LaneLines() {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-48 w-full text-white/[0.07]"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-48 w-full text-sky-500/[0.08]"
       viewBox="0 0 200 150"
       preserveAspectRatio="none"
     >
@@ -250,5 +243,16 @@ function LaneLines() {
         />
       ))}
     </svg>
+  );
+}
+
+// Soft, slowly drifting colour behind every page so the frosted cards have something to blur.
+function WaterBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="drift absolute top-[-8%] left-[18%] h-[440px] w-[440px] rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-500/10" />
+      <div className="drift-slow absolute top-[35%] right-[-6%] h-[480px] w-[480px] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/[0.06]" />
+      <div className="drift absolute bottom-[-10%] left-[-4%] h-[400px] w-[400px] rounded-full bg-indigo-300/15 blur-3xl dark:bg-indigo-500/[0.08]" />
+    </div>
   );
 }

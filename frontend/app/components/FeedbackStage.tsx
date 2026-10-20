@@ -151,7 +151,7 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <section className="rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-6 lg:col-span-3">
+        <section className="rounded-2xl glass p-5 sm:p-6 lg:col-span-3">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold text-slate-900">Feedback</h2>
             <FilterTabs value={filter} onChange={setFilter} count={count} />

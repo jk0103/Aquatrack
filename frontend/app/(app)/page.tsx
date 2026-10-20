@@ -55,8 +55,6 @@ export default function HomePage() {
 
   return (
     <div className="relative isolate">
-      <WaterBackdrop />
-
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Hero */}
         <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600 p-6 text-white shadow-sm sm:p-8 lg:col-span-2">
@@ -280,20 +278,6 @@ function WeekEvent({
       </span>
       <span className="block opacity-75">{event.time}</span>
     </span>
-  );
-}
-
-// Soft, slowly drifting colour behind the glass so it has something to blur.
-function WaterBackdrop() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute -inset-x-4 -top-6 -bottom-6 -z-10 overflow-hidden sm:-inset-x-8"
-    >
-      <div className="drift absolute top-[-6%] left-[8%] h-[420px] w-[420px] rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-500/10" />
-      <div className="drift-slow absolute top-[30%] right-[-4%] h-[460px] w-[460px] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/[0.06]" />
-      <div className="drift absolute bottom-[-8%] left-[30%] h-[380px] w-[380px] rounded-full bg-indigo-300/15 blur-3xl dark:bg-indigo-500/[0.08]" />
-    </div>
   );
 }
 

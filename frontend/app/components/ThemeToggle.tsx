@@ -32,11 +32,11 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <div
       role="group"
       aria-label="Colour theme"
-      className={`relative flex rounded-full bg-white/10 p-1 ring-1 ring-white/15 ${className}`}
+      className={`relative flex rounded-full bg-slate-100 p-1 ring-1 ring-slate-200 ${className}`}
     >
       <span
         aria-hidden="true"
-        className={`absolute top-1 bottom-1 left-1 w-9 rounded-full bg-white/90 shadow transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`absolute top-1 bottom-1 left-1 w-9 rounded-full bg-surface shadow transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           dark ? "translate-x-9" : ""
         }`}
       />
@@ -48,7 +48,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           aria-label={o.label}
           title={o.label}
           className={`relative flex h-8 w-9 items-center justify-center rounded-full transition-colors duration-300 ${
-            dark === o.value ? "text-[#075985]" : "text-white/70 hover:text-white"
+            dark === o.value ? "text-sky-700" : "text-slate-500 hover:text-slate-800"
           }`}
         >
           {o.icon}
