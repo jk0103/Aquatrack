@@ -119,8 +119,8 @@ body {
   background: rgb(255 255 255 / 0.82);
   border: 1px solid rgb(226 232 240 / 0.8);
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 .dark .glass {
   background: rgb(15 29 49 / 0.82);
@@ -223,20 +223,6 @@ input[type="number"] {
   }
 }
 
-/* Home page: slow drifting light blobs behind the glass */
-@keyframes drift {
-  50% {
-    transform: translate(4%, 6%) scale(1.08);
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .drift {
-    animation: drift 14s ease-in-out infinite;
-  }
-  .drift-slow {
-    animation: drift 20s ease-in-out infinite reverse;
-  }
-}
 
 /* Progress bars and arc gauges fill up when a page opens */
 @keyframes bar-fill {
@@ -252,4 +238,24 @@ input[type="number"] {
   .arc-fill {
     transition: stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
+}
+
+/* Bigger tap area for small controls without changing how they look */
+.tap-target {
+  position: relative;
+}
+.tap-target::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.tap-target-y::after {
+  inset: -6px 0;
+}
+
+/* Headings break into even lines */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }

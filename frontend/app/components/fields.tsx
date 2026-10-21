@@ -9,7 +9,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 const inputClass =
   "block w-full rounded-lg border border-slate-300 bg-surface px-3.5 py-2.5 text-slate-900 " +
-  "shadow-sm placeholder:text-slate-400 focus:border-sky-600 focus:outline-none " +
+  "shadow-sm placeholder:text-slate-500 focus:border-sky-600 focus:outline-none " +
   "focus:ring-4 focus:ring-sky-600/15";
 
 export function TextField({ label, hint, id, ...props }: FieldProps) {

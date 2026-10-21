@@ -226,7 +226,7 @@ function StatsCard({
           <button
             onClick={onClose}
             aria-label="Hide stats"
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
             <svg
               viewBox="0 0 24 24"
@@ -339,7 +339,7 @@ function RateGauge({ value: target_value, target }: { value: number; target: [nu
           <path
             d={arc(0, value, 40)}
             fill="none"
-            stroke="#0284c7"
+            className="stroke-sky-600"
             strokeWidth="3"
             strokeLinecap="round"
           />
@@ -351,7 +351,7 @@ function RateGauge({ value: target_value, target }: { value: number; target: [nu
           return (
             <g key={t}>
               <line x1={x1} y1={y1} x2={x2} y2={y2} className="stroke-slate-400" strokeWidth="1" />
-              <text x={tx} y={ty + 2} textAnchor="middle" fontSize="5.5" className="fill-slate-400">
+              <text x={tx} y={ty + 2} textAnchor="middle" fontSize="5.5" className="fill-slate-500">
                 {t}
               </text>
             </g>
@@ -530,7 +530,7 @@ function RoundButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-full shadow-md transition ${
+      className={`tap-target flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-full shadow-md transition ${
         active
           ? "bg-white text-[#075985]"
           : "bg-white/20 text-white backdrop-blur hover:bg-white/30"
@@ -656,7 +656,7 @@ function FilterTabs({
             }}
             onClick={() => onChange(f)}
             aria-pressed={on}
-            className={`group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
+            className={`tap-target-y group tap-target relative flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors duration-300 ${
               on ? "text-slate-900" : "text-slate-500 hover:text-sky-800"
             } ${pill ? "" : on ? "bg-surface shadow-sm" : ""}`}
           >
@@ -671,7 +671,7 @@ function FilterTabs({
               {f}
             </span>
             <span
-              className={`relative rounded-full px-1.5 text-xs transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-115 ${
+              className={`relative rounded-full px-1.5 text-xs transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-115 ${
                 on
                   ? "bg-sky-700 text-white"
                   : "bg-slate-200 text-slate-600 group-hover:bg-sky-200 group-hover:text-sky-800"

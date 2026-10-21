@@ -139,7 +139,7 @@ export default function HistoryPage() {
                   <p className="text-xs text-slate-500">score</p>
                 </div>
               )}
-              <ChevronIcon className="h-5 w-5 shrink-0 text-slate-400 group-hover:text-sky-700" />
+              <ChevronIcon className="h-5 w-5 shrink-0 text-slate-500 group-hover:text-sky-700" />
             </Link>
           </li>
         ))}

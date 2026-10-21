@@ -47,7 +47,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           aria-pressed={dark === o.value}
           aria-label={o.label}
           title={o.label}
-          className={`relative flex h-8 w-9 items-center justify-center rounded-full transition-colors duration-300 ${
+          className={`tap-target relative flex h-8 w-9 items-center justify-center rounded-full transition-colors duration-300 ${
             dark === o.value ? "text-sky-700" : "text-slate-500 hover:text-slate-800"
           }`}
         >

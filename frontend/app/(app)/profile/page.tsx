@@ -5,7 +5,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
 import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
-import { Badge, Button, ButtonLink, Card, PageHeader, Stat } from "@/app/components/ui";
+import {
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  ExampleNote,
+  PageHeader,
+  Stat,
+} from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { analyses, formatTime, progression } from "@/app/lib/mock";
 import {
@@ -218,11 +226,14 @@ function SwimStats() {
   const best = Math.min(...progression["100 m Freestyle"].map((e) => e.seconds));
   const latest = analyses.find((a) => a.status === "Ready")!;
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
-      <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />
-      <Stat label="Swims analyzed" value={`${analyses.length}`} />
-      <Stat label="Sessions this week" value="2 of 5" />
+    <div className="mb-6 space-y-3">
+      <ExampleNote>These stats are examples until your swims are analyzed.</ExampleNote>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
+        <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />
+        <Stat label="Swims analyzed" value={`${analyses.length}`} />
+        <Stat label="Sessions this week" value="2 of 5" />
+      </div>
     </div>
   );
 }

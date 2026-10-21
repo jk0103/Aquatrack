@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </ul>
         </div>
-        <p className="relative z-10 text-sm text-sky-200">
+        <p className="relative z-10 text-sm text-sky-100">
           Personalized swim technique feedback
         </p>
         {/* Lane lines */}

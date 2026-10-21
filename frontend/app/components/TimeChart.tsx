@@ -24,7 +24,8 @@ export function TimeChart({
   const start = new Date(entries[0].date).getTime();
   const end = new Date(entries[entries.length - 1].date).getTime();
   const x = (iso: string) =>
-    pad.left + ((new Date(iso).getTime() - start) / Math.max(end - start, 1)) * (width - pad.left - pad.right);
+    pad.left +
+    ((new Date(iso).getTime() - start) / Math.max(end - start, 1)) * (width - pad.left - pad.right);
   const y = (sec: number) => pad.top + ((sec - lo) / (hi - lo)) * (height - pad.top - pad.bottom);
 
   const line = entries.map((e, i) => `${i ? "L" : "M"}${x(e.date)},${y(e.seconds)}`).join(" ");
@@ -56,7 +57,12 @@ export function TimeChart({
               className="stroke-slate-200"
               strokeDasharray="4 6"
             />
-            <text x={pad.left - 10} y={y(t) + 4} textAnchor="end" className="fill-slate-400 text-[12px]">
+            <text
+              x={pad.left - 10}
+              y={y(t) + 4}
+              textAnchor="end"
+              className="fill-slate-500 text-[12px]"
+            >
               {formatTime(t)}
             </text>
           </g>
@@ -85,7 +91,13 @@ export function TimeChart({
       )}
 
       <path d={area} fill="url(#water)" />
-      <path d={line} fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinejoin="round" />
+      <path
+        d={line}
+        fill="none"
+        className="stroke-sky-600"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
 
       {entries.map((e) => (
         <circle
@@ -93,8 +105,7 @@ export function TimeChart({
           cx={x(e.date)}
           cy={y(e.seconds)}
           r={e.meet ? 5.5 : 4}
-          fill={e.meet ? "#4f46e5" : "#fff"}
-          stroke={e.meet ? "#fff" : "#0284c7"}
+          className={e.meet ? "fill-indigo-600 stroke-surface" : "fill-surface stroke-sky-600"}
           strokeWidth="2"
         >
           <title>{`${formatDate(e.date)}: ${formatTime(e.seconds)}${e.meet ? " (meet)" : ""}`}</title>
@@ -107,7 +118,7 @@ export function TimeChart({
           x={x(e.date)}
           y={height - 6}
           textAnchor={i ? "end" : "start"}
-          className="fill-slate-400 text-[12px]"
+          className="fill-slate-500 text-[12px]"
         >
           {formatDate(e.date)}
         </text>

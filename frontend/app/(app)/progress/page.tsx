@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { TimeChart } from "@/app/components/TimeChart";
-import { Card, PageHeader, Stat } from "@/app/components/ui";
+import { Card, ExampleNote, PageHeader, Stat } from "@/app/components/ui";
 import { formatDate, formatTime, progression } from "@/app/lib/mock";
 
 const goals: Record<string, number> = {
@@ -24,6 +24,11 @@ export default function ProgressPage() {
   return (
     <>
       <PageHeader title="Progress" subtitle="How your times are dropping over the season." />
+      <div className="mb-6">
+        <ExampleNote>
+          These times are examples. Your own times will appear here as you log them.
+        </ExampleNote>
+      </div>
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Event">
         {names.map((name) => (
@@ -50,7 +55,11 @@ export default function ProgressPage() {
           value={`−${(first.seconds - latest.seconds).toFixed(2)} s`}
           note={`since ${formatDate(first.date)}`}
         />
-        <Stat label="Goal" value={formatTime(goal)} note={`${(latest.seconds - goal).toFixed(2)} s to go`} />
+        <Stat
+          label="Goal"
+          value={formatTime(goal)}
+          note={`${(latest.seconds - goal).toFixed(2)} s to go`}
+        />
         <Stat label="Swims logged" value={`${entries.length}`} />
       </div>
 
@@ -59,7 +68,8 @@ export default function ProgressPage() {
         action={
           <div className="flex gap-4 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-sky-700 bg-surface" /> Practice
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-sky-700 bg-surface" />{" "}
+              Practice
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-indigo-600" /> Meet
@@ -89,13 +99,19 @@ export default function ProgressPage() {
                 const diff = prev ? e.seconds - prev.seconds : null;
                 return (
                   <tr key={e.date} className="border-b border-slate-100 last:border-0">
-                    <td className="py-2.5 pr-4 text-slate-700">{formatDate(e.date, { year: "numeric" })}</td>
-                    <td className="py-2.5 pr-4 font-medium text-slate-900">{formatTime(e.seconds)}</td>
+                    <td className="py-2.5 pr-4 text-slate-700">
+                      {formatDate(e.date, { year: "numeric" })}
+                    </td>
+                    <td className="py-2.5 pr-4 font-medium text-slate-900">
+                      {formatTime(e.seconds)}
+                    </td>
                     <td className="py-2.5 pr-4 text-slate-600">{e.meet ? "Meet" : "Practice"}</td>
                     <td
-                      className={`py-2.5 ${diff === null ? "text-slate-400" : diff < 0 ? "text-teal-700" : "text-amber-700"}`}
+                      className={`py-2.5 ${diff === null ? "text-slate-500" : diff < 0 ? "text-teal-700" : "text-amber-700"}`}
                     >
-                      {diff === null ? "—" : `${diff < 0 ? "−" : "+"}${Math.abs(diff).toFixed(2)} s`}
+                      {diff === null
+                        ? "—"
+                        : `${diff < 0 ? "−" : "+"}${Math.abs(diff).toFixed(2)} s`}
                     </td>
                   </tr>
                 );

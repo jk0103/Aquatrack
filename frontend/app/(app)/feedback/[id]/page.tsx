@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ChevronIcon } from "@/app/components/icons";
 import { FeedbackStage, StatPills } from "@/app/components/FeedbackStage";
-import { Button, Card } from "@/app/components/ui";
+import { Button, Card, ExampleNote } from "@/app/components/ui";
 import { analyses, formatDate } from "@/app/lib/mock";
 
 const suggestedPlan = [
@@ -27,7 +27,7 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
         <Link href="/history" className="text-sky-700 hover:text-sky-900">
           History
         </Link>
-        <span className="mx-2 text-slate-400">/</span>
+        <span className="mx-2 text-slate-500">/</span>
         <span className="text-slate-500">{formatDate(analysis.date, { year: "numeric" })}</span>
       </nav>
 
@@ -41,6 +41,12 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
             {analysis.distance} · {analysis.camera}
           </p>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <ExampleNote>
+          This is an example analysis showing what your feedback will look like.
+        </ExampleNote>
       </div>
 
       <div className="mb-5">

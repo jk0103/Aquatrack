@@ -1,4 +1,11 @@
-import { Badge, ButtonLink, Card, LaneProgress, PageHeader } from "@/app/components/ui";
+import {
+  Badge,
+  ButtonLink,
+  Card,
+  ExampleNote,
+  LaneProgress,
+  PageHeader,
+} from "@/app/components/ui";
 import { trainingPlans } from "@/app/lib/mock";
 
 const thisWeek = [
@@ -19,6 +26,12 @@ export default function TrainingPage() {
         subtitle="Plans you're working through, built from your feedback."
         action={<ButtonLink href="/analyze">Get a new plan</ButtonLink>}
       />
+      <div className="mb-6">
+        <ExampleNote>
+          These training plans are examples. Your own plans will appear here once your swims are
+          analyzed.
+        </ExampleNote>
+      </div>
 
       <Card title="This week" className="mb-6">
         <ol className="grid grid-cols-7 gap-1.5 sm:gap-3">
@@ -29,7 +42,9 @@ export default function TrainingPage() {
                 d.today ? "bg-sky-700 text-white" : d.done ? "bg-sky-50" : "bg-slate-50"
               }`}
             >
-              <span className={`text-xs font-semibold ${d.today ? "text-sky-100" : "text-slate-500"}`}>
+              <span
+                className={`text-xs font-semibold ${d.today ? "text-sky-100" : "text-slate-500"}`}
+              >
                 {d.day}
               </span>
               <span
@@ -74,10 +89,15 @@ export default function TrainingPage() {
             <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
             <p className="mt-1 text-sm text-slate-600">{plan.focus}</p>
             <div className="mt-4">
-              <LaneProgress value={(plan.done / plan.total) * 100} label={`${plan.name} progress`} />
+              <LaneProgress
+                value={(plan.done / plan.total) * 100}
+                label={`${plan.name} progress`}
+              />
             </div>
             <div className="mt-5 flex-1 rounded-xl bg-slate-50 p-3 text-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next session</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Next session
+              </p>
               <p className="mt-1 text-slate-800">{plan.next}</p>
             </div>
             <button className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">

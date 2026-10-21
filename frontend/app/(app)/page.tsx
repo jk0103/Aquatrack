@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useUser } from "@/app/components/AppShell";
 import { CalendarIcon, ChartIcon, PlanIcon, UploadIcon, VideoIcon } from "@/app/components/icons";
 import { TimeChart } from "@/app/components/TimeChart";
-import { ArcGauge, DateChip, GlassCard } from "@/app/components/ui";
+import { ArcGauge, DateChip, ExampleNote, GlassCard } from "@/app/components/ui";
 import {
   analyses,
   events,
@@ -82,20 +82,24 @@ export default function HomePage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/analyze"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#075985] shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#075985] shadow-md transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
             >
               <UploadIcon className="h-4 w-4" />
               Analyze a swim
             </Link>
             <Link
               href={`/feedback/${latest.id}`}
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white ring-1 ring-white/25 transition duration-300 hover:-translate-y-0.5 hover:bg-white/25"
             >
               Latest feedback
             </Link>
           </div>
         </div>
       </section>
+
+      <ExampleNote>
+        Training plans, times and feedback below are examples until your first swim is analyzed.
+      </ExampleNote>
 
       <GlassCard
         title="This week"
@@ -121,7 +125,7 @@ export default function HomePage() {
                   <ArcGauge value={(plan.done / plan.total) * 100} label={`${plan.name} progress`}>
                     <p className="text-lg font-semibold tracking-tight text-slate-900 sm:text-2xl">
                       {plan.done}
-                      <span className="text-sm font-medium text-slate-400 sm:text-base">
+                      <span className="text-sm font-medium text-slate-500 sm:text-base">
                         /{plan.total}
                       </span>
                     </p>
@@ -229,7 +233,7 @@ function WeekStrip({ days }: { days: string[] }) {
                     ))
                   ) : (
                     <span
-                      className={`block text-xs ${isToday ? "text-sky-100" : "text-slate-400"}`}
+                      className={`block text-xs ${isToday ? "text-sky-100" : "text-slate-500"}`}
                     >
                       Rest
                     </span>

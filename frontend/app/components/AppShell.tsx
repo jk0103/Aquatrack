@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-        <button onClick={logout} className="text-xs text-slate-500 hover:text-sky-700">
+        <button onClick={logout} className="tap-target -my-2 py-2 text-xs text-slate-500 hover:text-sky-700">
           Log out
         </button>
       </div>
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <WaterBackdrop />
       {/* Sidebar on laptops */}
       {/* Sidebar on laptops: frosted, so the page's water light shows through */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden border-r border-slate-200/70 bg-surface/60 p-5 backdrop-blur-xl lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden border-r border-slate-200/70 bg-surface/70 p-5 backdrop-blur-md lg:flex">
         <div className="relative">
           <Link href="/" className="mb-8 block px-2 text-sky-800">
             <Logo />
@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar on phones and tablets */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/70 bg-surface/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/70 bg-surface/85 px-4 py-3 backdrop-blur-md lg:hidden">
           <Link href="/" className="text-sky-800">
             <Logo />
           </Link>
@@ -246,13 +246,13 @@ function LaneLines() {
   );
 }
 
-// Soft, slowly drifting colour behind every page so the frosted cards have something to blur.
+// Soft, still colour behind every page so the frosted cards have something to blur.
 function WaterBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      <div className="drift absolute top-[-8%] left-[18%] h-[440px] w-[440px] rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-500/10" />
-      <div className="drift-slow absolute top-[35%] right-[-6%] h-[480px] w-[480px] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/[0.06]" />
-      <div className="drift absolute bottom-[-10%] left-[-4%] h-[400px] w-[400px] rounded-full bg-indigo-300/15 blur-3xl dark:bg-indigo-500/[0.08]" />
+      <div className="absolute top-[-8%] left-[18%] h-[440px] w-[440px] rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-500/10" />
+      <div className="absolute top-[35%] right-[-6%] h-[480px] w-[480px] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/[0.06]" />
+      <div className="absolute bottom-[-10%] left-[-4%] h-[400px] w-[400px] rounded-full bg-indigo-300/15 blur-3xl dark:bg-indigo-500/[0.08]" />
     </div>
   );
 }

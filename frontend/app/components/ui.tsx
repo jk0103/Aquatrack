@@ -246,7 +246,7 @@ export function GlassCard({
             <Link
               href={href}
               aria-label={linkLabel ?? title}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-slate-50 hover:text-sky-700"
+              className="tap-target flex h-9 w-9 items-center justify-center rounded-full text-slate-500 ring-1 ring-slate-200 transition duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-slate-50 hover:text-sky-700"
             >
               <ArrowUpRightIcon className="h-4 w-4" />
             </Link>
@@ -259,3 +259,15 @@ export function GlassCard({
 }
 
 export { ArcGauge } from "@/app/components/ArcGauge";
+
+// Marks placeholder numbers so nobody mistakes them for their own results.
+export function ExampleNote({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
+      <span className="mt-0.5 shrink-0 rounded-full bg-amber-100 px-2 text-xs font-semibold">
+        Example
+      </span>
+      <span>{children}</span>
+    </p>
+  );
+}

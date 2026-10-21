@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { ChevronIcon, TrophyIcon } from "@/app/components/icons";
-import { Button, Card, DateChip, PageHeader } from "@/app/components/ui";
+import { Button, Card, DateChip, ExampleNote, PageHeader } from "@/app/components/ui";
 import { events, formatDate, TODAY, type CalendarEvent } from "@/app/lib/mock";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -46,6 +46,11 @@ export default function CalendarPage() {
         subtitle="Training sessions and upcoming competitions in one place."
         action={<Button>Add event</Button>}
       />
+      <div className="mb-6">
+        <ExampleNote>
+          These sessions and meets are examples. You&apos;ll be able to add your own soon.
+        </ExampleNote>
+      </div>
 
       <div className="space-y-6">
         <Card>
@@ -69,7 +74,11 @@ export default function CalendarPage() {
                 <ChevronIcon className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex rounded-lg bg-slate-100 p-1 text-sm" role="group" aria-label="Show">
+            <div
+              className="flex rounded-lg bg-slate-100 p-1 text-sm"
+              role="group"
+              aria-label="Show"
+            >
               {filters.map((f) => (
                 <button
                   key={f}
@@ -87,7 +96,10 @@ export default function CalendarPage() {
 
           <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200">
             {weekdays.map((d) => (
-              <div key={d} className="bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500">
+              <div
+                key={d}
+                className="bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500"
+              >
                 <span className="sm:hidden">{d[0]}</span>
                 <span className="hidden sm:inline">{d}</span>
               </div>
@@ -126,7 +138,9 @@ export default function CalendarPage() {
                     <span
                       key={e.title}
                       className={`hidden truncate rounded px-1.5 py-0.5 text-[11px] font-medium sm:block ${
-                        e.kind === "Meet" ? "bg-indigo-100 text-indigo-800" : "bg-sky-100 text-sky-800"
+                        e.kind === "Meet"
+                          ? "bg-indigo-100 text-indigo-800"
+                          : "bg-sky-100 text-sky-800"
                       }`}
                     >
                       {e.title}
@@ -184,10 +198,12 @@ export default function CalendarPage() {
 function EventRow({ event }: { event: CalendarEvent }) {
   const meet = event.kind === "Meet";
   return (
-    <li
-      className={`rounded-xl border-l-4 p-3 ${meet ? "border-indigo-500 bg-indigo-50" : "border-sky-500 bg-sky-50"}`}
-    >
-      <p className="flex items-center gap-1.5 font-medium text-slate-900">
+    <li className={`rounded-xl p-3 ${meet ? "bg-indigo-50" : "bg-sky-50"}`}>
+      <p className="flex items-center gap-2 font-medium text-slate-900">
+        <span
+          aria-hidden="true"
+          className={`h-2 w-2 shrink-0 rounded-full ${meet ? "bg-indigo-500" : "bg-sky-500"}`}
+        />
         {meet && <TrophyIcon className="h-4 w-4 text-indigo-600" />}
         {event.title}
       </p>
