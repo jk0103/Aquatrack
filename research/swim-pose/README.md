@@ -85,7 +85,8 @@ explains its own steps at the top.
   - Part 3: ViTPose-B against MediaPipe.
   - Part 4: whole-body models for hands and feet.
 - **`aquatrack_rtmw_swim_finetune.ipynb`**: fine-tunes RTMW-x with MMPose.
-  - Part A runs on a CPU. It adds SwimXYZ's 25-point labels to the frames already in the YOLO shards, checking them
+  - Part A runs on a CPU. It downloads SwimXYZ's labels zip once (about 1.7 GB) and adds its 25-point labels to
+    the frames already in the YOLO shards, checking them
     against the old labels, and writes COCO-WholeBody files to `MyDrive/aquatrack_swim_full/rtmw/annotations/`.
   - Part B runs on a T4 GPU. It fine-tunes the official RTMW-x (384x288) with hand and face points unlabeled, and
     resumes after a disconnect.
