@@ -166,7 +166,7 @@ def test_draw_skeleton_colors_left_side_blue():
 
 def test_render_overlay_keeps_every_frame(sample_video, tmp_path):
     seq = make_sequence(frames=5)
-    out = render_overlay(sample_video, seq, tmp_path / "overlay.mp4")
+    out = render_overlay(sample_video, seq.frame_indices, seq.keypoints, tmp_path / "o.mp4")
     cap = cv2.VideoCapture(str(out))
     assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 10
     cap.release()
