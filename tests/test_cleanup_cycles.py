@@ -195,6 +195,18 @@ def test_cycle_with_hidden_arm_is_not_trusted():
     assert strokes.rate_per_min["left"] == pytest.approx(50, abs=1)  # from trusted ones
 
 
+def test_sections_cover_the_swim_not_stray_early_detections():
+    # 0.4 s seen (camera above water), 3 s with no swimmer, then 6 s of swimming.
+    seq = to_sequence(swimmer_xy(times(10 + 75 + 150)))
+    seq.keypoints[10:85] = np.nan
+
+    sections = analyze_strokes(clean(seq)).sections
+
+    assert sections[0].start == 85
+    assert sections[-1].end == 234
+    assert [s.name for s in sections] == ["start", "middle", "end"]
+
+
 def test_clean_pose_save_load(tmp_path):
     pose = clean(to_sequence(swimmer_xy(times(40))))
     loaded = CleanPose.load(pose.save(tmp_path / "x.clean.npz"))

@@ -34,6 +34,7 @@ MIN_TRUSTED_FRACTION = 0.6  # of a cycle's frames with reliable shoulder and wri
 MIN_RELIABLE_CONFIDENCE = 0.3
 CYCLE_SECONDS = (0.6, 4.0)  # plausible duration of one arm cycle
 SECTION_NAMES = ("start", "middle", "end")
+SECTION_MAX_GAP_S = 1.0  # longer gaps split the clip; sections cover the longest part
 
 
 @dataclass
@@ -211,12 +212,27 @@ def find_cycles(pose: CleanPose, arm: str) -> list[StrokeCycle]:
     return cycles
 
 
-def find_sections(pose: CleanPose, n: int = len(SECTION_NAMES)) -> list[Section]:
-    """Split the frames where the swimmer is seen into equal-time thirds."""
-    seen = np.nonzero(np.isfinite(pose.trunk))[0]
+def main_stretch(pose: CleanPose) -> tuple[int, int] | None:
+    """First and last frame of the longest stretch where the swimmer is seen, bridging
+    gaps up to `SECTION_MAX_GAP_S`. Skips stray detections before or after the swim, like
+    a camera starting above water."""
+    seen = np.nonzero(np.isfinite(pose.body_axis()).all(axis=1))[0]
     if len(seen) == 0:
+        return None
+    max_gap = max(1, round(SECTION_MAX_GAP_S * pose.fps))
+    breaks = np.nonzero(np.diff(seen) > max_gap)[0]
+    starts = np.concatenate([[0], breaks + 1])
+    ends = np.concatenate([breaks, [len(seen) - 1]])
+    longest = int(np.argmax(seen[ends] - seen[starts]))
+    return int(seen[starts[longest]]), int(seen[ends[longest]])
+
+
+def find_sections(pose: CleanPose, n: int = len(SECTION_NAMES)) -> list[Section]:
+    """Split the main stretch of swimming into equal-time thirds."""
+    stretch = main_stretch(pose)
+    if stretch is None:
         return []
-    edges = np.linspace(seen[0], seen[-1] + 1, n + 1).round().astype(int)
+    edges = np.linspace(stretch[0], stretch[1] + 1, n + 1).round().astype(int)
     return [Section(SECTION_NAMES[i], int(edges[i]), int(edges[i + 1] - 1)) for i in range(n)]
 
 
