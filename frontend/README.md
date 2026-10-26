@@ -55,9 +55,46 @@ when they stop.
 - `/onboarding`: profile survey shown right after sign up
 - `/`, `/analyze`, `/training`, `/calendar`, `/progress`, `/history`, `/profile`: the app
   (`app/(app)/`), which sends logged-out visitors to `/login`
+- `/history/[id]`: one of the swimmer's own uploads: the real video from Storage, the session
+  details and where analysis stands
+- `/feedback/[id]`: example analyses only (ids from `app/lib/mock.ts`)
 
-Training, calendar, progress and example feedback still use placeholder data from
-`app/lib/mock.ts`.
+### Real data vs. examples
+
+| Page | Real (Firebase) | Example (`app/lib/mock.ts`, labelled on the page) |
+| --- | --- | --- |
+| Home | Upload count, latest three uploads, greeting and date | Week strip, training plans, 100 m chart, coming up, example feedback |
+| Analyze | Everything: uploads to Storage, record in Firestore | — |
+| History | Uploads list and `/history/[id]` | "Example analyses" list |
+| Feedback | — (real results show on `/history/[id]`) | All of it |
+| Profile | Survey answers and personal bests | Headline stats |
+| Training, Calendar, Progress | — | All of it |
+
+### Video records
+
+`videos/{id}` in Firestore holds `uid`, `storagePath`, `fileName`, `sizeBytes`, `contentType`,
+`status`, `createdAt`, `stroke`, `camera` (filming angle), `distance`, `comments` (session
+notes), `wantFeedback` and `wantPlan`. Newer uploads may also have `poolLength`,
+`timeSeconds`, `sessionDate` (`YYYY-MM-DD`) and `durationSeconds`. These are optional, and
+records without them still load (`toRecord` in `app/lib/videos.ts`). The security rules allow
+these extra fields as they are, so no rules change was needed.
+
+### Analysis results (provisional)
+
+The analysis engine has no output contract yet. `app/lib/analysis.ts` describes what the UI
+can show: measurements with units, confidence or a reason they weren't measured, stroke
+rate, stroke cycles, key frames, the main priority, other issues and next-video checkpoints.
+The web app looks for these in an `analysis` field on the video record, which only the
+backend can write. Once the backend's real output exists, change `parseAnalysis` to match it.
+Until then every upload shows as "not analyzed yet" and nothing is made up.
+
+### Not in the product scope yet
+
+The project overview centres on technique feedback, performance history and next-video
+checkpoints. Training plans, the training calendar and "Add event" / "Mark session done"
+are generic training-management features with no backend. They are kept as labelled
+examples and their buttons are disabled ("soon") rather than removed. Whether to build them
+out or drop them is still to be decided.
 
 ## Checks
 

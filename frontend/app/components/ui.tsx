@@ -88,18 +88,24 @@ export function Button({
   type = "button",
   className = "",
   onClick,
+  disabled = false,
+  title,
 }: {
   children: ReactNode;
   variant?: keyof typeof buttonStyles;
   type?: "button" | "submit";
   className?: string;
   onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 ${buttonStyles[variant]} ${className}`}
+      disabled={disabled}
+      title={title}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 ${buttonStyles[variant]} ${className}`}
     >
       {children}
     </button>
@@ -259,6 +265,19 @@ export function GlassCard({
 }
 
 export { ArcGauge } from "@/app/components/ArcGauge";
+
+// Shown while a page waits on Firestore or Storage.
+export function LoadingState({ label }: { label: string }) {
+  return (
+    <p role="status" className="flex items-center gap-2.5 py-6 text-sm text-slate-500">
+      <span
+        aria-hidden="true"
+        className="h-4 w-4 animate-spin rounded-full border-2 border-sky-200 border-t-sky-600"
+      />
+      {label}
+    </p>
+  );
+}
 
 // Marks placeholder numbers so nobody mistakes them for their own results.
 export function ExampleNote({ children }: { children: ReactNode }) {

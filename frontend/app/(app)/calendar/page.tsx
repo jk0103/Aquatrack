@@ -44,7 +44,11 @@ export default function CalendarPage() {
       <PageHeader
         title="Calendar"
         subtitle="Training sessions and upcoming competitions in one place."
-        action={<Button>Add event</Button>}
+        action={
+          <Button disabled title="Adding your own events isn't available yet">
+            Add event (soon)
+          </Button>
+        }
       />
       <div className="mb-6">
         <ExampleNote>

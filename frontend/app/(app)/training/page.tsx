@@ -100,8 +100,13 @@ export default function TrainingPage() {
               </p>
               <p className="mt-1 text-slate-800">{plan.next}</p>
             </div>
-            <button className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Mark session done
+            <button
+              type="button"
+              disabled
+              title="Tracking sessions isn't available yet"
+              className="mt-4 cursor-not-allowed rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 opacity-60"
+            >
+              Mark session done (soon)
             </button>
           </Card>
         ))}

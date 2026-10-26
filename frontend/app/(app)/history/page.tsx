@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 
 import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
-import { Badge, ButtonLink, PageHeader } from "@/app/components/ui";
+import { Badge, ButtonLink, LoadingState, PageHeader } from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { analyses, formatDate } from "@/app/lib/mock";
-import { listVideos, type VideoRecord } from "@/app/lib/videos";
+import { formatSwimTime } from "@/app/lib/profile";
+import { listVideos, statusLabel, statusTone, videoDate, type VideoRecord } from "@/app/lib/videos";
 
 const strokes = ["All strokes", "Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
 
@@ -34,13 +35,17 @@ export default function HistoryPage() {
     <>
       <PageHeader
         title="History"
-        subtitle="Every swim you've uploaded and the feedback you got."
+        subtitle="Every swim you've uploaded, and where its analysis stands."
         action={<ButtonLink href="/analyze">Analyze a swim</ButtonLink>}
       />
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
-          {myUploads.length} {myUploads.length === 1 ? "upload" : "uploads"}
+          {uploads === null
+            ? "Your uploads"
+            : `${myUploads.length} ${myUploads.length === 1 ? "upload" : "uploads"}${
+                stroke === strokes[0] ? "" : ` of ${uploads.length}`
+              }`}
         </p>
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <span className="sr-only">Stroke</span>
@@ -56,56 +61,84 @@ export default function HistoryPage() {
         </label>
       </div>
 
-      {loadError && <p className="mb-4 text-sm text-red-700">{loadError}</p>}
+      {loadError && (
+        <p role="alert" className="mb-4 text-sm text-red-700">
+          Couldn&apos;t load your uploads. {loadError}
+        </p>
+      )}
       {uploads === null && !loadError ? (
-        <p className="mb-8 text-sm text-slate-500">Loading your uploads…</p>
+        <div className="mb-8">
+          <LoadingState label="Loading your uploads…" />
+        </div>
       ) : myUploads.length ? (
         <ul className="mb-10 space-y-3">
           {myUploads.map((v) => (
-            <li
-              key={v.id}
-              className="flex items-center gap-4 rounded-2xl glass p-3 sm:p-4"
-            >
-              <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 text-white/80 sm:h-20 sm:w-32">
-                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
-                  <path d="M8 5.5v13l10-6.5z" />
-                </svg>
-                <span className="absolute bottom-1 left-1 rounded bg-black/40 px-1.5 text-[10px] text-white">
-                  {v.distance}
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <Badge>{v.stroke}</Badge>
-                  <span className="hidden sm:inline">
-                    <Badge tone="slate">{v.camera}</Badge>
+            <li key={v.id}>
+              <Link
+                href={`/history/${v.id}`}
+                className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
+              >
+                <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 text-white/80 sm:h-20 sm:w-32">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 5.5v13l10-6.5z" />
+                  </svg>
+                  <span className="absolute bottom-1 left-1 rounded bg-black/40 px-1.5 text-[10px] text-white">
+                    {v.distance}
                   </span>
-                  <Badge tone="amber">Waiting for analysis</Badge>
                 </div>
-                <p className="truncate font-medium text-slate-900">{v.fileName}</p>
-                <p className="truncate text-sm text-slate-500">
-                  {v.createdAt
-                    ? v.createdAt.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "Just now"}
-                  {v.comments ? ` · “${v.comments}”` : ""}
-                </p>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <Badge>{v.stroke}</Badge>
+                    <span className="hidden sm:inline">
+                      <Badge tone="slate">{v.camera}</Badge>
+                    </span>
+                    <Badge tone={statusTone[v.status]}>{statusLabel[v.status]}</Badge>
+                  </div>
+                  <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">
+                    {v.fileName}
+                  </p>
+                  <p className="truncate text-sm text-slate-500">
+                    {videoDate(v)?.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }) ?? "Just now"}
+                    {v.timeSeconds !== undefined ? ` · ${formatSwimTime(v.timeSeconds)}` : ""}
+                    {v.comments ? ` · “${v.comments}”` : ""}
+                  </p>
+                </div>
+                <ChevronIcon className="h-5 w-5 shrink-0 text-slate-500 group-hover:text-sky-700" />
+              </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mb-8 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-          No uploads yet. Your videos will show up here.
-        </p>
+        !loadError && (
+          <div className="mb-8 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            {uploads?.length ? (
+              <p>No {stroke.toLowerCase()} uploads. Pick another stroke to see the rest.</p>
+            ) : (
+              <>
+                <p>No uploads yet. Your videos will show up here.</p>
+                <div className="mt-4 flex justify-center">
+                  <ButtonLink href="/analyze">Upload your first swim</ButtonLink>
+                </div>
+              </>
+            )}
+          </div>
+        )
       )}
 
-      <h2 className="mb-1 font-semibold text-slate-900">Example analyses</h2>
+      <h2 className="mb-1 flex items-center gap-2 font-semibold text-slate-900">
+        Example analyses <Badge tone="amber">Example</Badge>
+      </h2>
       <p className="mb-4 text-sm text-slate-500">
-        Sample results showing what feedback will look like.
+        Sample results showing what feedback will look like. These aren&apos;t your swims.
       </p>
       <ul className="space-y-3">
         {list.map((a) => (
@@ -115,8 +148,17 @@ export default function HistoryPage() {
               className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
             >
               <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 sm:h-20 sm:w-32">
-                <svg viewBox="0 0 120 80" className="absolute inset-0 h-full w-full text-white/15" aria-hidden="true">
-                  <path d="M0 30 Q15 24 30 30 T60 30 T90 30 T120 30M0 55 Q15 49 30 55 T60 55 T90 55 T120 55" fill="none" stroke="currentColor" strokeWidth="3" />
+                <svg
+                  viewBox="0 0 120 80"
+                  className="absolute inset-0 h-full w-full text-white/15"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M0 30 Q15 24 30 30 T60 30 T90 30 T120 30M0 55 Q15 49 30 55 T60 55 T90 55 T120 55"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  />
                 </svg>
                 <span className="absolute bottom-1 left-1 rounded bg-black/40 px-1.5 text-[10px] text-white">
                   {a.distance}
@@ -130,7 +172,9 @@ export default function HistoryPage() {
                   </span>
                   {a.status === "Processing" && <Badge tone="amber">Processing</Badge>}
                 </div>
-                <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">{a.headline}</p>
+                <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">
+                  {a.headline}
+                </p>
                 <p className="text-sm text-slate-500">{formatDate(a.date, { year: "numeric" })}</p>
               </div>
               {a.status === "Ready" && (

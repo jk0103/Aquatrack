@@ -12,10 +12,36 @@ import {
 
 import { StrokeFrame } from "@/app/components/StrokeFrame";
 import { Badge } from "@/app/components/ui";
-import { feedback, swimMetrics, type Analysis, type FeedbackPoint } from "@/app/lib/mock";
+import { VideoPlayer } from "@/app/components/VideoPlayer";
+import {
+  allIssues,
+  exampleResult,
+  formatMeasurement,
+  type AnalysisResult,
+  type Measurement,
+  type TechniqueIssue,
+} from "@/app/lib/analysis";
+import { swimMetrics, type Analysis } from "@/app/lib/mock";
 
 // Feedback page layout borrowed from a fleet dashboard: the video is the "map", with a
-// floating stats card, a rotation dial and round player buttons laid over it.
+// floating stats card, a rotation dial and round buttons laid over it.
+//
+// Two modes, kept apart so a drawing is never mistaken for someone's own results:
+// - "example": the drawn swimmer and sample numbers from mock.ts, clearly labelled.
+// - "analysis": the swimmer's real video and whatever the analysis engine measured.
+//   Nothing is drawn over the video: pose overlays will come from the engine.
+
+export type StageSession = { stroke: string; distance: string; camera: string; comment?: string };
+
+type StageProps =
+  | { source?: "example"; analysis: Analysis; aside: ReactNode }
+  | {
+      source: "analysis";
+      session: StageSession;
+      result: AnalysisResult;
+      videoUrl: string | null;
+      aside?: ReactNode;
+    };
 
 const severityTone = { Focus: "amber", Watch: "sky", Good: "teal" } as const;
 const filters = ["All", "Focus", "Watch", "Good"] as const;
@@ -55,22 +81,23 @@ export function StatPills({ analysis }: { analysis: Analysis }) {
   );
 }
 
-export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: ReactNode }) {
-  const [playing, setPlaying] = useState(false);
-  const [slow, setSlow] = useState(false);
+export function FeedbackStage(props: StageProps) {
+  if (props.source === "analysis") return <ResultStage {...props} />;
+  return <ExampleStage analysis={props.analysis} aside={props.aside} />;
+}
+
+function ExampleStage({ analysis, aside }: { analysis: Analysis; aside: ReactNode }) {
   const [overlay, setOverlay] = useState(true);
   const [cardOpen, setCardOpen] = useState(true);
-  const [filter, setFilter] = useState<Filter>("All");
-
-  const focus = feedback.find((f) => f.severity === "Focus");
-  const shown = feedback.filter((f) => filter === "All" || f.severity === filter);
-  const count = (f: Filter) =>
-    f === "All" ? feedback.length : feedback.filter((p) => p.severity === f).length;
+  const focus = exampleResult.mainPriority ?? undefined;
 
   return (
     <>
       {/* Stage */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-sky-800 to-cyan-800 shadow-sm">
+      <section
+        aria-label="Example illustration"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-sky-800 to-cyan-800 shadow-sm"
+      >
         <PoolBackdrop />
 
         <div className="relative aspect-[4/3] w-full sm:aspect-[16/8] lg:aspect-auto lg:h-[560px]">
@@ -79,50 +106,20 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
             <StrokeFrame bare overlay={overlay} />
           </div>
 
-          <span className="absolute top-3 left-3 rounded-full bg-black/30 px-2.5 py-1 text-xs font-medium text-white lg:hidden">
-            {swimMetrics.clock} · {swimMetrics.atMeters} m
+          <span className="absolute top-3 left-3 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-slate-900 lg:hidden">
+            Example illustration
           </span>
 
           <RotationDial degrees={swimMetrics.rotationDeg} />
 
-          {/* Player buttons */}
+          {/* The drawing doesn't play, so the only control is the markings toggle */}
           <div className="absolute right-2.5 bottom-2.5 flex flex-col gap-1.5 sm:right-4 sm:bottom-4 sm:gap-2">
-            <RoundButton label={playing ? "Pause" : "Play"} onClick={() => setPlaying(!playing)}>
-              {playing ? (
-                <path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" />
-              ) : (
-                <path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none" />
-              )}
-            </RoundButton>
-            <RoundButton
-              label={slow ? "Normal speed" : "Slow motion"}
-              active={slow}
-              onClick={() => setSlow(!slow)}
-            >
-              <text
-                x="12"
-                y="16"
-                textAnchor="middle"
-                fontSize="9"
-                fontWeight="700"
-                fill="currentColor"
-                stroke="none"
-              >
-                {slow ? "½×" : "1×"}
-              </text>
-            </RoundButton>
-            <RoundButton label="Next frame">
-              <path d="M6 6v12l8-6zM16 6h2v12h-2z" fill="currentColor" stroke="none" />
-            </RoundButton>
             <RoundButton
               label={overlay ? "Hide markings" : "Show markings"}
               active={overlay}
               onClick={() => setOverlay(!overlay)}
             >
               <path d="m12 4 8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4" />
-            </RoundButton>
-            <RoundButton label="Full screen">
-              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
             </RoundButton>
           </div>
 
@@ -142,8 +139,8 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
         </div>
       </section>
       <div className="mt-2 mb-6 flex flex-wrap justify-between gap-2 px-1 text-xs text-slate-500">
-        <span>Space to play or pause · ← → to step frames</span>
-        <span>{overlay ? "Markings from pose tracking" : "Markings hidden"}</span>
+        <span className="hidden lg:inline">Example illustration, not a real video</span>
+        <span>{overlay ? "Drawn example of pose-tracking markings" : "Markings hidden"}</span>
       </div>
 
       {/* Card stacks under the video on phones and tablets */}
@@ -152,34 +149,179 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <section className="rounded-2xl glass p-5 sm:p-6 lg:col-span-3">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold text-slate-900">Feedback</h2>
-            <FilterTabs value={filter} onChange={setFilter} count={count} />
-          </div>
-          <ol key={filter} className="space-y-5">
-            {shown.map((point, i) => (
-              <li
-                key={point.title}
-                className="feedback-enter"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <FeedbackItem point={point} n={feedback.indexOf(point) + 1} />
-              </li>
-            ))}
-          </ol>
-          {analysis.comment && (
-            <blockquote className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-              <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
-                Your comment
-              </p>
-              “{analysis.comment}”
-            </blockquote>
-          )}
-        </section>
-        <div className="lg:col-span-2">{aside}</div>
+        <FeedbackList result={exampleResult} comment={analysis.comment} />
+        <div className="min-w-0 lg:col-span-2">{aside}</div>
       </div>
     </>
+  );
+}
+
+function ResultStage({
+  session,
+  result,
+  videoUrl,
+  aside,
+}: {
+  session: StageSession;
+  result: AnalysisResult;
+  videoUrl: string | null;
+  aside?: ReactNode;
+}) {
+  return (
+    <>
+      <div className="mb-6 grid gap-6 lg:grid-cols-5">
+        <div className="min-w-0 lg:col-span-3">
+          {videoUrl ? (
+            <VideoPlayer
+              src={videoUrl}
+              label={`${session.distance} ${session.stroke} video`}
+              strokeCycles={result.strokeCycles}
+              keyFrames={result.keyFrames}
+            />
+          ) : (
+            <p className="flex aspect-video items-center justify-center rounded-3xl bg-slate-100 text-sm text-slate-500">
+              Video unavailable
+            </p>
+          )}
+        </div>
+        <div className="min-w-0 lg:col-span-2">
+          <ResultCard session={session} result={result} />
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-5">
+        <FeedbackList result={result} comment={session.comment} />
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+          {result.checkpoints.length > 0 && (
+            <section className="rounded-2xl glass p-5 sm:p-6">
+              <h2 className="mb-3 font-semibold text-slate-900">Check in your next video</h2>
+              <ul className="space-y-2 text-sm text-slate-700">
+                {result.checkpoints.map((c) => (
+                  <li key={c} className="flex gap-2">
+                    <span aria-hidden="true" className="text-teal-600">
+                      ✓
+                    </span>
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {aside}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Measured numbers for a real result. Anything the engine couldn't measure says so.
+function ResultCard({ session, result }: { session: StageSession; result: AnalysisResult }) {
+  // Stroke rate gets the gauge when it was measured, and a tile like the rest when it wasn't.
+  const rate = result.strokeRate;
+  const rows: Measurement[] = [
+    ...(rate && rate.value === null ? [rate] : []),
+    ...result.measurements,
+  ];
+  return (
+    <div className="flex h-full flex-col gap-3 rounded-2xl bg-surface p-4 shadow-xl ring-1 ring-sky-900/5">
+      <div className="flex items-center gap-2">
+        <p className="truncate text-lg font-semibold text-slate-900">
+          {session.distance} {session.stroke}
+        </p>
+        <Badge tone="teal">Analyzed</Badge>
+      </div>
+      <p className="-mt-2 text-sm text-slate-500">
+        {session.camera}
+        {result.engineVersion ? ` · engine ${result.engineVersion}` : ""}
+      </p>
+      {rate?.value != null && (
+        <div className="rounded-xl bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-slate-700">{rate.label}</span>
+            {rate.confidence !== undefined && (
+              <span className="text-[11px] text-slate-500">
+                {Math.round(rate.confidence * 100)}% confidence
+              </span>
+            )}
+          </div>
+          <RateGauge value={rate.value} />
+        </div>
+      )}
+      <dl className="grid grid-cols-2 gap-2">
+        {rows.map((m) => (
+          <div key={m.key} className="rounded-xl bg-slate-50 p-3">
+            <dt className="text-xs text-slate-500">{m.label}</dt>
+            <dd
+              className={`mt-0.5 font-semibold ${m.value === null ? "text-sm text-slate-500" : "text-slate-900"}`}
+              title={m.reason}
+            >
+              {formatMeasurement(m)}
+            </dd>
+            {m.confidence !== undefined && (
+              <dd className="text-[11px] text-slate-500">
+                {Math.round(m.confidence * 100)}% confidence
+              </dd>
+            )}
+            {m.value === null && m.reason && (
+              <dd className="text-[11px] text-slate-500">{m.reason}</dd>
+            )}
+          </div>
+        ))}
+      </dl>
+      {result.mainPriority && <MainFix issue={result.mainPriority} />}
+    </div>
+  );
+}
+
+function MainFix({ issue }: { issue: TechniqueIssue }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <svg
+        viewBox="0 0 24 24"
+        className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M12 3 2 21h20zm-1 6h2v6h-2zm0 8h2v2h-2z" />
+      </svg>
+      <span>
+        <span className="font-semibold">Main fix:</span> {issue.title}
+      </span>
+    </div>
+  );
+}
+
+function FeedbackList({ result, comment }: { result: AnalysisResult; comment?: string }) {
+  const [filter, setFilter] = useState<Filter>("All");
+  const issues = allIssues(result);
+  const shown = issues.filter((f) => filter === "All" || f.severity === filter);
+  const count = (f: Filter) =>
+    f === "All" ? issues.length : issues.filter((p) => p.severity === f).length;
+  return (
+    <section className="min-w-0 rounded-2xl glass p-5 sm:p-6 lg:col-span-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold text-slate-900">Feedback</h2>
+        <FilterTabs value={filter} onChange={setFilter} count={count} />
+      </div>
+      {shown.length ? (
+        <ol key={filter} className="space-y-5">
+          {shown.map((point, i) => (
+            <li key={point.id} className="feedback-enter" style={{ animationDelay: `${i * 60}ms` }}>
+              <FeedbackItem point={point} n={issues.indexOf(point) + 1} />
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-slate-500">Nothing in this group.</p>
+      )}
+      {comment && (
+        <blockquote className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+          <p className="mb-1 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            Your comment
+          </p>
+          “{comment}”
+        </blockquote>
+      )}
+    </section>
   );
 }
 
@@ -189,7 +331,7 @@ function StatsCard({
   onClose,
 }: {
   analysis: Analysis;
-  focus?: FeedbackPoint;
+  focus?: TechniqueIssue;
   onClose?: () => void;
 }) {
   const m = swimMetrics;
@@ -216,7 +358,7 @@ function StatsCard({
             <p className="truncate text-lg font-semibold text-slate-900">
               {analysis.distance} {analysis.stroke}
             </p>
-            <Badge tone="teal">Analyzed</Badge>
+            <Badge tone="amber">Example</Badge>
           </div>
           <p className="text-sm text-slate-500">
             {analysis.camera} · {m.clock} of {m.lapTime}
@@ -281,27 +423,14 @@ function StatsCard({
         </div>
       </div>
 
-      {focus && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
-          <svg
-            viewBox="0 0 24 24"
-            className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M12 3 2 21h20zm-1 6h2v6h-2zm0 8h2v2h-2z" />
-          </svg>
-          <span>
-            <span className="font-semibold">Main fix:</span> {focus.title}
-          </span>
-        </div>
-      )}
+      {focus && <MainFix issue={focus} />}
     </div>
   );
 }
 
-// Speedometer-style gauge, 0 to 70 strokes per minute, with the target band marked.
-function RateGauge({ value: target_value, target }: { value: number; target: [number, number] }) {
+// Speedometer-style gauge, 0 to 70 strokes per minute, with the target band marked when
+// there is one.
+function RateGauge({ value: target_value, target }: { value: number; target?: [number, number] }) {
   // Needle and arc sweep up from 0 when the page opens.
   const value = useCountUp(target_value);
   const max = 70;
@@ -334,7 +463,9 @@ function RateGauge({ value: target_value, target }: { value: number; target: [nu
           strokeWidth="7"
           strokeLinecap="round"
         />
-        <path d={arc(target[0], target[1], 40)} fill="none" stroke="#2dd4bf" strokeWidth="7" />
+        {target && (
+          <path d={arc(target[0], target[1], 40)} fill="none" stroke="#2dd4bf" strokeWidth="7" />
+        )}
         {value > 0.5 && (
           <path
             d={arc(0, value, 40)}
@@ -527,8 +658,10 @@ function RoundButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
       title={label}
       className={`tap-target flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-full shadow-md transition ${
         active
@@ -589,7 +722,7 @@ function PoolBackdrop() {
   );
 }
 
-function FeedbackItem({ point, n }: { point: FeedbackPoint; n: number }) {
+function FeedbackItem({ point, n }: { point: TechniqueIssue; n: number }) {
   return (
     <div className="flex gap-3">
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800">
@@ -601,10 +734,17 @@ function FeedbackItem({ point, n }: { point: FeedbackPoint; n: number }) {
           <Badge tone={severityTone[point.severity]}>{point.severity}</Badge>
         </div>
         <p className="mt-1 text-sm text-slate-600">{point.detail}</p>
-        <p className="mt-2 text-sm text-slate-700">
-          <span className="font-medium text-teal-700">Drill: </span>
-          {point.drill}
-        </p>
+        {point.drill && (
+          <p className="mt-2 text-sm text-slate-700">
+            <span className="font-medium text-teal-700">Drill: </span>
+            {point.drill}
+          </p>
+        )}
+        {point.confidence !== undefined && (
+          <p className="mt-1 text-xs text-slate-500">
+            {Math.round(point.confidence * 100)}% confidence
+          </p>
+        )}
       </div>
     </div>
   );

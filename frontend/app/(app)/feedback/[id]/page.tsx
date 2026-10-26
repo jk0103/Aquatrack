@@ -45,7 +45,8 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
 
       <div className="mb-4">
         <ExampleNote>
-          This is an example analysis showing what your feedback will look like.
+          This is an example analysis showing what your feedback will look like. The swimmer is a
+          drawing and the numbers are samples, not from anyone&apos;s video.
         </ExampleNote>
       </div>
 
@@ -71,7 +72,13 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
               ))}
             </ul>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <Button className="flex-1">Add to my training</Button>
+              <Button
+                className="flex-1"
+                disabled
+                title="Saving plans to your training isn't available yet"
+              >
+                Add to my training (soon)
+              </Button>
               <Link
                 href="/training"
                 className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-sky-700 hover:bg-sky-50"
@@ -89,6 +96,11 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
 function Processing({ comment }: { comment: string }) {
   return (
     <div className="mx-auto max-w-lg py-10 text-center">
+      <div className="mb-6 text-left">
+        <ExampleNote>
+          This is an example of the screen shown while a swim is being analyzed.
+        </ExampleNote>
+      </div>
       <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-sky-100">
         <div className="absolute inset-x-0 bottom-0 h-1/2 animate-pulse bg-gradient-to-t from-sky-500 to-cyan-300" />
       </div>
