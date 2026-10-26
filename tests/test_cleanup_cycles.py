@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pytest
 
-from aquatrack.analysis.metrics.cycles import analyze_strokes
+from aquatrack.analysis.metrics.cycles import StrokeCycle, analyze_strokes, flag_odd_durations
 from aquatrack.analysis.pose import cli
 from aquatrack.analysis.pose.cleanup import (
     L_ANKLE,
@@ -193,6 +193,25 @@ def test_cycle_with_hidden_arm_is_not_trusted():
     unsure = [c for c in left if not c.trusted]
     assert len(unsure) == 1 and "reliable" in unsure[0].reason
     assert strokes.rate_per_min["left"] == pytest.approx(50, abs=1)  # from trusted ones
+
+
+def test_fragment_far_from_the_typical_cycle_is_not_trusted():
+    def cycle(arm, duration):
+        return StrokeCycle(arm, 0, 1, None, duration, trusted=True)
+
+    cycles = [cycle("left", 2.1), cycle("right", 2.0), cycle("left", 2.2), cycle("right", 0.8)]
+    cycles += [cycle("right", 2.1), cycle("left", 3.9)]
+
+    flag_odd_durations(cycles)
+
+    assert [c.trusted for c in cycles] == [True, True, True, False, True, False]
+    assert "typical" in cycles[3].reason
+
+
+def test_too_few_cycles_to_judge_what_is_typical():
+    cycles = [StrokeCycle("left", 0, 1, None, d, trusted=True) for d in (2.0, 0.9)]
+    flag_odd_durations(cycles)
+    assert all(c.trusted for c in cycles)
 
 
 def test_sections_cover_the_swim_not_stray_early_detections():

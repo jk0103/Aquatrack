@@ -125,7 +125,8 @@ def main(argv: list[str] | None = None) -> None:
         stats = estimator.last_run
         steady = np.median(stats.timings[1:]) if len(stats.timings) > 1 else float("nan")
         print(
-            f"{len(raw)} frames analyzed (step {args.step}), detector {detector.name}; "
+            f"{len(raw)} frames analyzed (step {args.step}), detector {detector.name}, "
+            f"{stats.carried} posed from a carried box; "
             f"seconds per frame: {stats.seconds_per_frame:.3f} mean, {steady:.3f} median "
             f"(detect {stats.detect_s / max(stats.frames, 1):.3f}, "
             f"pose {stats.pose_s / max(stats.frames, 1):.3f})"
