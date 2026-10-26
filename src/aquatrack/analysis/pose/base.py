@@ -25,6 +25,25 @@ class Joint(IntEnum):
     RIGHT_ANKLE = 12
 
 
+# COCO keypoint index for each Joint. COCO's 17 body points are also the first 17 of
+# COCO-WholeBody, so every COCO-based backend can use this.
+COCO_INDEX = {
+    Joint.NOSE: 0,
+    Joint.LEFT_SHOULDER: 5,
+    Joint.RIGHT_SHOULDER: 6,
+    Joint.LEFT_ELBOW: 7,
+    Joint.RIGHT_ELBOW: 8,
+    Joint.LEFT_WRIST: 9,
+    Joint.RIGHT_WRIST: 10,
+    Joint.LEFT_HIP: 11,
+    Joint.RIGHT_HIP: 12,
+    Joint.LEFT_KNEE: 13,
+    Joint.RIGHT_KNEE: 14,
+    Joint.LEFT_ANKLE: 15,
+    Joint.RIGHT_ANKLE: 16,
+}
+
+
 @dataclass
 class PoseSequence:
     """Keypoints over time.

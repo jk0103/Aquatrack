@@ -7,27 +7,10 @@ fine-tuned on labeled swim frames. Weights download on first use.
 
 import numpy as np
 
-from aquatrack.analysis.pose.base import Joint, PoseSequence
+from aquatrack.analysis.pose.base import COCO_INDEX, Joint, PoseSequence
 from aquatrack.analysis.video import iter_frames, read_video_info
 
 DEFAULT_MODEL = "yolo26n-pose.pt"
-
-# COCO keypoint index for each Joint
-_COCO_INDEX = {
-    Joint.NOSE: 0,
-    Joint.LEFT_SHOULDER: 5,
-    Joint.RIGHT_SHOULDER: 6,
-    Joint.LEFT_ELBOW: 7,
-    Joint.RIGHT_ELBOW: 8,
-    Joint.LEFT_WRIST: 9,
-    Joint.RIGHT_WRIST: 10,
-    Joint.LEFT_HIP: 11,
-    Joint.RIGHT_HIP: 12,
-    Joint.LEFT_KNEE: 13,
-    Joint.RIGHT_KNEE: 14,
-    Joint.LEFT_ANKLE: 15,
-    Joint.RIGHT_ANKLE: 16,
-}
 
 
 def select_swimmer(xyn: np.ndarray, conf: np.ndarray | None, boxes_xywhn: np.ndarray) -> np.ndarray:
@@ -41,7 +24,7 @@ def select_swimmer(xyn: np.ndarray, conf: np.ndarray | None, boxes_xywhn: np.nda
     if len(boxes_xywhn) == 0:
         return points
     person = int(np.argmax(boxes_xywhn[:, 2] * boxes_xywhn[:, 3]))
-    for joint, coco_index in _COCO_INDEX.items():
+    for joint, coco_index in COCO_INDEX.items():
         x, y = xyn[person, coco_index]
         c = 1.0 if conf is None else conf[person, coco_index]
         points[joint] = (x, y, c)

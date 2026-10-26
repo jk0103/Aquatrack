@@ -19,8 +19,10 @@ data/*
 *.avi
 *.mkv
 
-# Downloaded model weights
+# Model weights (downloaded or exported from Colab)
 *.pt
+*.onnx
+models/*
 
 # Notebooks checkpoints
 .ipynb_checkpoints/

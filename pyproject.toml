@@ -15,13 +15,21 @@ dependencies = [
 
 [project.optional-dependencies]
 # Pose estimation backends are heavy, so they are opt-in: `uv sync --extra pose`
-pose = ["ultralytics>=8.4"]
+pose = ["ultralytics>=8.4", "rtmlib>=0.0.16", "onnxruntime>=1.20"]
 
 [dependency-groups]
 dev = [
     "httpx>=0.27",
     "pytest>=8",
     "ruff>=0.6",
+]
+
+[tool.uv]
+# ultralytics and rtmlib ask for the GUI/contrib OpenCV builds, which would overwrite the
+# headless cv2 the app uses. The headless build has everything both need (incl. cv2.dnn).
+override-dependencies = [
+    "opencv-python; sys_platform == 'never'",
+    "opencv-contrib-python; sys_platform == 'never'",
 ]
 
 [build-system]
