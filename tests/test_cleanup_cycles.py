@@ -4,6 +4,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
+from synthetic import FPS, HIP, TRUNK, H, W, swimmer_xy, times, to_sequence
 
 from aquatrack.analysis.metrics.cycles import StrokeCycle, analyze_strokes, flag_odd_durations
 from aquatrack.analysis.pose import cli
@@ -18,59 +19,7 @@ from aquatrack.analysis.pose.cleanup import (
     Fix,
     clean,
 )
-from aquatrack.analysis.pose.wholebody import (
-    LEFT_FOOT,
-    LEFT_HAND,
-    NUM_KEYPOINTS,
-    RIGHT_FOOT,
-    RIGHT_HAND,
-    WholeBodySequence,
-)
-
-W, H, FPS, TRUNK = 640, 400, 25.0, 100.0
-HIP = np.array([300.0, 200.0])
-SHOULDER = HIP + (TRUNK, 0)
-
-
-def swimmer_xy(t: np.ndarray, period: float = 1.2) -> np.ndarray:
-    """(frames, 133, 2) pixels for a swimmer heading right, both arms turning once per
-    `period` seconds half a turn apart, legs straight behind."""
-    xy = np.zeros((len(t), NUM_KEYPOINTS, 2))
-    xy[:] = SHOULDER + (TRUNK * 0.5, 0)  # face points and nose by the head
-    for side, (sh, hp) in enumerate(((5, 11), (6, 12))):
-        offset = (0, 3 if side else -3)
-        xy[:, sh] = SHOULDER + offset
-        xy[:, hp] = HIP + offset
-    xy[:, [1, 2, 3, 4]] = SHOULDER + (TRUNK * 0.4, 0)
-    for knee, ankle, foot, dy in ((13, 15, LEFT_FOOT, -4), (14, 16, RIGHT_FOOT, 4)):
-        xy[:, knee] = HIP + (-0.8 * TRUNK, dy)
-        xy[:, ankle] = HIP + (-1.6 * TRUNK, dy)
-        for k, p in enumerate(foot):
-            xy[:, p] = xy[:, ankle] + (-10 - 5 * k, 5)
-    for elbow, wrist, hand, phase0 in ((7, 9, LEFT_HAND, 0.0), (8, 10, RIGHT_HAND, np.pi + 0.3)):
-        theta = phase0 + 2 * np.pi * t / period
-        direction = np.stack([np.cos(theta), np.sin(theta)], axis=1)
-        xy[:, elbow] = SHOULDER + 0.65 * TRUNK * direction
-        xy[:, wrist] = SHOULDER + 1.3 * TRUNK * direction
-        for k, p in enumerate(hand):
-            xy[:, p] = xy[:, wrist] + 0.25 * TRUNK * direction * (k / 20)
-    return xy
-
-
-def to_sequence(xy: np.ndarray, score: float = 6.0) -> WholeBodySequence:
-    keypoints = np.concatenate([xy / (W, H), np.full((*xy.shape[:2], 1), score)], axis=-1)
-    return WholeBodySequence(
-        keypoints=keypoints,
-        fps=FPS,
-        frame_indices=np.arange(len(xy)),
-        width=W,
-        height=H,
-        model="synthetic",
-    )
-
-
-def times(frames: int = 150) -> np.ndarray:
-    return np.arange(frames) / FPS
+from aquatrack.analysis.pose.wholebody import LEFT_HAND, RIGHT_HAND
 
 
 def test_clean_swimmer_is_left_alone():

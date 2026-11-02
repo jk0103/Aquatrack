@@ -6,8 +6,11 @@ Writes, next to VIDEO:
   VIDEO_STEM.wholebody.npz   raw 133-point pose from the model
   VIDEO_STEM.clean.npz       cleaned points, confidences and what cleanup did to each
   VIDEO_STEM.cycles.json     stroke cycles, stroke rate and swim sections
+  VIDEO_STEM.measures.json   technique measures (see metrics/technique.py)
+  VIDEO_STEM.measures/       a key-frame image per measure type, with the measure drawn
   VIDEO_STEM.overlay.mp4     with --overlay: cleaned skeleton and a marker at each cycle
---reuse skips the model and starts from an existing .wholebody.npz.
+--reuse skips the model and starts from an existing .wholebody.npz. --distance-m and
+--time-s (the swim's distance and time, if known) add pace and distance per stroke.
 """
 
 import argparse
@@ -15,10 +18,19 @@ from pathlib import Path
 
 import numpy as np
 
+from aquatrack.analysis.horizon import horizontal
+from aquatrack.analysis.keyframes import default_keyframes_dir, render_keyframes
 from aquatrack.analysis.metrics.cycles import (
     StrokeAnalysis,
     analyze_strokes,
     default_cycles_path,
+    main_stretch,
+)
+from aquatrack.analysis.metrics.technique import (
+    TechniqueReport,
+    default_measures_path,
+    measure_technique,
+    near_side,
 )
 from aquatrack.analysis.pose.cleanup import (
     L_WRIST,
@@ -104,6 +116,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--reuse", action="store_true", help="start from the saved raw pose")
     parser.add_argument("--overlay", action="store_true", help="also render a skeleton video")
     parser.add_argument("--raw-overlay", action="store_true", help="draw the uncleaned points")
+    parser.add_argument("--distance-m", type=float, default=None, help="distance swum")
+    parser.add_argument("--time-s", type=float, default=None, help="time for that distance")
     args = parser.parse_args(argv)
 
     raw_path = default_pose_path(args.video)
@@ -136,6 +150,24 @@ def main(argv: list[str] | None = None) -> None:
     strokes = analyze_strokes(cleaned)
     print(f"clean: {cleaned.save(default_clean_path(args.video))}")
     print(f"cycles: {strokes.save(default_cycles_path(args.video), cleaned)}")
+    stretch = main_stretch(cleaned)
+    frames = np.arange(stretch[0], stretch[1] + 1) if stretch else np.arange(len(cleaned))
+    horizon, source = horizontal(cleaned, frames, args.video)
+    report = measure_technique(
+        cleaned,
+        strokes,
+        horizon,
+        source,
+        distance_m=args.distance_m,
+        time_s=args.time_s,
+        near_side=near_side(raw),
+    )
+    print(f"measures: {report.save(default_measures_path(args.video), cleaned)}")
+    images = render_keyframes(
+        args.video, cleaned, report, horizon, default_keyframes_dir(args.video)
+    )
+    if images:
+        print(f"key frames: {images[0].parent} ({len(images)} images)")
     if args.overlay:
         if args.raw_overlay:
             out = render_overlay(args.video, raw.frame_indices, raw.keypoints, _overlay(args))
@@ -165,6 +197,34 @@ def main(argv: list[str] | None = None) -> None:
     for c in strokes.cycles:
         if not c.trusted:
             print(f"  skipped {c.arm} cycle at frame {c.start}: {c.reason}")
+    print_measures(report)
+
+
+def print_measures(report: TechniqueReport) -> None:
+    def num(x) -> str:
+        return "-" if x is None else f"{x:.2f}"
+
+    near = f"; overall arm values from the {report.near_side} arm" if report.near_side else ""
+    print(f"technique (horizontal from {report.horizontal_source}{near}):")
+    head = f"{'measure':<28}{'unit':>6}{'median':>8}{'p25-p75':>14}{'n':>4}"
+    print(f"  {head}  {'left / right':<17}start > end")
+    for name, m in report.measures.items():
+        s = m.summary()
+        if not s["n"]:
+            print(f"  {name:<28}{m.unit:>6}  -- {s.get('status', 'no reliable values')}")
+            continue
+        spread = f"{num(s['p25'])}-{num(s['p75'])}"
+        arms = s.get("by_side", {})
+        lr = f"{num(arms.get('left'))} / {num(arms.get('right'))}" if arms else ""
+        sec = s.get("by_section", {})
+        trend = f"{num(sec.get('start'))} > {num(sec.get('end'))}" if sec else ""
+        flag = " (experimental)" if m.experimental else ""
+        row = f"{name:<28}{m.unit:>6}{num(s['median']):>8}{spread:>14}{s['n']:>4}"
+        print(f"  {row}  {lr:<17}{trend}{flag}")
+    for name, values in report.balance.items():
+        print(f"  balance {name}: {values}")
+    for name, value in report.session.items():
+        print(f"  session {name}: {value}")
 
 
 def _overlay(args) -> Path:
