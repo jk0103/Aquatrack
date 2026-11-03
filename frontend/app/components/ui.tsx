@@ -263,15 +263,3 @@ export function GlassCard({
 }
 
 export { ArcGauge } from "@/app/components/ArcGauge";
-
-// Marks placeholder numbers so nobody mistakes them for their own results.
-export function ExampleNote({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
-      <span className="mt-0.5 shrink-0 rounded-full bg-amber-100 px-2 text-xs font-semibold">
-        Example
-      </span>
-      <span>{children}</span>
-    </p>
-  );
-}

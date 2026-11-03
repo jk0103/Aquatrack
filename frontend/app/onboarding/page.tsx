@@ -23,25 +23,21 @@ import {
 const steps = [
   {
     title: "About you",
-    intro: "Your body measurements help us read your stroke from video.",
     Fields: BodyFields,
     check: (d: ProfileDraft) => checkDraft(d, BODY_CHECKS),
   },
   {
     title: "Your swimming",
-    intro: "So feedback matches your experience.",
     Fields: LevelField,
     check: checkLevel,
   },
   {
     title: "Your training",
-    intro: "How often and how long you're in the water.",
     Fields: TrainingFields,
     check: (d: ProfileDraft) => checkDraft(d, TRAINING_CHECKS),
   },
   {
     title: "Personal bests",
-    intro: "Where you're starting from, so we can track your progress.",
     Fields: PbFields,
     check: checkPbs,
   },
@@ -55,7 +51,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const { title, intro, Fields, check } = steps[step];
+  const { title, Fields, check } = steps[step];
   const last = step === steps.length - 1;
 
   useEffect(
@@ -136,7 +132,6 @@ export default function OnboardingPage() {
               Step {step + 1} of {steps.length}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
-            <p className="mt-1 mb-6 text-slate-600">{intro}</p>
 
             <div className="space-y-5">
               <FormError message={error} />

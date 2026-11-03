@@ -2,7 +2,6 @@ import {
   Badge,
   ButtonLink,
   Card,
-  ExampleNote,
   LaneProgress,
   PageHeader,
 } from "@/app/components/ui";
@@ -23,15 +22,8 @@ export default function TrainingPage() {
     <>
       <PageHeader
         title="Training"
-        subtitle="Plans you're working through, built from your feedback."
         action={<ButtonLink href="/analyze">Get a new plan</ButtonLink>}
       />
-      <div className="mb-6">
-        <ExampleNote>
-          These training plans are examples. Your own plans will appear here once your swims are
-          analyzed.
-        </ExampleNote>
-      </div>
 
       <Card title="This week" className="mb-6">
         <ol className="grid grid-cols-7 gap-1.5 sm:gap-3">

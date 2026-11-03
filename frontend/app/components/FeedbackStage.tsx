@@ -141,10 +141,7 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
           )}
         </div>
       </section>
-      <div className="mt-2 mb-6 flex flex-wrap justify-between gap-2 px-1 text-xs text-slate-500">
-        <span>Space to play or pause · ← → to step frames</span>
-        <span>{overlay ? "Markings from pose tracking" : "Markings hidden"}</span>
-      </div>
+      <div className="mb-6" />
 
       {/* Card stacks under the video on phones and tablets */}
       <div className="mb-6 lg:hidden">

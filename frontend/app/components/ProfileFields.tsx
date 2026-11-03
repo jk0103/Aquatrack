@@ -209,9 +209,7 @@ export function PbFields({ draft, set }: FieldsProps) {
   }
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">
-        Optional. Add your best times if you have them; skip this if you don&apos;t race.
-      </p>
+      <p className="text-sm text-slate-600">Optional</p>
       <ul className="space-y-3">
         {rows.map((row, i) => (
           <li

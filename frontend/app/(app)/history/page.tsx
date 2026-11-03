@@ -34,7 +34,6 @@ export default function HistoryPage() {
     <>
       <PageHeader
         title="History"
-        subtitle="Every swim you've uploaded and the feedback you got."
         action={<ButtonLink href="/analyze">Analyze a swim</ButtonLink>}
       />
 
@@ -103,10 +102,7 @@ export default function HistoryPage() {
         </p>
       )}
 
-      <h2 className="mb-1 text-lg font-semibold text-slate-900">Example analyses</h2>
-      <p className="mb-4 text-sm text-slate-500">
-        Sample results showing what feedback will look like.
-      </p>
+      <h2 className="mb-4 text-lg font-semibold text-slate-900">Example analyses</h2>
       <ul className="space-y-3">
         {list.map((a) => (
           <li key={a.id}>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { TimeChart } from "@/app/components/TimeChart";
-import { Card, ExampleNote, PageHeader, Stat } from "@/app/components/ui";
+import { Card, PageHeader, Stat } from "@/app/components/ui";
 import { formatDate, formatTime, progression } from "@/app/lib/mock";
 
 const goals: Record<string, number> = {
@@ -23,12 +23,7 @@ export default function ProgressPage() {
 
   return (
     <>
-      <PageHeader title="Progress" subtitle="How your times are dropping over the season." />
-      <div className="mb-6">
-        <ExampleNote>
-          These times are examples. Your own times will appear here as you log them.
-        </ExampleNote>
-      </div>
+      <PageHeader title="Progress" />
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Event">
         {names.map((name) => (

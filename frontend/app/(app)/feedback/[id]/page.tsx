@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ChevronIcon } from "@/app/components/icons";
 import { FeedbackStage, StatPills } from "@/app/components/FeedbackStage";
-import { Button, Card, ExampleNote } from "@/app/components/ui";
+import { Button, Card } from "@/app/components/ui";
 import { analyses, formatDate } from "@/app/lib/mock";
 
 const suggestedPlan = [
@@ -43,12 +43,6 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
         </div>
       </div>
 
-      <div className="mb-4">
-        <ExampleNote>
-          This is an example analysis showing what your feedback will look like.
-        </ExampleNote>
-      </div>
-
       <div className="mb-5">
         <StatPills analysis={analysis} />
       </div>
@@ -57,9 +51,6 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
         analysis={analysis}
         aside={
           <Card title="Suggested training plan">
-            <p className="mb-4 text-sm text-slate-600">
-              One week built around your main fix. Repeat for 3 weeks, then upload another swim.
-            </p>
             <ul className="space-y-3">
               {suggestedPlan.map((d) => (
                 <li key={d.day} className="flex gap-3">

@@ -10,7 +10,6 @@ import {
   Button,
   ButtonLink,
   Card,
-  ExampleNote,
   PageHeader,
   Stat,
 } from "@/app/components/ui";
@@ -227,7 +226,6 @@ function SwimStats() {
   const latest = analyses.find((a) => a.status === "Ready")!;
   return (
     <div className="mb-6 space-y-3">
-      <ExampleNote>These stats are examples until your swims are analyzed.</ExampleNote>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
         <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />

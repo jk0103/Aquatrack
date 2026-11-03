@@ -11,8 +11,8 @@ import { MAX_VIDEO_BYTES, uploadVideo } from "@/app/lib/videos";
 
 const strokes = ["Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
 const cameras = [
-  { value: "Underwater", note: "Side view below the surface" },
-  { value: "Overhead", note: "From the deck or above the pool" },
+  { value: "Underwater" },
+  { value: "Overhead" },
 ];
 
 const selectClass =
@@ -86,7 +86,6 @@ export default function AnalyzePage() {
     <>
       <PageHeader
         title="Analyze a swim"
-        subtitle="Upload a video and tell us how it felt. You'll get technique feedback and a suggested training plan."
       />
 
       <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-5">
@@ -137,7 +136,6 @@ export default function AnalyzePage() {
                     className="sr-only"
                   />
                   <span className="block font-medium text-slate-900">{c.value}</span>
-                  <span className="text-sm text-slate-500">{c.note}</span>
                 </label>
               ))}
             </div>
@@ -176,7 +174,7 @@ export default function AnalyzePage() {
               id="comments"
               name="comments"
               rows={5}
-              placeholder="How did it feel? Anything you want us to look at, like your breathing or the kick on the last length?"
+              placeholder="How did it feel?"
               className={`${selectClass} resize-y`}
             />
           </Card>
@@ -184,9 +182,9 @@ export default function AnalyzePage() {
           <Card title="What would you like back?">
             <div className="space-y-3">
               {[
-                ["want_feedback", "Technique feedback", "Annotated frames and what to fix first"],
-                ["want_plan", "Training plan suggestion", "Drills and sets built around the feedback"],
-              ].map(([name, label, note]) => (
+                ["want_feedback", "Technique feedback"],
+                ["want_plan", "Training plan suggestion"],
+              ].map(([name, label]) => (
                 <label key={name} className="flex gap-3">
                   <input
                     type="checkbox"
@@ -196,7 +194,6 @@ export default function AnalyzePage() {
                   />
                   <span>
                     <span className="block font-medium text-slate-900">{label}</span>
-                    <span className="text-sm text-slate-500">{note}</span>
                   </span>
                 </label>
               ))}

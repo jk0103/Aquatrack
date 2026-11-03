@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { ChevronIcon, TrophyIcon } from "@/app/components/icons";
-import { Button, Card, DateChip, ExampleNote, PageHeader } from "@/app/components/ui";
+import { Button, Card, DateChip, PageHeader } from "@/app/components/ui";
 import { events, formatDate, TODAY, type CalendarEvent } from "@/app/lib/mock";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -43,14 +43,8 @@ export default function CalendarPage() {
     <>
       <PageHeader
         title="Calendar"
-        subtitle="Training sessions and upcoming competitions in one place."
         action={<Button>Add event</Button>}
       />
-      <div className="mb-6">
-        <ExampleNote>
-          These sessions and meets are examples. You&apos;ll be able to add your own soon.
-        </ExampleNote>
-      </div>
 
       <div className="space-y-6">
         <Card>
@@ -170,7 +164,7 @@ export default function CalendarPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">Nothing planned. A good day for recovery.</p>
+              <p className="text-sm text-slate-500">Nothing planned</p>
             )}
           </Card>
 

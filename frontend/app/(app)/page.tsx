@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useUser } from "@/app/components/AppShell";
 import { CalendarIcon, ChartIcon, PlanIcon, UploadIcon, VideoIcon } from "@/app/components/icons";
 import { TimeChart } from "@/app/components/TimeChart";
-import { ArcGauge, DateChip, ExampleNote, GlassCard } from "@/app/components/ui";
+import { ArcGauge, DateChip, GlassCard } from "@/app/components/ui";
 import {
   analyses,
   events,
@@ -76,7 +76,7 @@ export default function HomePage() {
           </h1>
           <p className="mt-3 text-sky-50/90">
             {nextMeet
-              ? `${nextMeet.title} is ${daysToMeet === 0 ? "today" : `in ${daysToMeet} days`}. Upload a swim to see what to sharpen before race day.`
+              ? `${nextMeet.title} ${daysToMeet === 0 ? "today" : `in ${daysToMeet} days`}`
               : "Upload a swim to get feedback on your technique."}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -96,10 +96,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <ExampleNote>
-        Training plans, times and feedback below are examples until your first swim is analyzed.
-      </ExampleNote>
 
       <GlassCard
         title="This week"
@@ -150,7 +146,6 @@ export default function HomePage() {
         </div>
         <div className="min-w-0 space-y-5 lg:space-y-6">
           <GlassCard title="Coming up" icon={<CalendarIcon className="h-5 w-5" />}>
-            <p className="-mt-2 mb-3 text-sm text-slate-500">After this week</p>
             <ul className="space-y-3">
               {upcoming.map((e) => (
                 <li
