@@ -123,7 +123,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-        <button onClick={logout} className="tap-target -my-2 py-2 text-xs text-slate-500 hover:text-sky-700">
+        <button
+          onClick={logout}
+          className="tap-target -my-2 py-2 text-xs text-slate-500 hover:text-sky-700"
+        >
           Log out
         </button>
       </div>

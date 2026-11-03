@@ -103,7 +103,7 @@ export default function HistoryPage() {
         </p>
       )}
 
-      <h2 className="mb-1 font-semibold text-slate-900">Example analyses</h2>
+      <h2 className="mb-1 text-lg font-semibold text-slate-900">Example analyses</h2>
       <p className="mb-4 text-sm text-slate-500">
         Sample results showing what feedback will look like.
       </p>
@@ -135,7 +135,7 @@ export default function HistoryPage() {
               </div>
               {a.status === "Ready" && (
                 <div className="hidden text-right sm:block">
-                  <p className="text-2xl font-semibold text-slate-900">{a.score}</p>
+                  <p className="font-display text-3xl font-semibold text-slate-900 tabular-nums">{a.score}</p>
                   <p className="text-xs text-slate-500">score</p>
                 </div>
               )}

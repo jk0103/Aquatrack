@@ -39,6 +39,7 @@
   --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-barlow-condensed), var(--font-geist-sans), sans-serif;
 }
 
 body {
@@ -253,9 +254,11 @@ input[type="number"] {
   inset: -6px 0;
 }
 
-/* Headings break into even lines */
+/* Headings use the condensed display face and break into even lines */
 h1,
 h2,
 h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
   text-wrap: balance;
 }

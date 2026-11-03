@@ -63,7 +63,7 @@ export default function CalendarPage() {
               >
                 <ChevronIcon className="h-5 w-5 rotate-180" />
               </button>
-              <h2 className="min-w-36 text-center font-semibold text-slate-900">
+              <h2 className="min-w-36 text-center text-lg font-semibold text-slate-900">
                 {month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h2>
               <button

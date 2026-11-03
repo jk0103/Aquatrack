@@ -131,15 +131,11 @@ export default function OnboardingPage() {
             ))}
           </ol>
 
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="rounded-2xl glass p-6 sm:p-8"
-          >
+          <form onSubmit={onSubmit} noValidate className="rounded-2xl glass p-6 sm:p-8">
             <p className="text-sm font-medium text-sky-700">
               Step {step + 1} of {steps.length}
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
             <p className="mt-1 mb-6 text-slate-600">{intro}</p>
 
             <div className="space-y-5">

@@ -15,7 +15,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {title}
         </h1>
         {subtitle && <p className="mt-1.5 text-slate-600">{subtitle}</p>}
@@ -40,7 +40,7 @@ export function Card({
     <section className={`rounded-2xl glass p-5 sm:p-6 ${className}`}>
       {title && (
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           {action}
         </div>
       )}
@@ -154,7 +154,9 @@ export function Stat({ label, value, note }: { label: string; value: string; not
   return (
     <div className="rounded-2xl glass p-4 sm:p-5">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
+      <p className="mt-1 font-display text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
+        {value}
+      </p>
       {note && <p className="mt-1 text-xs font-medium text-teal-700">{note}</p>}
     </div>
   );
@@ -205,7 +207,9 @@ export function DateChip({ iso, meet = false }: { iso: string; meet?: boolean })
       <span className="text-[10px] font-semibold uppercase">
         {d.toLocaleDateString("en-US", { month: "short" })}
       </span>
-      <span className="text-lg font-semibold leading-none">{d.getDate()}</span>
+      <span className="font-display text-xl font-semibold leading-none tabular-nums">
+        {d.getDate()}
+      </span>
     </span>
   );
 }
@@ -241,7 +245,7 @@ export function GlassCard({
               {icon}
             </span>
           )}
-          <h2 className="flex-1 font-semibold text-slate-900">{title}</h2>
+          <h2 className="flex-1 text-lg font-semibold text-slate-900">{title}</h2>
           {href && (
             <Link
               href={href}

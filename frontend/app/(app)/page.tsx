@@ -53,7 +53,7 @@ export default function HomePage() {
     <div className="space-y-5 lg:space-y-6">
       <section className="relative min-h-[280px] overflow-hidden rounded-2xl bg-sky-950 p-6 text-white shadow-sm sm:p-8">
         {/* Butterfly swimmer photo, on the right so the text stays clear */}
-        <div className="absolute inset-y-0 right-0 w-full md:w-[68%]">
+        <div className="absolute inset-y-0 right-0 w-full md:w-[68%] md:[mask-image:linear-gradient(to_right,transparent,black_40%)]">
           <Image
             src={heroPhoto}
             placeholder="blur"
@@ -71,7 +71,7 @@ export default function HomePage() {
         />
         <div className="relative z-10 max-w-md">
           <p className="text-sm text-sky-100">{formatDate(TODAY, { weekday: "long" })}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
             {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
           </h1>
           <p className="mt-3 text-sky-50/90">
@@ -123,7 +123,7 @@ export default function HomePage() {
               {trainingPlans.map((plan) => (
                 <li key={plan.id} className="min-w-0 text-center">
                   <ArcGauge value={(plan.done / plan.total) * 100} label={`${plan.name} progress`}>
-                    <p className="text-lg font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                    <p className="font-display text-2xl font-semibold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
                       {plan.done}
                       <span className="text-sm font-medium text-slate-500 sm:text-base">
                         /{plan.total}
@@ -176,7 +176,9 @@ export default function HomePage() {
             glow="rgb(45 212 191 / 0.14)"
           >
             <div className="flex items-end gap-3">
-              <p className="text-4xl font-semibold tracking-tight text-slate-900">{latest.score}</p>
+              <p className="font-display text-5xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                {latest.score}
+              </p>
               <p className="pb-1 text-sm font-medium text-teal-700">+4 this month</p>
             </div>
             <p className="mt-1 truncate text-sm text-slate-600">{latest.headline}</p>
@@ -222,7 +224,7 @@ function WeekStrip({ days }: { days: string[] }) {
                   {d.toLocaleDateString("en-US", { weekday: "short" })}
                 </span>
                 <span
-                  className={`text-xl font-semibold ${isToday ? "text-white" : "text-slate-900"}`}
+                  className={`font-display text-2xl font-semibold tabular-nums ${isToday ? "text-white" : "text-slate-900"}`}
                 >
                   {d.getDate()}
                 </span>

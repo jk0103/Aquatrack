@@ -46,7 +46,7 @@ export function StatPills({ analysis }: { analysis: Analysis }) {
           <span className="relative text-slate-500 transition-colors duration-300 group-hover:text-sky-700">
             {label}
           </span>
-          <span className="relative font-semibold text-slate-900 transition-colors duration-300 group-hover:text-sky-900">
+          <span className="relative font-display text-base font-semibold text-slate-900 tabular-nums transition-colors duration-300 group-hover:text-sky-900">
             {value}
           </span>
         </li>
@@ -154,7 +154,7 @@ export function FeedbackStage({ analysis, aside }: { analysis: Analysis; aside: 
       <div className="grid gap-6 lg:grid-cols-5">
         <section className="rounded-2xl glass p-5 sm:p-6 lg:col-span-3">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-semibold text-slate-900">Feedback</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Feedback</h2>
             <FilterTabs value={filter} onChange={setFilter} count={count} />
           </div>
           <ol key={filter} className="space-y-5">
@@ -371,9 +371,9 @@ function RateGauge({ value: target_value, target }: { value: number; target: [nu
           x="50"
           y="84"
           textAnchor="middle"
-          fontSize="11"
+          fontSize="13"
           fontWeight="700"
-          className="fill-slate-900"
+          className="fill-slate-900 font-display"
         >
           {Math.round(value)}/min
         </text>
@@ -451,9 +451,9 @@ function WaterGauge({ value }: { value: number }) {
           x="50"
           y="47"
           textAnchor="middle"
-          fontSize="20"
+          fontSize="24"
           fontWeight="700"
-          className={value > 55 ? "fill-white" : "fill-slate-900"}
+          className={`font-display ${value > 55 ? "fill-white" : "fill-slate-900"}`}
         >
           {value}
         </text>
@@ -503,7 +503,15 @@ function RotationDial({ degrees }: { degrees: number }) {
           <path d="M50 86 L54 50 L46 50 Z" fill="#cbd5e1" />
         </g>
         <circle cx="50" cy="50" r="6" fill="#0f172a" />
-        <text x="50" y="72" textAnchor="middle" fontSize="11" fontWeight="700" fill="#0f172a">
+        <text
+          x="50"
+          y="72"
+          textAnchor="middle"
+          fontSize="13"
+          fontWeight="700"
+          fill="#0f172a"
+          className="font-display"
+        >
           {degrees}°
         </text>
         <text x="50" y="81" textAnchor="middle" fontSize="6" fill="#64748b">

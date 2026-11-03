@@ -2,7 +2,14 @@
 
 import type { ReactNode } from "react";
 
-import { MAX_PBS, PB_EVENTS, PB_POOLS, SWIM_LEVELS, type PbDraft, type ProfileDraft } from "@/app/lib/profile";
+import {
+  MAX_PBS,
+  PB_EVENTS,
+  PB_POOLS,
+  SWIM_LEVELS,
+  type PbDraft,
+  type ProfileDraft,
+} from "@/app/lib/profile";
 
 // Profile questions, shared by the signup survey and the edit profile page.
 

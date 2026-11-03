@@ -33,7 +33,7 @@ export default async function FeedbackPage(props: PageProps<"/feedback/[id]">) {
 
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             {analysis.headline}
           </h1>
           <p className="mt-1.5 text-slate-600">
@@ -92,7 +92,7 @@ function Processing({ comment }: { comment: string }) {
       <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-sky-100">
         <div className="absolute inset-x-0 bottom-0 h-1/2 animate-pulse bg-gradient-to-t from-sky-500 to-cyan-300" />
       </div>
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">
+      <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900">
         Analyzing your swim
       </h1>
       <p className="mt-2 text-slate-600">

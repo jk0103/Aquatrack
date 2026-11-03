@@ -36,7 +36,7 @@ export default function SignupPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Create your account</h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Create your account</h1>
       <p className="mt-2 text-sm text-slate-600">
         Upload your swims and get feedback on your technique.
       </p>

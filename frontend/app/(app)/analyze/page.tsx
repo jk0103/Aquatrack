@@ -67,7 +67,7 @@ export default function AnalyzePage() {
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-2xl text-teal-700">
           ✓
         </span>
-        <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
         <p className="mt-2 text-slate-600">
           {savedName} is saved. It will show up in History, and feedback will appear there once
           analysis is connected.
