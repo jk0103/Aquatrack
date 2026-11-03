@@ -60,10 +60,11 @@ export default function HistoryPage() {
         <p className="mb-8 text-sm text-slate-500">Loading your uploads…</p>
       ) : myUploads.length ? (
         <ul className="mb-10 space-y-3">
-          {myUploads.map((v) => (
+          {myUploads.map((v, i) => (
             <li
+              style={{ animationDelay: `${i * 70}ms` }}
               key={v.id}
-              className="flex items-center gap-4 rounded-2xl glass p-3 sm:p-4"
+              className="list-enter flex items-center gap-4 rounded-2xl glass p-3 sm:p-4"
             >
               <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 text-white/80 sm:h-20 sm:w-32">
                 <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
@@ -104,15 +105,28 @@ export default function HistoryPage() {
 
       <h2 className="mb-4 text-lg font-semibold text-slate-900">Example analyses</h2>
       <ul className="space-y-3">
-        {list.map((a) => (
-          <li key={a.id}>
+        {list.map((a, i) => (
+          <li
+            key={a.id}
+            className="list-enter"
+            style={{ animationDelay: `${(myUploads.length + i) * 70 + 80}ms` }}
+          >
             <Link
               href={`/feedback/${a.id}`}
               className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
             >
               <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-gradient-to-b from-sky-700 to-cyan-800 sm:h-20 sm:w-32">
-                <svg viewBox="0 0 120 80" className="absolute inset-0 h-full w-full text-white/15" aria-hidden="true">
-                  <path d="M0 30 Q15 24 30 30 T60 30 T90 30 T120 30M0 55 Q15 49 30 55 T60 55 T90 55 T120 55" fill="none" stroke="currentColor" strokeWidth="3" />
+                <svg
+                  viewBox="0 0 120 80"
+                  className="absolute inset-0 h-full w-full text-white/15"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M0 30 Q15 24 30 30 T60 30 T90 30 T120 30M0 55 Q15 49 30 55 T60 55 T90 55 T120 55"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  />
                 </svg>
                 <span className="absolute bottom-1 left-1 rounded bg-black/40 px-1.5 text-[10px] text-white">
                   {a.distance}
@@ -126,12 +140,16 @@ export default function HistoryPage() {
                   </span>
                   {a.status === "Processing" && <Badge tone="amber">Processing</Badge>}
                 </div>
-                <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">{a.headline}</p>
+                <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">
+                  {a.headline}
+                </p>
                 <p className="text-sm text-slate-500">{formatDate(a.date, { year: "numeric" })}</p>
               </div>
               {a.status === "Ready" && (
                 <div className="hidden text-right sm:block">
-                  <p className="font-display text-3xl font-semibold text-slate-900 tabular-nums">{a.score}</p>
+                  <p className="font-display text-3xl font-semibold text-slate-900 tabular-nums">
+                    {a.score}
+                  </p>
                   <p className="text-xs text-slate-500">score</p>
                 </div>
               )}
