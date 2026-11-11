@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "uvicorn", "aquatrack.api.main:app", "--reload", "--reload-dir", "src", "--env-file", ".env"],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "firebase-emulators",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "emulators"],
+      "port": 4000
+    },
+    {
+      "name": "backend-emulated",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099", "FIREBASE_PROJECT_ID=demo-aquatrack", "uv", "run", "uvicorn", "aquatrack.api.main:app", "--reload", "--reload-dir", "src"],
+      "port": 8000
+    },
+    {
+      "name": "frontend-emulated",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["NEXT_PUBLIC_FIREBASE_EMULATORS=true", "npm", "--prefix", "frontend", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}
