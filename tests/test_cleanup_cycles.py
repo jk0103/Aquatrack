@@ -4,8 +4,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
+from synthetic import FPS, HIP, TRUNK, H, W, swimmer_xy, times, to_sequence
 
-from aquatrack.analysis.metrics.cycles import analyze_strokes
+from aquatrack.analysis.metrics.cycles import StrokeCycle, analyze_strokes, flag_odd_durations
 from aquatrack.analysis.pose import cli
 from aquatrack.analysis.pose.cleanup import (
     L_ANKLE,
@@ -18,59 +19,7 @@ from aquatrack.analysis.pose.cleanup import (
     Fix,
     clean,
 )
-from aquatrack.analysis.pose.wholebody import (
-    LEFT_FOOT,
-    LEFT_HAND,
-    NUM_KEYPOINTS,
-    RIGHT_FOOT,
-    RIGHT_HAND,
-    WholeBodySequence,
-)
-
-W, H, FPS, TRUNK = 640, 400, 25.0, 100.0
-HIP = np.array([300.0, 200.0])
-SHOULDER = HIP + (TRUNK, 0)
-
-
-def swimmer_xy(t: np.ndarray, period: float = 1.2) -> np.ndarray:
-    """(frames, 133, 2) pixels for a swimmer heading right, both arms turning once per
-    `period` seconds half a turn apart, legs straight behind."""
-    xy = np.zeros((len(t), NUM_KEYPOINTS, 2))
-    xy[:] = SHOULDER + (TRUNK * 0.5, 0)  # face points and nose by the head
-    for side, (sh, hp) in enumerate(((5, 11), (6, 12))):
-        offset = (0, 3 if side else -3)
-        xy[:, sh] = SHOULDER + offset
-        xy[:, hp] = HIP + offset
-    xy[:, [1, 2, 3, 4]] = SHOULDER + (TRUNK * 0.4, 0)
-    for knee, ankle, foot, dy in ((13, 15, LEFT_FOOT, -4), (14, 16, RIGHT_FOOT, 4)):
-        xy[:, knee] = HIP + (-0.8 * TRUNK, dy)
-        xy[:, ankle] = HIP + (-1.6 * TRUNK, dy)
-        for k, p in enumerate(foot):
-            xy[:, p] = xy[:, ankle] + (-10 - 5 * k, 5)
-    for elbow, wrist, hand, phase0 in ((7, 9, LEFT_HAND, 0.0), (8, 10, RIGHT_HAND, np.pi + 0.3)):
-        theta = phase0 + 2 * np.pi * t / period
-        direction = np.stack([np.cos(theta), np.sin(theta)], axis=1)
-        xy[:, elbow] = SHOULDER + 0.65 * TRUNK * direction
-        xy[:, wrist] = SHOULDER + 1.3 * TRUNK * direction
-        for k, p in enumerate(hand):
-            xy[:, p] = xy[:, wrist] + 0.25 * TRUNK * direction * (k / 20)
-    return xy
-
-
-def to_sequence(xy: np.ndarray, score: float = 6.0) -> WholeBodySequence:
-    keypoints = np.concatenate([xy / (W, H), np.full((*xy.shape[:2], 1), score)], axis=-1)
-    return WholeBodySequence(
-        keypoints=keypoints,
-        fps=FPS,
-        frame_indices=np.arange(len(xy)),
-        width=W,
-        height=H,
-        model="synthetic",
-    )
-
-
-def times(frames: int = 150) -> np.ndarray:
-    return np.arange(frames) / FPS
+from aquatrack.analysis.pose.wholebody import LEFT_HAND, RIGHT_HAND
 
 
 def test_clean_swimmer_is_left_alone():
@@ -193,6 +142,37 @@ def test_cycle_with_hidden_arm_is_not_trusted():
     unsure = [c for c in left if not c.trusted]
     assert len(unsure) == 1 and "reliable" in unsure[0].reason
     assert strokes.rate_per_min["left"] == pytest.approx(50, abs=1)  # from trusted ones
+
+
+def test_fragment_far_from_the_typical_cycle_is_not_trusted():
+    def cycle(arm, duration):
+        return StrokeCycle(arm, 0, 1, None, duration, trusted=True)
+
+    cycles = [cycle("left", 2.1), cycle("right", 2.0), cycle("left", 2.2), cycle("right", 0.8)]
+    cycles += [cycle("right", 2.1), cycle("left", 3.9)]
+
+    flag_odd_durations(cycles)
+
+    assert [c.trusted for c in cycles] == [True, True, True, False, True, False]
+    assert "typical" in cycles[3].reason
+
+
+def test_too_few_cycles_to_judge_what_is_typical():
+    cycles = [StrokeCycle("left", 0, 1, None, d, trusted=True) for d in (2.0, 0.9)]
+    flag_odd_durations(cycles)
+    assert all(c.trusted for c in cycles)
+
+
+def test_sections_cover_the_swim_not_stray_early_detections():
+    # 0.4 s seen (camera above water), 3 s with no swimmer, then 6 s of swimming.
+    seq = to_sequence(swimmer_xy(times(10 + 75 + 150)))
+    seq.keypoints[10:85] = np.nan
+
+    sections = analyze_strokes(clean(seq)).sections
+
+    assert sections[0].start == 85
+    assert sections[-1].end == 234
+    assert [s.name for s in sections] == ["start", "middle", "end"]
 
 
 def test_clean_pose_save_load(tmp_path):

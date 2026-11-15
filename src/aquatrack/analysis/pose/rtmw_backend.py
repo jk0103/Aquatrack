@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 
 from aquatrack.analysis.pose.base import PoseSequence
-from aquatrack.analysis.pose.wholebody import NUM_KEYPOINTS, WholeBodySequence
+from aquatrack.analysis.pose.wholebody import BODY, MIN_SCORE, NUM_KEYPOINTS, WholeBodySequence
 from aquatrack.analysis.pose.yolo_backend import DEFAULT_MODEL as STOCK_YOLO
 from aquatrack.analysis.video import iter_frames, read_video_info
 
@@ -26,6 +26,9 @@ RTMW_ONNX = MODELS_DIR / "rtmw_x_stock.onnx"
 SWIM_DETECTOR = MODELS_DIR / "swim_pose.pt"
 
 RTMW_INPUT_SIZE = (288, 384)  # width, height
+BODY_POINTS = list(BODY)
+# How long a swimmer box is carried forward through detector misses.
+MAX_BOX_CARRY_S = 0.5
 
 # CoreML settings for device="mps". The MLProgram format keeps full precision and matches
 # CPU output; rtmlib's own "mps" uses the older fp16 format, which put whole frames of
@@ -51,6 +54,40 @@ def largest_box(boxes: np.ndarray) -> np.ndarray | None:
         return None
     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
     return boxes[int(np.argmax(areas))]
+
+
+class BoxTracker:
+    """Keeps a swimmer box through detector misses.
+
+    The detector misses the swimmer in many frames when splash or the surface hides most
+    of the body (above-water side views are worst). The swimmer moves smoothly, so for a
+    short while we carry the last box forward at its recent speed and let RTMW's scores
+    decide whether the swimmer is really there.
+    """
+
+    def __init__(self, max_missing: int):
+        self.max_missing = max_missing
+        self.last: np.ndarray | None = None
+        self.velocity = np.zeros(4)
+        self.missing = 0
+
+    def update(self, box: np.ndarray | None) -> tuple[np.ndarray | None, bool]:
+        """The box to use this frame, and whether it was carried rather than detected."""
+        if box is not None:
+            if self.last is not None and self.missing == 0:
+                self.velocity = box - self.last
+            elif self.last is None:
+                self.velocity = np.zeros(4)
+            self.last, self.missing = box, 0
+            return box, False
+        if self.last is None or self.missing >= self.max_missing:
+            return None, False
+        self.missing += 1
+        return self.last + self.velocity * self.missing, True
+
+    def lost(self) -> None:
+        """RTMW found no body in a carried box: stop carrying it."""
+        self.last = None
 
 
 class YoloPersonDetector:
@@ -89,6 +126,7 @@ class RunStats:
     """Wall-clock time of the last run, split by stage."""
 
     frames: int = 0
+    carried: int = 0  # frames posed from a carried box (detector missed)
     detect_s: float = 0.0
     pose_s: float = 0.0
     timings: list[float] = field(default_factory=list, repr=False)
@@ -139,25 +177,33 @@ class RtmwEstimator:
         self._pose_model = pose_model
         self._detector = detector if detector is not None else YoloPersonDetector()
         self.last_run = RunStats()
+        self._tracker: BoxTracker | None = None  # set per video by estimate_wholebody
 
     def estimate_frame(self, frame_bgr: np.ndarray) -> np.ndarray:
         """(133, 3) normalized x, y and score for one frame; NaN when no swimmer is found."""
         height, width = frame_bgr.shape[:2]
         points = np.full((NUM_KEYPOINTS, 3), np.nan)
 
+        stats = self.last_run
         start = time.perf_counter()
         box = largest_box(self._detector(frame_bgr))
+        carried = False
+        if self._tracker is not None:
+            box, carried = self._tracker.update(box)
         detected = time.perf_counter()
         if box is not None:
             # RTMW was trained on RGB; rtmlib's own pipeline would hand it BGR.
             rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
             kpts, scores = self._pose_model(rgb, bboxes=[box.tolist()])
-            points[:, 0] = kpts[0, :, 0] / width
-            points[:, 1] = kpts[0, :, 1] / height
-            points[:, 2] = scores[0]
+            if carried and np.median(scores[0, BODY_POINTS]) < MIN_SCORE:
+                self._tracker.lost()  # nobody there: don't invent a pose
+            else:
+                points[:, 0] = kpts[0, :, 0] / width
+                points[:, 1] = kpts[0, :, 1] / height
+                points[:, 2] = scores[0]
+                stats.carried += carried
         done = time.perf_counter()
 
-        stats = self.last_run
         stats.frames += 1
         stats.detect_s += detected - start
         stats.pose_s += done - detected
@@ -167,6 +213,7 @@ class RtmwEstimator:
     def estimate_wholebody(self, video_path: str | Path, step: int = 1) -> WholeBodySequence:
         info = read_video_info(video_path)
         self.last_run = RunStats()
+        self._tracker = BoxTracker(max(1, round(MAX_BOX_CARRY_S * info.fps / step)))
         indices, frames = [], []
         for index, frame in iter_frames(video_path, step=step):
             indices.append(index)

@@ -11,7 +11,9 @@ src/aquatrack/
   analysis/            # pure Python: video, pose, metrics (no web code)
     video.py           # read video info, iterate frames
     pose/              # pose backends (YOLO 17 points, RTMW-x 133 points) and cleanup
-    metrics/           # stroke cycles and rate, arm symmetry, ... (more to come)
+    metrics/           # stroke cycles and rate, technique measures, arm symmetry
+    horizon.py         # travel direction (hip path or pool lines) for camera-tilt-free angles
+    keyframes.py       # key-frame images with each measure drawn on
   api/                 # FastAPI app: accounts, video upload, analysis
 tests/                 # pytest, uses synthetic videos and pose data
 notebooks/             # experiments on sample videos
@@ -44,7 +46,9 @@ Whole-body pose needs two weight files in `models/` (not in git): `rtmw_x_stock.
 Drive, `aquatrack_swim_full/rtmw/`) and `swim_pose.pt` (our swimmer detector; stock YOLO is
 used if it's missing). Next to the video the CLI writes the raw points (`.wholebody.npz`), the
 cleaned points with per-point confidence (`.clean.npz`), stroke cycles, stroke rate and swim
-sections (`.cycles.json`), and with `--overlay` a skeleton video with a marker at each cycle.
+sections (`.cycles.json`), technique measures (`.measures.json`, with a key-frame image per
+measure type in `VIDEO.measures/`), and with `--overlay` a skeleton video with a marker at
+each cycle. `--distance-m` and `--time-s` add pace and distance per stroke.
 `--device mps` runs RTMW on CoreML, about 4x faster than CPU with the same output; `--reuse`
 re-runs cleanup and cycles from the saved raw points without the model.
 

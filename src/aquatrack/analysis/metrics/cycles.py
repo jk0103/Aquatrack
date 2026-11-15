@@ -33,7 +33,11 @@ MAX_BACKWARD = np.pi / 2
 MIN_TRUSTED_FRACTION = 0.6  # of a cycle's frames with reliable shoulder and wrist
 MIN_RELIABLE_CONFIDENCE = 0.3
 CYCLE_SECONDS = (0.6, 4.0)  # plausible duration of one arm cycle
+# A cycle much shorter or longer than the clip's typical one is a fragment or two merged.
+TYPICAL_RATIO = (0.6, 1.6)
+MIN_CYCLES_FOR_TYPICAL = 3
 SECTION_NAMES = ("start", "middle", "end")
+SECTION_MAX_GAP_S = 1.0  # longer gaps split the clip; sections cover the longest part
 
 
 @dataclass
@@ -211,23 +215,56 @@ def find_cycles(pose: CleanPose, arm: str) -> list[StrokeCycle]:
     return cycles
 
 
-def find_sections(pose: CleanPose, n: int = len(SECTION_NAMES)) -> list[Section]:
-    """Split the frames where the swimmer is seen into equal-time thirds."""
-    seen = np.nonzero(np.isfinite(pose.trunk))[0]
+def main_stretch(pose: CleanPose) -> tuple[int, int] | None:
+    """First and last frame of the longest stretch where the swimmer is seen, bridging
+    gaps up to `SECTION_MAX_GAP_S`. Skips stray detections before or after the swim, like
+    a camera starting above water."""
+    seen = np.nonzero(np.isfinite(pose.body_axis()).all(axis=1))[0]
     if len(seen) == 0:
+        return None
+    max_gap = max(1, round(SECTION_MAX_GAP_S * pose.fps))
+    breaks = np.nonzero(np.diff(seen) > max_gap)[0]
+    starts = np.concatenate([[0], breaks + 1])
+    ends = np.concatenate([breaks, [len(seen) - 1]])
+    longest = int(np.argmax(seen[ends] - seen[starts]))
+    return int(seen[starts[longest]]), int(seen[ends[longest]])
+
+
+def find_sections(pose: CleanPose, n: int = len(SECTION_NAMES)) -> list[Section]:
+    """Split the main stretch of swimming into equal-time thirds."""
+    stretch = main_stretch(pose)
+    if stretch is None:
         return []
-    edges = np.linspace(seen[0], seen[-1] + 1, n + 1).round().astype(int)
+    edges = np.linspace(stretch[0], stretch[1] + 1, n + 1).round().astype(int)
     return [Section(SECTION_NAMES[i], int(edges[i]), int(edges[i + 1] - 1)) for i in range(n)]
+
+
+def flag_odd_durations(cycles: list[StrokeCycle]) -> None:
+    """Mark cycles far from the clip's typical length as unsure.
+
+    Short reliable fragments happen when only part of a stroke is visible (filmed from
+    above, the pull is under the water and the model sees mostly the recovery). Both arms
+    share one rhythm, so the typical length is the median over all cycles of both arms.
+    """
+    if len(cycles) < MIN_CYCLES_FOR_TYPICAL:
+        return
+    typical = float(np.median([c.duration_s for c in cycles]))
+    for c in cycles:
+        ratio = c.duration_s / typical
+        if c.trusted and not TYPICAL_RATIO[0] <= ratio <= TYPICAL_RATIO[1]:
+            c.trusted = False
+            c.reason = f"{c.duration_s:.2f} s is far from this clip's typical {typical:.2f} s"
 
 
 def analyze_strokes(pose: CleanPose) -> StrokeAnalysis:
     sections = find_sections(pose)
     cycles, rates = [], {}
     for arm in ARMS:
-        arm_cycles = find_cycles(pose, arm)
-        durations = [c.duration_s for c in arm_cycles if c.trusted]
+        cycles += find_cycles(pose, arm)
+    flag_odd_durations(cycles)
+    for arm in ARMS:
+        durations = [c.duration_s for c in cycles if c.arm == arm and c.trusted]
         rates[arm] = 60.0 / float(np.median(durations)) if durations else float("nan")
-        cycles += arm_cycles
     for c in cycles:
         middle = c.reach if c.reach is not None else (c.start + c.end) // 2
         c.section = next((s.name for s in sections if s.start <= middle <= s.end), "")

@@ -7,7 +7,7 @@ import pytest
 from aquatrack.analysis.pose import Joint
 from aquatrack.analysis.pose.cli import coverage
 from aquatrack.analysis.pose.overlay import draw_skeleton, render_overlay
-from aquatrack.analysis.pose.rtmw_backend import RtmwEstimator, largest_box
+from aquatrack.analysis.pose.rtmw_backend import BoxTracker, RtmwEstimator, largest_box
 from aquatrack.analysis.pose.wholebody import (
     LEFT_HAND,
     MIN_SCORE,
@@ -36,16 +36,30 @@ class FakeDetector:
 
 
 class FakePoseModel:
-    """Puts every keypoint at the box center, and records the images it was given."""
+    """Puts every keypoint at the box center, and records the images it was given.
+    Scores are GOOD for the first `good_calls` calls, then below MIN_SCORE."""
 
-    def __init__(self):
+    def __init__(self, good_calls: int = 10**9):
         self.images = []
+        self.good_calls = good_calls
 
     def __call__(self, image, bboxes):
         self.images.append(image)
         x1, y1, x2, y2 = bboxes[0]
         kpts = np.tile([(x1 + x2) / 2, (y1 + y2) / 2], (1, NUM_KEYPOINTS, 1))
-        return kpts, np.full((1, NUM_KEYPOINTS), GOOD)
+        score = GOOD if len(self.images) <= self.good_calls else MIN_SCORE - 1
+        return kpts, np.full((1, NUM_KEYPOINTS), score)
+
+
+class FirstFrameDetector:
+    """Finds the swimmer in the first frame only."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, frame_bgr):
+        self.calls += 1
+        return np.array([[8.0, 4.0, 40.0, 36.0]]) if self.calls == 1 else np.empty((0, 4))
 
 
 @pytest.fixture
@@ -89,13 +103,39 @@ def test_estimate_wholebody_with_fake_models(blue_video):
     assert pose.frame_indices.tolist() == [0, 2, 4, 6, 8]
     assert pose.fps == pytest.approx(5.0)
     assert (pose.width, pose.height) == (64, 48)
-    # The detector finds the swimmer on frames 0, 4, 8 only.
-    assert pose.has_swimmer().tolist() == [True, False, True, False, True]
+    # The detector finds the swimmer on frames 0, 4, 8 only; the box is carried between.
+    assert pose.has_swimmer().tolist() == [True] * 5
+    assert estimator.last_run.carried == 2
     # Keypoints sit at the larger box's center, normalized to the frame size.
     np.testing.assert_allclose(pose.keypoints[0, :, :2], np.tile([24 / 64, 20 / 48], (133, 1)))
     # The pose model gets RGB: blue lands in the last channel.
     assert pose_model.images[0][0, 0, 2] > 200 and pose_model.images[0][0, 0, 0] < 50
     assert estimator.last_run.frames == 5
+
+
+def test_box_tracker_carries_at_recent_speed_then_gives_up():
+    tracker = BoxTracker(max_missing=2)
+    tracker.update(np.array([0.0, 0, 10, 10]))
+    tracker.update(np.array([2.0, 0, 12, 10]))
+
+    first, carried = tracker.update(None)
+    assert carried and first.tolist() == [4, 0, 14, 10]
+    assert tracker.update(None)[0].tolist() == [6, 0, 16, 10]
+    assert tracker.update(None) == (None, False)  # missed for too long
+
+
+def test_carried_box_is_used_for_half_a_second(blue_video):
+    estimator = RtmwEstimator(detector=FirstFrameDetector(), pose_model=FakePoseModel())
+    pose = estimator.estimate_wholebody(blue_video)  # 10 fps: carry up to 5 frames
+    assert pose.has_swimmer().tolist() == [True] * 6 + [False] * 4
+    assert estimator.last_run.carried == 5
+
+
+def test_carried_box_with_nobody_in_it_is_dropped(blue_video):
+    estimator = RtmwEstimator(detector=FirstFrameDetector(), pose_model=FakePoseModel(1))
+    pose = estimator.estimate_wholebody(blue_video)
+    assert pose.has_swimmer().tolist() == [True] + [False] * 9
+    assert estimator.last_run.carried == 0
 
 
 def test_estimate_returns_joint_sequence(blue_video):
