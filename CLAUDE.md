@@ -48,6 +48,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   (`videos/{id}/interpretations/{id}`, a new document per run). No pose data or model needed;
   `POST /videos/{id}/interpret` runs it again. Rules and thresholds:
   `docs/INTERPRETATION_RULES.md` (update it with any rule change and bump `RULES_VERSION`).
+- `src/aquatrack/analysis/feedback.py` + `explain.py` + `src/aquatrack/evidence.py`: feedback,
+  next-video checkpoints, references and the optional, validated LLM rewording
+  (`videos/{id}/feedback/{id}`; off unless `AQUATRACK_LLM=claude`; never call the paid API
+  without the owner's approval). Docs: `docs/FEEDBACK.md`, `docs/EVIDENCE_LIBRARY.md`.
+- Profile (`profiles/{uid}`): optional `goals`, `primary_goal`, `target`, `weak_note`; the
+  free-text note is never analysed or sent to a model.
 - Firebase: Auth, Firestore, Storage; rules in `firebase/`. Videos are uploaded by the web
   app straight to Storage; the API never receives files. Results: Firestore
   `videos/{id}/analyses/{analysisId}`, arrays in Storage `analysis/{uid}/...` (backend-only
@@ -84,6 +90,15 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   metrics and anything measured under a changing camera view never trigger an issue.
   Measurement limits are reported apart from findings and are never technique faults.
   Missing evidence, missing history or a missing profile must never be filled in.
+- Feedback (`analysis/feedback.py`) keeps five categories apart: observation, focus,
+  priority, education (general information for a goal the swimmer chose: never about their
+  video, never ranked) and insufficient. It never creates a finding; goals only add education
+  and affect ranking. Choosing a goal never makes something measurable.
+- Evidence (`evidence.py`): a source enters only after its DOI resolves at Crossref with a
+  matching title and its abstract has been read; claims say no more than the abstract.
+  Findings, research-supported suggestions, engineering heuristics and unverified hypotheses
+  are labelled as such. A paper discussing a technique does not validate a metric or switch on
+  a rule. Bump `EVIDENCE_VERSION` on any change and update `docs/EVIDENCE_LIBRARY.md`.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
 - The LLM only rewords validated findings. Send it structured metrics, never videos, names
@@ -144,10 +159,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
    public test clips: `data/precomputed_pose/` (ignored).
 2. Biomechanics metrics (freestyle, underwater side view first), shown through that flow
    (done, local commit `1357fba`, not pushed). Manual annotations and check scripts: `experiments/phase2_validation/`.
-3. Personalized pattern and issue detection (implemented locally 2026-11-15, uncommitted,
-   awaiting the owner's review). On the two real clips it yields observations and no issues,
-   which is the intended result for that evidence.
-4. Feedback, checkpoints, verified evidence, LLM layer.
+3. Personalized pattern and issue detection. On the two real clips it yields observations
+   and no issues, which is the intended result for that evidence.
+   (Phase 3 done, local commit `c0e482e`, not pushed.)
+4. Feedback, checkpoints, verified evidence, LLM layer (implemented locally 2026-11-15,
+   uncommitted, awaiting the owner's review; the LLM path is tested with mocks only and no
+   interpretation rule was activated).
 5. History and optimization. 6. Training and calendar. 7. Hardening, full scenario tests,
    production inference and deployment evaluation.
 

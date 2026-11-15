@@ -1,0 +1,1634 @@
+{
+ "feedback_version": "1.0",
+ "evidence_version": "2026.11-1",
+ "rules_version": "2026.11-1",
+ "interpretation_version": "1.0",
+ "video_id": "v",
+ "analysis_id": "a1",
+ "interpretation_id": "i1",
+ "goals_used": [
+  "stroke_consistency"
+ ],
+ "primary_goal": "stroke_consistency",
+ "swim_level": null,
+ "items": [
+  {
+   "id": "fb.priority.issue.history.rhythm_less_steady",
+   "category": "priority",
+   "personal": true,
+   "title": "Stroke rhythm less steady than in your earlier comparable swim",
+   "body": "Rhythm variation was 1.9% in the earlier swim and is 28.7% now, more than the 23.3 points that the measurement itself could account for. The same holds against 1 more earlier swim.",
+   "explained": "Here is what this means. Rhythm variation was 1.9% in the earlier swim and is 28.7% now, more than the 23.3 points that the measurement itself could account for. The same holds against 1 more earlier swim.",
+   "why_it_may_matter": "Research on swimming coordination argues that there is no single ideal pattern and that some variation is how swimmers adapt (Seifert et al., 2014). So this is something to look at in the video, not a fault: check whether those moments were a breath, a turn or a change of pace. The cut-offs used to flag it are AquaTrack's own and have not been validated.",
+   "finding_id": "issue.history.rhythm_less_steady",
+   "metric_keys": [
+    "rhythm_variation"
+   ],
+   "evidence": [
+    {
+     "metric_key": "rhythm_variation",
+     "label": "Rhythm variation",
+     "value": 28.7,
+     "unit": "%",
+     "low": null,
+     "high": null,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [],
+     "note": ""
+    }
+   ],
+   "claim_ids": [
+    "no_single_ideal_coordination",
+    "compare_like_with_like"
+   ],
+   "goal_keys": [
+    "stroke_consistency"
+   ],
+   "confidence": "measured",
+   "limitations": [
+    "Two clips of a few cycles each. Where in the length the clip was filmed changes the rhythm too.",
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "This does not say why the rhythm changed, or that it cost time.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "Whether the same pattern shows up in your next comparable swim (see the checkpoints).",
+   "rank": 1,
+   "factors": [
+    {
+     "name": "Evidence",
+     "points": 1,
+     "detail": "7 reliable stroke cycles behind it."
+    },
+    {
+     "name": "Repeated in the clip",
+     "points": 0,
+     "detail": "Not a per-cycle pattern."
+    },
+    {
+     "name": "Seen across swims",
+     "points": 2,
+     "detail": "Holds against 2 earlier comparable swims."
+    },
+    {
+     "name": "Your goals",
+     "points": 3,
+     "detail": "Matches your main goal: stroke consistency."
+    },
+    {
+     "name": "Size against noise",
+     "points": 0,
+     "detail": "1.2 times the smallest difference that counts."
+    },
+    {
+     "name": "Outside evidence",
+     "points": 0,
+     "detail": "None verified yet: no points are given for expected effect on speed."
+    }
+   ]
+  },
+  {
+   "id": "fb.priority.issue.timing.uneven_rhythm",
+   "category": "priority",
+   "personal": true,
+   "title": "Uneven stroke rhythm in this clip",
+   "body": "3 of 7 stroke cycles were clearly longer or shorter than this swim's own middle cycle time of 1.20 s. Worth a look at those moments in the video.",
+   "explained": "Here is what this means. 3 of 7 stroke cycles were clearly longer or shorter than this swim's own middle cycle time of 1.20 s. Worth a look at those moments in the video.",
+   "why_it_may_matter": "Research on swimming coordination argues that there is no single ideal pattern and that some variation is how swimmers adapt (Seifert et al., 2014). So this is something to look at in the video, not a fault: check whether those moments were a breath, a turn or a change of pace. The cut-offs used to flag it are AquaTrack's own and have not been validated.",
+   "finding_id": "issue.timing.uneven_rhythm",
+   "metric_keys": [
+    "cycle_duration",
+    "rhythm_variation"
+   ],
+   "evidence": [
+    {
+     "metric_key": "rhythm_variation",
+     "label": "Rhythm variation",
+     "value": 28.7,
+     "unit": "%",
+     "low": null,
+     "high": null,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [],
+     "note": ""
+    },
+    {
+     "metric_key": "cycle_duration",
+     "label": "Cycles off the rhythm",
+     "value": null,
+     "unit": "s",
+     "low": null,
+     "high": null,
+     "n_cycles": 3,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 2.04,
+       "value": 1.8,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.75,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 1.8,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [
+    "no_single_ideal_coordination",
+    "heuristic_rhythm_thresholds"
+   ],
+   "goal_keys": [
+    "stroke_consistency"
+   ],
+   "confidence": "measured",
+   "limitations": [
+    "From one clip. A breath, a turn, a push-off or a change of pace all make a cycle longer or shorter.",
+    "The comparison is with this swim's own rhythm, not with a standard.",
+    "Whether an even rhythm would make this swimmer faster is not known.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "Whether the same pattern shows up in your next comparable swim (see the checkpoints).",
+   "rank": 2,
+   "factors": [
+    {
+     "name": "Evidence",
+     "points": 1,
+     "detail": "7 reliable stroke cycles behind it."
+    },
+    {
+     "name": "Repeated in the clip",
+     "points": 1,
+     "detail": "3 of 7 cycles."
+    },
+    {
+     "name": "Seen across swims",
+     "points": 0,
+     "detail": "Holds against 0 earlier comparable swims."
+    },
+    {
+     "name": "Your goals",
+     "points": 3,
+     "detail": "Matches your main goal: stroke consistency."
+    },
+    {
+     "name": "Size against noise",
+     "points": 0,
+     "detail": "Not a comparison with an earlier swim."
+    },
+    {
+     "name": "Outside evidence",
+     "points": 0,
+     "detail": "None verified yet: no points are given for expected effect on speed."
+    }
+   ]
+  },
+  {
+   "id": "fb.obs.stroke_tempo",
+   "category": "observation",
+   "personal": true,
+   "title": "Stroke tempo",
+   "body": "50.0 full arm cycles per minute, one cycle every 1.20 s, from 7 cycles.",
+   "explained": "Here is what this means. 50.0 full arm cycles per minute, one cycle every 1.20 s, from 7 cycles.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.stroke_tempo",
+   "metric_keys": [
+    "stroke_rate",
+    "cycle_duration"
+   ],
+   "evidence": [
+    {
+     "metric_key": "stroke_rate",
+     "label": "Stroke rate",
+     "value": 50.0,
+     "unit": "cycles/min",
+     "low": 50.0,
+     "high": 50.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 50.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": 50.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 50.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 50.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.64,
+       "value": 50.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 50.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": 50.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    },
+    {
+     "metric_key": "cycle_duration",
+     "label": "Time per stroke cycle",
+     "value": 1.2,
+     "unit": "s",
+     "low": 1.2,
+     "high": 1.2,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 1.2,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": 1.8,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 1.2,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.75,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.64,
+       "value": 1.2,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 1.8,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": 1.2,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "A tempo is not good or bad by itself: it depends on the distance, the effort and the swimmer.",
+    "Swim speed was not measured, so nothing is said about distance per stroke.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.rhythm",
+   "category": "observation",
+   "personal": true,
+   "title": "Cycle time varied from cycle to cycle",
+   "body": "Cycle times ran from 0.75 to 1.80 s (variation 28.7%). The video can time differences down to about 6.7%; 3 of 7 cycles were clearly off the middle value.",
+   "explained": "Here is what this means. Cycle times ran from 0.75 to 1.80 s (variation 28.7%). The video can time differences down to about 6.7%; 3 of 7 cycles were clearly off the middle value.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.rhythm",
+   "metric_keys": [
+    "rhythm_variation",
+    "cycle_duration"
+   ],
+   "evidence": [
+    {
+     "metric_key": "rhythm_variation",
+     "label": "Rhythm variation",
+     "value": 28.7,
+     "unit": "%",
+     "low": null,
+     "high": null,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [],
+     "note": ""
+    },
+    {
+     "metric_key": "cycle_duration",
+     "label": "Cycles clearly off the middle value",
+     "value": null,
+     "unit": "s",
+     "low": null,
+     "high": null,
+     "n_cycles": 3,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 2.04,
+       "value": 1.8,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.75,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 1.8,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Variation between cycles is not a weakness by itself: a breath, a turn or a change of pace all change a cycle.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.body_line",
+   "category": "observation",
+   "personal": true,
+   "title": "Body line against the direction of travel",
+   "body": "0.0\u00b0 across 7 stroke cycles (positive means the feet are lower than the shoulders). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "explained": "Here is what this means. 0.0\u00b0 across 7 stroke cycles (positive means the feet are lower than the shoulders). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.body_line",
+   "metric_keys": [
+    "body_line_angle"
+   ],
+   "evidence": [
+    {
+     "metric_key": "body_line_angle",
+     "label": "Body line angle",
+     "value": 0.0,
+     "unit": "deg",
+     "low": 0.0,
+     "high": 0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.08,
+       "value": 0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.88,
+       "value": 0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.92,
+       "value": 0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.12,
+       "value": 0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Measured in the picture from one camera; it describes this clip, not how the swimmer always swims.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement.",
+    "Whether a different value would be better for this swimmer is not known."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.leg_line",
+   "category": "observation",
+   "personal": true,
+   "title": "Legs against the trunk line",
+   "body": "0.0\u00b0 across 7 stroke cycles (negative means the legs sit above the trunk line carried on past the hips). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "explained": "Here is what this means. 0.0\u00b0 across 7 stroke cycles (negative means the legs sit above the trunk line carried on past the hips). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.leg_line",
+   "metric_keys": [
+    "leg_line_angle"
+   ],
+   "evidence": [
+    {
+     "metric_key": "leg_line_angle",
+     "label": "Legs against the trunk line",
+     "value": 0.0,
+     "unit": "deg",
+     "low": 0.0,
+     "high": 0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.92,
+       "value": 0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.08,
+       "value": 0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.68,
+       "value": 0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.96,
+       "value": 0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.12,
+       "value": 0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Measured in the picture from one camera; it describes this clip, not how the swimmer always swims.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement.",
+    "Whether a different value would be better for this swimmer is not known."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.head",
+   "category": "observation",
+   "personal": true,
+   "title": "Head against the trunk line",
+   "body": "0.00 trunk lengths across 7 stroke cycles (0 is in line with the trunk). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "explained": "Here is what this means. 0.00 trunk lengths across 7 stroke cycles (0 is in line with the trunk). It stayed the same from cycle to cycle, within what the measurement can tell apart.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.head",
+   "metric_keys": [
+    "head_height"
+   ],
+   "evidence": [
+    {
+     "metric_key": "head_height",
+     "label": "Head against the trunk line",
+     "value": 0.0,
+     "unit": "trunk lengths",
+     "low": -0.0,
+     "high": -0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": -0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": -0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": -0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": -0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.16,
+       "value": -0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": -0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": -0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Measured in the picture from one camera; it describes this clip, not how the swimmer always swims.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement.",
+    "Whether a different value would be better for this swimmer is not known."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.arm_pull_context",
+   "category": "observation",
+   "personal": true,
+   "title": "Arm pull measurements (for information only)",
+   "body": "elbow bend in the pull (2d) 180.0\u00b0; pull depth 1.27 trunk lengths; pull path variation 0.00 trunk lengths, from the right arm, the one nearer the camera.",
+   "explained": "Here is what this means. elbow bend in the pull (2d) 180.0\u00b0; pull depth 1.27 trunk lengths; pull path variation 0.00 trunk lengths, from the right arm, the one nearer the camera.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.arm_pull_context",
+   "metric_keys": [
+    "elbow_angle_min",
+    "pull_depth",
+    "pull_path_variation"
+   ],
+   "evidence": [
+    {
+     "metric_key": "elbow_angle_min",
+     "label": "Elbow bend in the pull (2D)",
+     "value": 180.0,
+     "unit": "deg",
+     "low": 180.0,
+     "high": 180.0,
+     "n_cycles": 7,
+     "status": "limited",
+     "samples": [
+      {
+       "t_s": 1.92,
+       "value": 180.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 3.12,
+       "value": 180.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 4.32,
+       "value": 180.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 5.52,
+       "value": 180.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.72,
+       "value": 180.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 7.92,
+       "value": 180.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 9.12,
+       "value": 180.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    },
+    {
+     "metric_key": "pull_depth",
+     "label": "Pull depth",
+     "value": 1.27,
+     "unit": "trunk lengths",
+     "low": 1.27,
+     "high": 1.27,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 2.04,
+       "value": 1.27,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 1.27,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 1.27,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 5.64,
+       "value": 1.27,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 1.27,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": 1.27,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 9.24,
+       "value": 1.27,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    },
+    {
+     "metric_key": "pull_path_variation",
+     "label": "Pull path variation",
+     "value": 0.0,
+     "unit": "trunk lengths",
+     "low": 0.0,
+     "high": 0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 1.76,
+       "value": 0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.96,
+       "value": 0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 4.16,
+       "value": 0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 5.36,
+       "value": 0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.56,
+       "value": 0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 7.76,
+       "value": 0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.96,
+       "value": 0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "for_information",
+   "limitations": [
+    "The wrist is often placed wrongly near the end of the push, and only a small part of the swim gives arm points that can be used.",
+    "Only one arm is measured, in the picture, from one camera.",
+    "Arm measurements are not used to find issues or priorities yet."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.body_line_angle",
+   "category": "observation",
+   "personal": true,
+   "title": "Body line angle: no clear change since your earlier comparable swim",
+   "body": "0.0\u00b0 then, 0.0\u00b0 now. Differences under 4.0\u00b0 cannot be told from measurement noise.",
+   "explained": "Here is what this means. 0.0\u00b0 then, 0.0\u00b0 now. Differences under 4.0\u00b0 cannot be told from measurement noise.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.body_line_angle",
+   "metric_keys": [
+    "body_line_angle"
+   ],
+   "evidence": [
+    {
+     "metric_key": "body_line_angle",
+     "label": "Body line angle",
+     "value": 0.0,
+     "unit": "deg",
+     "low": 0.0,
+     "high": 0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.08,
+       "value": 0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.88,
+       "value": 0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.92,
+       "value": 0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.12,
+       "value": 0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.cycle_duration",
+   "category": "observation",
+   "personal": true,
+   "title": "Time per stroke cycle: no clear change since your earlier comparable swim",
+   "body": "1.20 s then, 1.20 s now. Differences under 0.08 s cannot be told from measurement noise.",
+   "explained": "Here is what this means. 1.20 s then, 1.20 s now. Differences under 0.08 s cannot be told from measurement noise.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.cycle_duration",
+   "metric_keys": [
+    "cycle_duration"
+   ],
+   "evidence": [
+    {
+     "metric_key": "cycle_duration",
+     "label": "Time per stroke cycle",
+     "value": 1.2,
+     "unit": "s",
+     "low": 1.2,
+     "high": 1.2,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 1.2,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": 1.8,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 1.2,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.75,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.64,
+       "value": 1.2,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 1.8,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": 1.2,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.head_height",
+   "category": "observation",
+   "personal": true,
+   "title": "Head against the trunk line: no clear change since your earlier comparable swim",
+   "body": "0.00 trunk lengths then, 0.00 trunk lengths now. Differences under 0.10 trunk lengths cannot be told from measurement noise.",
+   "explained": "Here is what this means. 0.00 trunk lengths then, 0.00 trunk lengths now. Differences under 0.10 trunk lengths cannot be told from measurement noise.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.head_height",
+   "metric_keys": [
+    "head_height"
+   ],
+   "evidence": [
+    {
+     "metric_key": "head_height",
+     "label": "Head against the trunk line",
+     "value": 0.0,
+     "unit": "trunk lengths",
+     "low": -0.0,
+     "high": -0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": -0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": -0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": -0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": -0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 6.16,
+       "value": -0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": -0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": -0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.leg_line_angle",
+   "category": "observation",
+   "personal": true,
+   "title": "Legs against the trunk line: no clear change since your earlier comparable swim",
+   "body": "0.0\u00b0 then, 0.0\u00b0 now. Differences under 4.0\u00b0 cannot be told from measurement noise.",
+   "explained": "Here is what this means. 0.0\u00b0 then, 0.0\u00b0 now. Differences under 4.0\u00b0 cannot be told from measurement noise.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.leg_line_angle",
+   "metric_keys": [
+    "leg_line_angle"
+   ],
+   "evidence": [
+    {
+     "metric_key": "leg_line_angle",
+     "label": "Legs against the trunk line",
+     "value": 0.0,
+     "unit": "deg",
+     "low": 0.0,
+     "high": 0.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.92,
+       "value": 0.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.08,
+       "value": 0.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 0.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 0.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.68,
+       "value": 0.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.96,
+       "value": 0.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.12,
+       "value": 0.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.rhythm_variation",
+   "category": "observation",
+   "personal": true,
+   "title": "Rhythm variation: changed since your earlier comparable swim",
+   "body": "1.9 % then, 28.7 % now. The difference is more than the 23.3 % that the measurement itself could account for.",
+   "explained": "Here is what this means. 1.9 % then, 28.7 % now. The difference is more than the 23.3 % that the measurement itself could account for.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.rhythm_variation",
+   "metric_keys": [
+    "rhythm_variation"
+   ],
+   "evidence": [
+    {
+     "metric_key": "rhythm_variation",
+     "label": "Rhythm variation",
+     "value": 28.7,
+     "unit": "%",
+     "low": null,
+     "high": null,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.obs.history.stroke_rate",
+   "category": "observation",
+   "personal": true,
+   "title": "Stroke rate: no clear change since your earlier comparable swim",
+   "body": "50.0 cycles/min then, 50.0 cycles/min now. Differences under 3.3 cycles/min cannot be told from measurement noise.",
+   "explained": "Here is what this means. 50.0 cycles/min then, 50.0 cycles/min now. Differences under 3.3 cycles/min cannot be told from measurement noise.",
+   "why_it_may_matter": "",
+   "finding_id": "obs.history.stroke_rate",
+   "metric_keys": [
+    "stroke_rate"
+   ],
+   "evidence": [
+    {
+     "metric_key": "stroke_rate",
+     "label": "Stroke rate",
+     "value": 50.0,
+     "unit": "cycles/min",
+     "low": 50.0,
+     "high": 50.0,
+     "n_cycles": 7,
+     "status": "reliable",
+     "samples": [
+      {
+       "t_s": 0.84,
+       "value": 50.0,
+       "start_s": 0.84,
+       "end_s": 2.04,
+       "label": ""
+      },
+      {
+       "t_s": 2.04,
+       "value": 50.0,
+       "start_s": 2.04,
+       "end_s": 3.24,
+       "label": ""
+      },
+      {
+       "t_s": 3.24,
+       "value": 50.0,
+       "start_s": 3.24,
+       "end_s": 4.44,
+       "label": ""
+      },
+      {
+       "t_s": 4.44,
+       "value": 50.0,
+       "start_s": 4.44,
+       "end_s": 5.64,
+       "label": ""
+      },
+      {
+       "t_s": 5.64,
+       "value": 50.0,
+       "start_s": 5.64,
+       "end_s": 6.84,
+       "label": ""
+      },
+      {
+       "t_s": 6.84,
+       "value": 50.0,
+       "start_s": 6.84,
+       "end_s": 8.04,
+       "label": ""
+      },
+      {
+       "t_s": 8.04,
+       "value": 50.0,
+       "start_s": 8.04,
+       "end_s": 9.24,
+       "label": ""
+      }
+     ],
+     "note": ""
+    }
+   ],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "measured",
+   "limitations": [
+    "Compared only with swims of the same stroke, distance, filming angle and a similar stroke rate.",
+    "A change between two clips does not say what caused it.",
+    "Not judged as better or worse.",
+    "No comparison with other swimmers or with an ideal value is made: none has been verified for this measurement."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.education.stroke_consistency",
+   "category": "education",
+   "personal": false,
+   "title": "About stroke consistency (your main goal)",
+   "body": "General information, not a finding about your swimming. A review of swimming coordination argues that there is no single ideal coordination pattern that every swimmer should copy: skilled swimming balances a stable pattern with variation that adapts to the swimmer, the task and the conditions. (Seifert et al., 2014) Elite swimmers showed less variation of hip speed within the stroke cycle than recreational swimmers, and kept it stable across paces, while it rose with pace in the recreational group. (Schnitzler et al., 2010) What AquaTrack can look at today: From a side-view clip AquaTrack times each stroke cycle and reports how much the cycle time varies. With six or more cycles of one arm it can point to the cycles that were off your own rhythm. What it cannot: It cannot measure how your speed changes inside each stroke, which is what the research on steadiness and skill level measured.",
+   "explained": "",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [
+    "no_single_ideal_coordination",
+    "speed_variation_within_stroke_differs_by_level"
+   ],
+   "goal_keys": [
+    "stroke_consistency"
+   ],
+   "confidence": "general",
+   "limitations": [
+    "A theoretical review, not a test of any threshold.",
+    "Does not say how much variation in cycle time is useful or harmful.",
+    "A different kind of steadiness from cycle-to-cycle timing.",
+    "Needs a velocity meter."
+   ],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.cycle_time_change",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Cycle time, start to end",
+   "body": "The clip is too short to compare its start, middle and end: each third needs at least 3 reliable cycles (2 in the start, 3 in the middle, 2 in the end). What would help: A longer clip: at least nine full cycles of one arm.",
+   "explained": "Here is what this means. The clip is too short to compare its start, middle and end: each third needs at least 3 reliable cycles (2 in the start, 3 in the middle, 2 in the end). What would help: A longer clip: at least nine full cycles of one arm.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.left_right_balance",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Left-right balance",
+   "body": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull.",
+   "explained": "Here is what this means. Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.arm_coordination",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Arm coordination",
+   "body": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view.",
+   "explained": "Here is what this means. Needs the start and end of both arms' pulls. The far arm's are hidden from a side view.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.kick_rhythm",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Kick rhythm",
+   "body": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden.",
+   "explained": "Here is what this means. Kick beats are computed but have not been checked against video yet, and the far leg is often hidden.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.breathing_timing",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Breathing timing",
+   "body": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video.",
+   "explained": "Here is what this means. The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.body_rotation",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Body rotation",
+   "body": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view.",
+   "explained": "Here is what this means. Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.propulsion",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Propulsion and efficiency",
+   "body": "Force and efficiency cannot be measured from video of joint positions alone.",
+   "explained": "Here is what this means. Force and efficiency cannot be measured from video of joint positions alone.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  },
+  {
+   "id": "fb.insufficient.no_reference",
+   "category": "insufficient",
+   "personal": false,
+   "title": "Whether any value is good or bad",
+   "body": "No reference values have been verified for these measurements, so nothing is compared with other swimmers or with an ideal.",
+   "explained": "Here is what this means. No reference values have been verified for these measurements, so nothing is compared with other swimmers or with an ideal.",
+   "why_it_may_matter": "",
+   "finding_id": "",
+   "metric_keys": [],
+   "evidence": [],
+   "claim_ids": [],
+   "goal_keys": [],
+   "confidence": "none",
+   "limitations": [],
+   "monitor": "",
+   "rank": null,
+   "factors": []
+  }
+ ],
+ "checkpoints": [
+  {
+   "id": "cp.recurs.issue.history.rhythm_less_steady",
+   "title": "See whether this pattern shows up again",
+   "related_item_id": "fb.priority.issue.history.rhythm_less_steady",
+   "metric_keys": [
+    "rhythm_variation"
+   ],
+   "what_to_film": "The same distance at the same effort, from the same side-on position.",
+   "minimum": "At least 6 full cycles of one arm.",
+   "compare_with": "This swim.",
+   "what_counts_as_a_change": "The same pattern in a second comparable swim is what turns it into a priority. One clip without it does not show it is gone.",
+   "limitations": [
+    "A single practice session is not expected to change it."
+   ]
+  },
+  {
+   "id": "cp.recurs.issue.timing.uneven_rhythm",
+   "title": "See whether this pattern shows up again",
+   "related_item_id": "fb.priority.issue.timing.uneven_rhythm",
+   "metric_keys": [
+    "cycle_duration",
+    "rhythm_variation"
+   ],
+   "what_to_film": "The same distance at the same effort, from the same side-on position.",
+   "minimum": "At least 6 full cycles of one arm.",
+   "compare_with": "This swim.",
+   "what_counts_as_a_change": "The same pattern in a second comparable swim is what turns it into a priority. One clip without it does not show it is gone.",
+   "limitations": [
+    "A single practice session is not expected to change it."
+   ]
+  }
+ ],
+ "references": [
+  {
+   "source_id": "seifert2014",
+   "citation": "Seifert L, et al. (2014). Coordination Pattern Variability Provides Functional Adaptations to Constraints in Swimming Performance. Sports Medicine 44(10):1333-1345.",
+   "url": "https://doi.org/10.1007/s40279-014-0210-x",
+   "kind": "review",
+   "population": "Review of studies on inter-limb coordination in swimming",
+   "read": "abstract"
+  },
+  {
+   "source_id": "seifert2007",
+   "citation": "Seifert L, Chollet D, Rouard A (2007). Swimming constraints and arm coordination. Human Movement Science 26(1):68-86.",
+   "url": "https://doi.org/10.1016/j.humov.2006.09.003",
+   "kind": "original_study",
+   "population": "42 swimmers: 15 elite men, 15 mid-level men, 12 elite women",
+   "read": "abstract"
+  },
+  {
+   "source_id": "schnitzler2010",
+   "citation": "Schnitzler C, et al. (2010). Hip Velocity and Arm Coordination in Front Crawl Swimming. International Journal of Sports Medicine 31(12):875-881.",
+   "url": "https://doi.org/10.1055/s-0030-1265149",
+   "kind": "original_study",
+   "population": "22 swimmers in an elite and a recreational group",
+   "read": "abstract"
+  }
+ ],
+ "recording_tips": [],
+ "explanation": {
+  "source": "llm",
+  "model": "mock-model",
+  "note": ""
+ },
+ "summary": "12 observations from your video, 2 to look at, 2 ranked as a priority, 1 general note for your goals.",
+ "created_at": "2026-11-15T12:00:00+00:00"
+}

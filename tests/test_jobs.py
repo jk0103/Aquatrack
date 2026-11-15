@@ -316,3 +316,72 @@ def test_a_failed_interpretation_does_not_undo_the_analysis(store, source, monke
     run_job(store, source, "vid1")
     assert store.videos["vid1"]["status"] == "ready" and store.interpretations == {}
     assert store.videos["vid1"].get("latestInterpretationId") is None
+
+
+# ---------- feedback: built from the interpretation, stored without overwriting ----------
+
+
+def test_feedback_is_stored_after_interpretation_and_reused_for_the_same_inputs(store, source):
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    video = store.videos["vid1"]
+    ((key, doc),) = store.feedback.items()
+    assert key == ("vid1", video["latestFeedbackId"]) and doc["uid"] == UID
+    assert doc["interpretation_id"] == video["latestInterpretationId"]
+    assert doc["feedback_version"] == "1.0" and doc["explanation"]["source"] == "template"
+    assert video["feedbackSummary"]["priorities"] == 0 and video["feedbackSummary"]["goals"] == []
+    assert not any(i["category"] in ("focus", "priority", "education") for i in doc["items"])
+
+
+def test_changing_goals_gives_new_feedback_and_keeps_the_old(store, source):
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    first_id = store.videos["vid1"]["latestFeedbackId"]
+    first = dict(store.feedback[("vid1", first_id)])
+    store.profiles[UID] = {
+        "swim_level": "hobby",
+        "goals": ["breathing", "not_a_goal"],
+        "primary_goal": "breathing",
+        "weak_note": "my kick",
+    }
+
+    jobs.reinterpret(store, "vid1", UID)
+
+    second_id = store.videos["vid1"]["latestFeedbackId"]
+    assert second_id != first_id and store.feedback[("vid1", first_id)] == first
+    second = store.feedback[("vid1", second_id)]
+    assert second["goals_used"] == ["breathing"] and second["primary_goal"] == "breathing"
+    education = [i for i in second["items"] if i["category"] == "education"]
+    assert len(education) == 1 and education[0]["personal"] is False
+    assert not any(i["category"] in ("focus", "priority") for i in second["items"])
+    assert "my kick" not in str(second)  # the swimmer's own note is never analysed or copied
+
+    # Interpreting again with nothing changed adds an interpretation run but no new feedback.
+    count = len(store.feedback)
+    jobs.reinterpret(store, "vid1", UID)
+    assert len(store.feedback) == count and store.videos["vid1"]["latestFeedbackId"] == second_id
+
+
+def test_a_mocked_model_rewording_is_stored_only_when_it_passes_validation(store, source):
+    class Liar:
+        model = "mock"
+
+        def explain(self, payload):
+            item = payload["items"][0]
+            return {
+                "items": [
+                    {
+                        "id": item["id"],
+                        "text": "Your stroke rate was 99 per minute.",
+                        "citations": [],
+                    }
+                ]
+            }
+
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    video = store.get_video("vid1")
+    jobs.interpret_video(store, video, video.latest_analysis_id, explainer=Liar())
+    doc = store.feedback[("vid1", store.videos["vid1"]["latestFeedbackId"])]
+    assert doc["explanation"]["source"] == "template" and "rejected" in doc["explanation"]["note"]
+    assert all(i["explained"] == "" for i in doc["items"])

@@ -4,7 +4,13 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
-import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
+import {
+  BodyFields,
+  GoalFields,
+  LevelField,
+  PbFields,
+  TrainingFields,
+} from "@/app/components/ProfileFields";
 import {
   Badge,
   Button,
@@ -19,12 +25,14 @@ import { analyses, formatTime, progression } from "@/app/lib/mock";
 import {
   BODY_CHECKS,
   checkDraft,
+  checkGoals,
   checkLevel,
   checkPbs,
   emptyDraft,
   formatMinutes,
   formatSwimTime,
   fromDraft,
+  goalLabel,
   levelLabel,
   loadProfile,
   saveProfile,
@@ -78,7 +86,8 @@ export default function ProfilePage() {
       checkDraft(draft, BODY_CHECKS) ??
       checkLevel(draft) ??
       checkDraft(draft, TRAINING_CHECKS) ??
-      checkPbs(draft);
+      checkPbs(draft) ??
+      checkGoals(draft);
     if (problem) return setError(problem);
 
     setPending(true);
@@ -101,7 +110,11 @@ export default function ProfilePage() {
         action={
           !editing &&
           profile !== undefined && (
-            <Button variant="secondary" className="self-start" onClick={startEditing}>
+            <Button
+              variant="secondary"
+              className="self-start"
+              onClick={startEditing}
+            >
               {profile ? "Edit profile" : "Fill in profile"}
             </Button>
           )
@@ -146,6 +159,9 @@ export default function ProfilePage() {
           <Card title="Personal bests">
             <PbFields draft={draft} set={set} />
           </Card>
+          <Card title="Your goals">
+            <GoalFields draft={draft} set={set} />
+          </Card>
           <div className="sticky bottom-20 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-surface/95 p-3 shadow-sm backdrop-blur sm:bottom-4">
             <button
               type="button"
@@ -154,14 +170,19 @@ export default function ProfilePage() {
             >
               Cancel
             </button>
-            <Button type="submit">{pending ? "Saving…" : "Save changes"}</Button>
+            <Button type="submit">
+              {pending ? "Saving…" : "Save changes"}
+            </Button>
           </div>
         </form>
       ) : profile === null ? (
         <Card>
-          <p className="font-medium text-slate-900">You haven&apos;t filled in your profile yet.</p>
+          <p className="font-medium text-slate-900">
+            You haven&apos;t filled in your profile yet.
+          </p>
           <p className="mt-1 mb-4 text-sm text-slate-600">
-            It takes a minute and helps us tailor feedback and training plans to you.
+            It takes a minute and helps us tailor feedback and training plans to
+            you.
           </p>
           <ButtonLink href="/onboarding">Start the survey</ButtonLink>
         </Card>
@@ -181,8 +202,14 @@ export default function ProfilePage() {
 
           <Card title="Training">
             <dl className="grid grid-cols-2 gap-4 lg:grid-cols-1">
-              <Item label="Times a week" value={`${profile.sessions_per_week}`} />
-              <Item label="Time per day" value={formatMinutes(profile.minutes_per_day)} />
+              <Item
+                label="Times a week"
+                value={`${profile.sessions_per_week}`}
+              />
+              <Item
+                label="Time per day"
+                value={formatMinutes(profile.minutes_per_day)}
+              />
             </dl>
           </Card>
 
@@ -190,7 +217,10 @@ export default function ProfilePage() {
             {profile.pbs.length ? (
               <ul className="grid gap-3 sm:grid-cols-3">
                 {profile.pbs.map((pb) => (
-                  <li key={`${pb.event}|${pb.pool}`} className="rounded-xl bg-sky-50 p-4">
+                  <li
+                    key={`${pb.event}|${pb.pool}`}
+                    className="rounded-xl bg-sky-50 p-4"
+                  >
                     <p className="text-sm text-sky-800">
                       {pb.event} · {pb.pool}
                     </p>
@@ -202,7 +232,48 @@ export default function ProfilePage() {
               </ul>
             ) : (
               <p className="text-sm text-slate-500">
-                No times added. Use Edit profile to add your personal bests whenever you have them.
+                No times added. Use Edit profile to add your personal bests
+                whenever you have them.
+              </p>
+            )}
+          </Card>
+
+          <Card title="Goals" className="lg:col-span-3">
+            {profile.goals.length ? (
+              <div className="space-y-3">
+                <ul className="flex flex-wrap gap-2">
+                  {profile.goals.map((g) => (
+                    <li key={g}>
+                      <Badge
+                        tone={g === profile.primary_goal ? "sky" : "slate"}
+                      >
+                        {goalLabel(g)}
+                        {g === profile.primary_goal ? " · main goal" : ""}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+                {profile.target && (
+                  <p className="text-sm text-slate-600">
+                    Aiming for {formatSwimTime(profile.target.seconds)} in the{" "}
+                    {profile.target.event} ({profile.target.pool}).
+                  </p>
+                )}
+                {profile.weak_note && (
+                  <p className="text-sm text-slate-600">
+                    Your note: {profile.weak_note}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500">
+                  Goals decide what is shown first when a video supports a
+                  finding. They don&apos;t make something measurable that a
+                  video can&apos;t show.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No goals yet. Use Edit profile to choose what you&apos;d like to
+                work on.
               </p>
             )}
           </Card>
@@ -223,14 +294,26 @@ function Item({ label, value }: { label: string; value: string }) {
 
 // Headline numbers, moved here from the Home page. Placeholder data until analysis is live.
 function SwimStats() {
-  const best = Math.min(...progression["100 m Freestyle"].map((e) => e.seconds));
+  const best = Math.min(
+    ...progression["100 m Freestyle"].map((e) => e.seconds),
+  );
   const latest = analyses.find((a) => a.status === "Ready")!;
   return (
     <div className="mb-6 space-y-3">
-      <ExampleNote>These stats are examples until your swims are analyzed.</ExampleNote>
+      <ExampleNote>
+        These stats are examples until your swims are analyzed.
+      </ExampleNote>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Stat label="100 m free best" value={formatTime(best)} note="−3.5 s since May" />
-        <Stat label="Technique score" value={`${latest.score}`} note="+4 from last month" />
+        <Stat
+          label="100 m free best"
+          value={formatTime(best)}
+          note="−3.5 s since May"
+        />
+        <Stat
+          label="Technique score"
+          value={`${latest.score}`}
+          note="+4 from last month"
+        />
         <Stat label="Swims analyzed" value={`${analyses.length}`} />
         <Stat label="Sessions this week" value="2 of 5" />
       </div>

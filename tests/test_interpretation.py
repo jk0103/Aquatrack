@@ -236,15 +236,15 @@ def test_profile_goals_and_personal_bests_are_used_only_where_they_apply():
         {"event": "100 Back", "pool": "25 m", "seconds": 80.0},
     ]
     ctx = SwimmerContext(
-        swim_level="masters", pbs=pbs, goals=["steadier_rhythm", "not_a_real_goal"]
+        swim_level="masters", pbs=pbs, goals=["stroke_consistency", "not_a_real_goal"]
     )
     i = interpret(result(UNEVEN), "v", context=ctx)
-    assert i.context.goals == ["steadier_rhythm"]  # unknown goals are dropped, not guessed at
+    assert i.context.goals == ["stroke_consistency"]  # unknown goals are dropped, not guessed at
     assert (i.context.personal_best_event, i.context.personal_best_s) == ("50 Free", 31.2)
-    assert i.issue_candidates[0].context_used == ["a steadier stroke rhythm"]
+    assert i.issue_candidates[0].context_used == ["stroke consistency"]
     assert [p.finding_id for p in i.priorities] == ["issue.timing.uneven_rhythm"]
 
-    other_goal = interpret(result(UNEVEN), "v", context=SwimmerContext(goals=["arm_pull"]))
+    other_goal = interpret(result(UNEVEN), "v", context=SwimmerContext(goals=["arm_technique"]))
     assert other_goal.priorities == []  # a goal the finding does not relate to adds nothing
 
 
@@ -344,13 +344,13 @@ def test_an_issue_from_one_clip_with_no_goal_is_not_a_priority():
 
 
 def test_no_issues_means_no_priorities_and_says_so():
-    i = interpret(result(EVEN), "v", context=SwimmerContext(goals=["steadier_rhythm"]))
+    i = interpret(result(EVEN), "v", context=SwimmerContext(goals=["stroke_consistency"]))
     assert i.priorities == [] and "do not support any" in i.priorities_note
 
 
 def test_priorities_are_ranked_by_visible_points_and_capped_at_three():
     earlier, older = result(EVEN), result(EVEN)
-    ctx = SwimmerContext(goals=["steadier_rhythm"])
+    ctx = SwimmerContext(goals=["stroke_consistency"])
     i = interpret(
         result(WILD), "v", context=ctx, history=[prior(earlier, "e1"), prior(older, "e2")]
     )
@@ -373,7 +373,7 @@ def test_priorities_are_ranked_by_visible_points_and_capped_at_three():
 
 
 def test_findings_are_unique_stable_and_round_trip():
-    args = dict(context=SwimmerContext(goals=["steadier_rhythm"]), history=[prior(result(EVEN))])
+    args = dict(context=SwimmerContext(goals=["stroke_consistency"]), history=[prior(result(EVEN))])
     a, b = (
         interpret(result(UNEVEN), "v", "a1", **args),
         interpret(result(UNEVEN), "v", "a1", **args),

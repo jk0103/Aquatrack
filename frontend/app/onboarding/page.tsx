@@ -6,11 +6,18 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { FormError } from "@/app/components/fields";
 import { Logo } from "@/app/components/Logo";
-import { BodyFields, LevelField, PbFields, TrainingFields } from "@/app/components/ProfileFields";
+import {
+  BodyFields,
+  GoalFields,
+  LevelField,
+  PbFields,
+  TrainingFields,
+} from "@/app/components/ProfileFields";
 import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import {
   BODY_CHECKS,
   checkDraft,
+  checkGoals,
   checkLevel,
   checkPbs,
   emptyDraft,
@@ -40,6 +47,11 @@ const steps = [
     title: "Personal bests",
     Fields: PbFields,
     check: checkPbs,
+  },
+  {
+    title: "Your goals",
+    Fields: GoalFields,
+    check: checkGoals,
   },
 ];
 
@@ -127,11 +139,17 @@ export default function OnboardingPage() {
             ))}
           </ol>
 
-          <form onSubmit={onSubmit} noValidate className="rounded-2xl glass p-6 sm:p-8">
+          <form
+            onSubmit={onSubmit}
+            noValidate
+            className="rounded-2xl glass p-6 sm:p-8"
+          >
             <p className="text-sm font-medium text-sky-700">
               Step {step + 1} of {steps.length}
             </p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">
+              {title}
+            </h1>
 
             <div className="space-y-5">
               <FormError message={error} />

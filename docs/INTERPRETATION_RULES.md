@@ -97,8 +97,10 @@ Every observation carries its evidence, timestamps, limitations and what it does
 | pending.stroke_rate_for_distance | swim speed or distance per stroke (not measured) and verified reference ranges per level and event |
 | pending.arm_pull | arm points that can be trusted through the whole pull, and a second camera view |
 
-Sources must be checked (title, authors, year, DOI or URL, population, limits) before a rule is
-activated. None has been yet, so none is cited here.
+These rules were reviewed against the evidence library in Phase 4
+(`docs/EVIDENCE_LIBRARY.md`, "Review of the inactive interpretation rules"). The verified sources
+do not support the interpretation any of them would make for AquaTrack's own measurements, so
+all four stay inactive.
 
 ## 7. History
 
@@ -123,7 +125,7 @@ compatible swim **or** matches a goal the swimmer set. Points, all visible in th
 | Evidence: reliable cycles behind it | 8+ = 2, 4+ = 1 |
 | Repeated in the clip: share of cycles | 50%+ = 2, otherwise 1 when it is a per-cycle pattern |
 | Seen across swims | 1 per earlier compatible swim it holds against, at most 2 |
-| Your goals | 2 when it matches a goal on the profile |
+| Your goals | 2 when it matches a goal on the profile, 3 when that is the main goal |
 | Size against noise | 2 at twice the threshold, 1 at 1.5 times |
 | Outside evidence | always 0: no effect on speed has been verified |
 
@@ -131,10 +133,14 @@ Sorted by points, at most three. Zero is common and is shown with the reason.
 
 ## 9. Personal context
 
-Used: swim level, personal bests and (if present) goals from `profiles/{uid}`; stroke, distance
-and filming angle from the upload. The profile has **no goals field yet**, so in practice
-nothing is ranked by goals. Level and personal best are recorded in the result but change no
-finding: no reference values per level have been verified. Missing fields are never filled in.
+Used: swim level, personal bests and the optional goals from `profiles/{uid}` (goal keys:
+stroke_consistency, body_alignment, arm_technique, speed, endurance, breathing,
+overall_freestyle; one may be the main goal); stroke, distance and filming angle from the
+upload. A goal matters only when an issue candidate exists that its rule relates to: it then
+lets that candidate be ranked (2 points, 3 for the main goal). A goal never creates a finding.
+Level and personal best are recorded in the result but change no finding: no reference values
+per level have been verified. Missing fields are never filled in. The swimmer's free-text note
+and target time are not read here.
 
 ## 10. Storage and versions
 

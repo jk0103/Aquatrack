@@ -17,6 +17,9 @@ dependencies = [
 [project.optional-dependencies]
 # Pose estimation backends are heavy, so they are opt-in: `uv sync --extra pose`
 pose = ["ultralytics>=8.4", "rtmlib>=0.0.16", "onnxruntime>=1.20"]
+# Optional rewording of feedback by Claude: `uv sync --extra llm`. Off unless AQUATRACK_LLM=claude;
+# every call is billed. The app is complete without it.
+llm = ["anthropic>=1.0"]
 
 [dependency-groups]
 dev = [

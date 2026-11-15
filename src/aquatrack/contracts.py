@@ -795,6 +795,7 @@ class ContextUsed(BaseModel):
     personal_best_s: float | None = None  # for this clip's event, when the profile has one
     personal_best_event: str | None = None
     goals: list[str] = []
+    primary_goal: str | None = None
     notes: list[str] = []
 
 
@@ -813,6 +814,98 @@ class Interpretation(BaseModel):
     undetermined: list[Undetermined] = []
     sessions: list[SessionComparison] = []
     rules: list[RuleStatus] = []
+    summary: str = ""
+    created_at: str = Field(default_factory=_now)
+
+    def to_firestore(self) -> dict:
+        return json.loads(self.model_dump_json())
+
+
+# ---------- feedback (Phase 4) ----------
+# Built from an Interpretation, the swimmer's goals and the evidence library. Stored as its
+# own document per (interpretation, evidence version, goals, explanation source), so older
+# feedback is never overwritten and the same inputs give the same document.
+
+FEEDBACK_VERSION = "1.0"
+
+
+class FeedbackReference(BaseModel):
+    """A source from the evidence library, as shown to the swimmer."""
+
+    source_id: str
+    citation: str
+    url: str
+    kind: str  # original_study | review
+    population: str
+    read: str = "abstract"
+
+
+class FeedbackItem(BaseModel):
+    """One piece of feedback. `category` decides how it may be worded and shown; the five
+    categories are never mixed:
+
+      observation   measured in this swimmer's video
+      focus         a pattern in their own swimming that may deserve attention (not a fault)
+      priority      a focus that is also ranked (at most three)
+      education     general information for a goal they chose; NOT about their video
+      insufficient  something that could not be determined, and what would help
+    """
+
+    id: str
+    category: Literal["observation", "focus", "priority", "education", "insufficient"]
+    personal: bool  # False for education: it says nothing about this swimmer's swimming
+    title: str
+    body: str  # deterministic text; always present and always safe to show
+    explained: str = ""  # optional reworded text from the language model, validated
+    why_it_may_matter: str = ""  # focus / priority: from library claims, with their limits
+    finding_id: str = ""  # the interpretation finding it comes from
+    metric_keys: list[str] = []
+    evidence: list[FindingEvidence] = []  # the measurements, with video timestamps
+    claim_ids: list[str] = []  # evidence-library claims it may cite
+    goal_keys: list[str] = []
+    confidence: Literal["measured", "for_information", "general", "none"] = "none"
+    limitations: list[str] = []
+    monitor: str = ""  # priority: what could be watched next time
+    rank: int | None = None
+    factors: list[PriorityFactor] = []
+
+
+class Checkpoint(BaseModel):
+    """Something to look at in the next video. Not a drill, a plan or a promise."""
+
+    id: str
+    title: str
+    related_item_id: str = ""
+    metric_keys: list[str] = []
+    what_to_film: str
+    minimum: str = ""  # video length or cycles needed
+    compare_with: str = ""
+    what_counts_as_a_change: str = ""  # only where a threshold is justified
+    limitations: list[str] = []
+
+
+class ExplanationInfo(BaseModel):
+    source: Literal["template", "llm"] = "template"
+    model: str = ""
+    note: str = ""  # why the model's text was not used, when it was asked and rejected
+
+
+class Feedback(BaseModel):
+    feedback_version: str = FEEDBACK_VERSION
+    evidence_version: str
+    rules_version: str
+    interpretation_version: str
+    video_id: str
+    analysis_id: str = ""
+    interpretation_id: str = ""
+    goals_used: list[str] = []
+    primary_goal: str | None = None
+    swim_level: str | None = None
+    items: list[FeedbackItem] = []
+    checkpoints: list[Checkpoint] = []
+    references: list[FeedbackReference] = []
+    recording_tips: list[str] = []
+    explanation: ExplanationInfo = ExplanationInfo()
     summary: str = ""
     created_at: str = Field(default_factory=_now)
 

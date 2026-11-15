@@ -10,6 +10,8 @@ Firestore layout:
   videos/{id}/analyses/{analysisId}  one AnalysisResult (structured, no per-frame arrays)
   videos/{id}/interpretations/{interpretationId}  one Interpretation of a stored analysis;
                                    a new document per run, earlier ones are never changed
+  videos/{id}/feedback/{feedbackId}  feedback built from one interpretation; the id is a
+                                   hash of its inputs, and an existing document is kept
   profiles/{uid}                   the swimmer's own survey answers (read only here)
 Storage layout:
   videos/{uid}/{id}.{ext}          the uploaded video (written by the web app)
@@ -83,6 +85,10 @@ class Store(Protocol):
         """Add one interpretation document. Never replaces an existing one."""
         ...
 
+    def save_feedback(self, video: VideoRecord, feedback_id: str, document: dict[str, Any]) -> bool:
+        """Add a feedback document unless one with this id exists. Returns True if added."""
+        ...
+
 
 def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
     return VideoRecord(
@@ -132,6 +138,7 @@ class MemoryStore:
         self.analyses: dict[tuple[str, str], dict[str, Any]] = {}
         self.interpretations: dict[tuple[str, str], dict[str, Any]] = {}
         self.profiles: dict[str, dict[str, Any]] = {}
+        self.feedback: dict[tuple[str, str], dict[str, Any]] = {}
         self._lock = threading.Lock()
 
     def get_video(self, video_id: str) -> VideoRecord | None:
@@ -175,6 +182,13 @@ class MemoryStore:
         if key in self.interpretations:
             raise ValueError("An interpretation with this id already exists.")
         self.interpretations[key] = {**document, "uid": video.uid}
+
+    def save_feedback(self, video, feedback_id, document):
+        key = (video.id, feedback_id)
+        if key in self.feedback:
+            return False
+        self.feedback[key] = {**document, "uid": video.uid}
+        return True
 
 
 class FirebaseStore:
@@ -263,3 +277,10 @@ class FirebaseStore:
     def save_interpretation(self, video, interpretation_id, document):
         ref = self._ref(video.id).collection("interpretations").document(interpretation_id)
         ref.create({**document, "uid": video.uid})  # fails rather than overwrite
+
+    def save_feedback(self, video, feedback_id, document):
+        ref = self._ref(video.id).collection("feedback").document(feedback_id)
+        if ref.get().exists:
+            return False  # same inputs, same feedback: keep what is there
+        ref.create({**document, "uid": video.uid})
+        return True

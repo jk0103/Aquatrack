@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
+import { FeedbackPanel } from "@/app/components/FeedbackPanel";
 import { InterpretationPanel } from "@/app/components/InterpretationPanel";
 import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
@@ -12,6 +13,8 @@ import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
 import { VideoPlayer } from "@/app/components/VideoPlayer";
 import { loadAnalysis } from "@/app/lib/analysisLoad";
 import type { AnalysisV1 } from "@/app/lib/analysisV1";
+import type { Feedback } from "@/app/lib/feedback";
+import { loadFeedback } from "@/app/lib/feedbackLoad";
 import type { Interpretation } from "@/app/lib/interpretation";
 import { loadInterpretation } from "@/app/lib/interpretationLoad";
 import { describeFirebaseError } from "@/app/lib/firebase";
@@ -124,6 +127,24 @@ export default function UploadPage() {
   const interpretation =
     found && found.id === interpretationId ? found.value : null;
 
+  // Feedback (Phase 4) is built from the interpretation and stored as its own document.
+  // Videos analysed before it existed have none and show the interpretation instead.
+  const feedbackId = video?.status === "ready" ? video.latestFeedbackId : null;
+  const [fb, setFb] = useState<{ id: string; value: Feedback | null } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!id || !feedbackId) return;
+    let live = true;
+    loadFeedback(id, feedbackId)
+      .then((value) => live && setFb({ id: feedbackId, value }))
+      .catch(() => live && setFb({ id: feedbackId, value: null }));
+    return () => {
+      live = false;
+    };
+  }, [id, feedbackId]);
+  const feedback = fb && fb.id === feedbackId ? fb.value : null;
+
   function seek(seconds: number) {
     const player = document.querySelector<HTMLVideoElement>("main video");
     if (!player) return;
@@ -233,11 +254,18 @@ export default function UploadPage() {
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
           {player}
-          {interpretation && (
-            <InterpretationPanel
-              interpretation={interpretation}
+          {feedback ? (
+            <FeedbackPanel
+              feedback={feedback}
               onSeek={url ? seek : undefined}
             />
+          ) : (
+            interpretation && (
+              <InterpretationPanel
+                interpretation={interpretation}
+                onSeek={url ? seek : undefined}
+              />
+            )
           )}
           <AnalysisPanel
             video={video}
@@ -246,7 +274,7 @@ export default function UploadPage() {
             onSeek={url ? seek : undefined}
           />
           <p className="text-sm text-slate-600">
-            Written technique explanations and drills aren&apos;t available yet.{" "}
+            Drills and training plans aren&apos;t available yet.{" "}
             <Link
               href="/feedback/a-1042"
               className="inline-flex items-center gap-0.5 font-medium text-sky-700 hover:text-sky-900"

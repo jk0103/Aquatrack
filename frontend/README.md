@@ -100,6 +100,13 @@ Above it, `app/components/InterpretationPanel.tsx` shows the interpretation of t
 parts: what we observed, what may need attention, improvement priorities, what we could not
 determine. Empty parts stay empty with the reason; no filler advice. If the interpretation is
 missing the measurements still show.
+When the video has feedback (`videos/{id}/feedback/{feedbackId}`, parsed by
+`app/lib/feedback.ts`), `app/components/FeedbackPanel.tsx` is shown instead: improvement
+priorities, what may deserve attention, what was measured, checkpoints for the next video,
+general information for the swimmer's goals (labelled as not about their video), what could not
+be determined with filming tips, and the research referred to. The upload form shows which
+filming angles are supported (`CAMERAS` in `app/lib/videos.ts`) and filming tips; optional goals
+are edited on the profile and in onboarding.
 The contracts are defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet

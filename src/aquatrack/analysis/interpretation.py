@@ -75,11 +75,15 @@ MIN_ODD_SHARE = 0.25
 MAX_PACE_DIFFERENCE = 0.20  # stroke rates further apart are a different effort, not a change
 MAX_PRIORITIES = 3
 
+# Goal keys as stored on the profile (frontend/app/lib/profile.ts, firestore.rules).
 GOALS = {
-    "steadier_rhythm": "a steadier stroke rhythm",
-    "body_position": "body position",
-    "arm_pull": "the arm pull",
-    "faster_time": "a faster time",
+    "stroke_consistency": "stroke consistency",
+    "body_alignment": "body alignment",
+    "arm_technique": "arm technique",
+    "speed": "swimming speed",
+    "endurance": "endurance",
+    "breathing": "breathing",
+    "overall_freestyle": "overall freestyle technique",
 }
 
 NO_NORM = (
@@ -94,7 +98,8 @@ class SwimmerContext:
 
     swim_level: str | None = None
     pbs: list[dict] = field(default_factory=list)  # {event, pool, seconds}
-    goals: list[str] = field(default_factory=list)  # keys of GOALS; none are collected yet
+    goals: list[str] = field(default_factory=list)  # keys of GOALS, from the profile
+    primary_goal: str | None = None
 
 
 @dataclass
@@ -133,7 +138,7 @@ RULES = [
         f"at least {MIN_ODD_CYCLES} cycles and {MIN_ODD_SHARE:.0%} of the cycles are.",
         "the camera view changed during the clip, a metric is limited or unavailable, or "
         "there are too few cycles",
-        goal_keys=("steadier_rhythm",),
+        goal_keys=("stroke_consistency", "overall_freestyle"),
     ),
     Rule(
         "history.rhythm_less_steady",
@@ -145,7 +150,7 @@ RULES = [
         "more than twice the combined sampling error of the two values plus the timing "
         "resolution.",
         "there is no compatible earlier swim, or the difference is within noise",
-        goal_keys=("steadier_rhythm",),
+        goal_keys=("stroke_consistency", "overall_freestyle"),
     ),
     Rule(
         "pending.body_line_direction",
@@ -154,7 +159,7 @@ RULES = [
         "",
         "",
         "",
-        goal_keys=("body_position",),
+        goal_keys=("body_alignment",),
         active=False,
         needs_reference="a verified source for how body and leg line relate to drag or speed "
         "for swimmers of this level, and a check that the picture angle measures it",
@@ -166,7 +171,7 @@ RULES = [
         "",
         "",
         "",
-        goal_keys=("body_position",),
+        goal_keys=("body_alignment",),
         active=False,
         needs_reference="a verified source on head position in freestyle, and a head measure "
         "that separates lifting from turning to breathe",
@@ -178,7 +183,7 @@ RULES = [
         "",
         "",
         "",
-        goal_keys=("faster_time",),
+        goal_keys=("speed",),
         active=False,
         needs_reference="swim speed or distance per stroke for the clip (not measured) and "
         "verified reference ranges for the swimmer's level and event",
@@ -190,7 +195,7 @@ RULES = [
         "",
         "",
         "",
-        goal_keys=("arm_pull",),
+        goal_keys=("arm_technique",),
         active=False,
         needs_reference="arm points that can be trusted through the whole pull (Phase 2 left "
         "wrist placement at the end of the push unresolved) and a second camera view",
@@ -259,6 +264,7 @@ def _context(result: AnalysisResult, context: SwimmerContext | None) -> ContextU
         return used
     used.swim_level = context.swim_level
     used.goals = [g for g in context.goals if g in GOALS]
+    used.primary_goal = context.primary_goal if context.primary_goal in used.goals else None
     stroke = _EVENT_STROKE.get(result.session.stroke.lower())
     distance = result.session.distance.replace(" m", "").strip()
     if stroke and distance:
@@ -695,7 +701,9 @@ def _priorities(issues: list[Finding], used: ContextUsed) -> tuple[list[Priority
         )
         odd = next((e.n_cycles for e in f.evidence if e.label == "Cycles off the rhythm"), 0)
         earlier = sum(1 for c in f.changes if c.changed and c.now > c.before)
-        goals = [GOALS[g] for g in used.goals if g in rule.goal_keys]
+        matched = [g for g in used.goals if g in rule.goal_keys]
+        goals = [GOALS[g] for g in matched]
+        main = used.primary_goal in matched
         ratio = max(
             ((abs(c.now - c.before) / c.threshold) for c in f.changes if c.threshold), default=0.0
         )
@@ -717,8 +725,12 @@ def _priorities(issues: list[Finding], used: ContextUsed) -> tuple[list[Priority
             ),
             PriorityFactor(
                 name="Your goals",
-                points=2 if goals else 0,
-                detail=f"Matches a goal you set: {goals[0]}."
+                points=(3 if main else 2) if goals else 0,
+                detail=(
+                    f"Matches your main goal: {GOALS[used.primary_goal]}."
+                    if main
+                    else f"Matches a goal you set: {goals[0]}."
+                )
                 if goals
                 else "No matching goal on the profile.",
             ),

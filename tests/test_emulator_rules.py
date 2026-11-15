@@ -103,11 +103,15 @@ def video(alice):
     interpretation = f"{DOCS}/videos/{video_id}/interpretations/i1"
     body = {"fields": fields(uid=alice.uid, interpretation_version="1.0")}
     assert httpx.patch(interpretation, json=body, headers=ADMIN).status_code == 200
+    feedback = f"{DOCS}/videos/{video_id}/feedback/f1"
+    body = {"fields": fields(uid=alice.uid, feedback_version="1.0")}
+    assert httpx.patch(feedback, json=body, headers=ADMIN).status_code == 200
     return {
         "id": video_id,
         "analysis": analysis,
         "artifact": artifact,
         "interpretation": interpretation,
+        "feedback": feedback,
     }
 
 
@@ -207,6 +211,57 @@ def test_interpretations_are_read_only_and_private_to_their_owner(alice, bob, vi
     other = f"{DOCS}/videos/{video['id']}/interpretations/forged"
     assert httpx.patch(other, json=forged, headers=alice.firestore).status_code == 403
     assert httpx.delete(video["interpretation"], headers=alice.firestore).status_code == 403
+
+
+def test_feedback_is_read_only_and_private_to_its_owner(alice, bob, video):
+    assert httpx.get(video["feedback"], headers=alice.firestore).status_code == 200
+    assert httpx.get(video["feedback"], headers=bob.firestore).status_code == 403
+    assert httpx.get(video["feedback"]).status_code == 403
+    forged = {"fields": fields(uid=alice.uid, feedback_version="1.0", note="forged")}
+    assert httpx.patch(video["feedback"], json=forged, headers=alice.firestore).status_code == 403
+    assert httpx.delete(video["feedback"], headers=alice.firestore).status_code == 403
+
+
+def _profile_write(user, **extra):
+    """Save a profile the way the web app does, with optional goal fields."""
+    values = {
+        "age": {"integerValue": "30"},
+        "height_cm": {"integerValue": "175"},
+        "weight_kg": {"integerValue": "70"},
+        "swim_level": {"stringValue": "hobby"},
+        "sessions_per_week": {"integerValue": "3"},
+        "minutes_per_day": {"integerValue": "45"},
+        "pbs": {"arrayValue": {}},
+    } | extra
+    name = f"projects/{PROJECT}/databases/(default)/documents/profiles/{user.uid}"
+    write = {
+        "update": {"name": name, "fields": values},
+        "updateTransforms": [{"fieldPath": "updatedAt", "setToServerValue": "REQUEST_TIME"}],
+    }
+    return httpx.post(
+        f"{DOCS}:commit", json={"writes": [write]}, headers=user.firestore
+    ).status_code
+
+
+def _strings(*values):
+    return {"arrayValue": {"values": [{"stringValue": v} for v in values]}}
+
+
+def test_profile_goals_are_optional_validated_and_private(alice, bob):
+    assert _profile_write(alice) == 200  # a profile without goals still saves
+    good = {
+        "goals": _strings("stroke_consistency", "breathing"),
+        "primary_goal": {"stringValue": "breathing"},
+        "weak_note": {"stringValue": "my kick"},
+    }
+    assert _profile_write(alice, **good) == 200
+    assert _profile_write(alice, goals=_strings("win_the_olympics")) == 403  # unknown goal
+    not_chosen = {"goals": _strings("speed"), "primary_goal": {"stringValue": "breathing"}}
+    assert _profile_write(alice, **not_chosen) == 403  # main goal must be one of the goals
+    assert _profile_write(alice, weak_note={"stringValue": "x" * 201}) == 403
+    assert _profile_write(alice, coach_id={"stringValue": "c1"}) == 403  # no other fields
+    theirs = f"{DOCS}/profiles/{alice.uid}"
+    assert httpx.get(theirs, headers=bob.firestore).status_code == 403
 
 
 # ---------- analysis artifacts in storage ----------

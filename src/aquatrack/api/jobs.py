@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from aquatrack.analysis.explain import Explainer, explain_feedback, explainer_from_env
+from aquatrack.analysis.feedback import build_feedback, feedback_id
 from aquatrack.analysis.interpretation import PriorSession, SwimmerContext, interpret
 from aquatrack.analysis.pipeline import analyze
 from aquatrack.analysis.pose.sources import PoseSource, PoseSourceError
@@ -233,7 +235,9 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
         )
 
 
-def interpret_video(store: Store, video: VideoRecord, analysis_id: str) -> Interpretation | None:
+def interpret_video(
+    store: Store, video: VideoRecord, analysis_id: str, explainer: Explainer | None = None
+) -> Interpretation | None:
     """Interpret one stored analysis of the swimmer's own video and save the result as a new
     document. Uses only what is already stored: no video, no pose data, no model. Earlier
     swims of the same swimmer are compared when they are compatible. Returns None when the
@@ -275,6 +279,9 @@ def interpret_video(store: Store, video: VideoRecord, analysis_id: str) -> Inter
             swim_level=profile.get("swim_level"),
             pbs=[p for p in profile.get("pbs") or [] if isinstance(p, dict)],
             goals=[g for g in goals if isinstance(g, str)] if isinstance(goals, list) else [],
+            primary_goal=profile.get("primary_goal")
+            if isinstance(profile.get("primary_goal"), str)
+            else None,
         )
     found = interpret(result, video.id, analysis_id, context, history)
     interpretation_id = f"{_now():%Y%m%dT%H%M%S%f}"
@@ -294,6 +301,32 @@ def interpret_video(store: Store, video: VideoRecord, analysis_id: str) -> Inter
             },
         },
     )
+    # Feedback is built from the interpretation just stored. It never changes a finding; a
+    # failure here leaves the interpretation and the analysis as they are.
+    try:
+        feedback = build_feedback(found, interpretation_id)
+        feedback = explain_feedback(feedback, explainer or explainer_from_env())
+        # Keyed by what the interpretation says, not by which run said it: interpreting the
+        # same analysis again with nothing changed reuses the feedback already stored.
+        basis = found.model_dump_json(exclude={"created_at"})
+        fid = feedback_id(basis, feedback)
+        store.save_feedback(video, fid, feedback.to_firestore())
+        store.update_video(
+            video.id,
+            {
+                "latestFeedbackId": fid,
+                "feedbackSummary": {
+                    "feedbackVersion": feedback.feedback_version,
+                    "evidenceVersion": feedback.evidence_version,
+                    "interpretationId": interpretation_id,
+                    "explanation": feedback.explanation.source,
+                    "goals": feedback.goals_used,
+                    "priorities": sum(item.category == "priority" for item in feedback.items),
+                },
+            },
+        )
+    except Exception:
+        log.exception("feedback failed video=%s", video.id)
     return found
 
 

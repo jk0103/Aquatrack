@@ -17,7 +17,12 @@ import {
   where,
   type DocumentData,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable, type UploadTask } from "firebase/storage";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytesResumable,
+  type UploadTask,
+} from "firebase/storage";
 
 import { parseAnalysis, type AnalysisResult } from "@/app/lib/analysis";
 import { api, type ApiResult } from "@/app/lib/api";
@@ -27,18 +32,54 @@ export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // keep in sync with storage.r
 export const SUGGESTED_MAX_SECONDS = 120;
 export const VIDEO_EXTENSIONS = ["mp4", "mov", "m4v", "webm"];
 
+// Freestyle is the only stroke the measurements have been checked on.
+export const SUPPORTED_STROKE = "Freestyle";
+export const FILMING_TIPS = [
+  "Film under water, from the side, with the camera level.",
+  "Keep the whole swimmer in the picture, head to feet.",
+  "Move the camera along with the swimmer or keep it still. Avoid zooming, and avoid a swimmer coming toward the camera or swimming away from it.",
+  "Include at least six full strokes of one arm (about 8 to 15 seconds). Longer is better.",
+  "Clear water and good light help; splash, bubbles and other swimmers in front hide the body.",
+];
 export const STROKES = ["Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
+// `support` says what the analysis can do with each view today. Adding a view later means
+// changing its entry here; the upload form and its guidance read from this list.
 export const CAMERAS = [
-  { value: "Underwater", note: "Side view below the surface" },
-  { value: "Overhead", note: "From the deck or above the pool" },
-  { value: "Side (deck level)", note: "Walking alongside on the pool deck" },
-  { value: "Front", note: "Facing the swimmer, head on" },
+  {
+    value: "Underwater",
+    note: "Side view below the surface",
+    support: "full",
+    detail:
+      "The view the analysis is built for: stroke timing, body position and the arm nearer the camera.",
+  },
+  {
+    value: "Overhead",
+    note: "From the deck or above the pool",
+    support: "limited",
+    detail:
+      "Not checked yet. Stroke timing may be measured and is marked limited; body position and arm measurements are not made.",
+  },
+  {
+    value: "Side (deck level)",
+    note: "Walking alongside on the pool deck",
+    support: "limited",
+    detail:
+      "Above the water, splash and the waterline hide most of the body. Expect few or no measurements; a phone filming from the deck does not show what an underwater camera shows.",
+  },
+  {
+    value: "Front",
+    note: "Facing the swimmer, head on",
+    support: "limited",
+    detail:
+      "Stroke cycles and body position can't be measured from the front yet.",
+  },
 ];
 export const DISTANCES = ["25 m", "50 m", "100 m", "200 m", "400 m"];
 export const POOL_LENGTHS = ["25 m", "50 m", "25 yd"];
 
 // Set by the backend (src/aquatrack/api/jobs.py); clients can't change it.
-export type VideoStatus = "uploaded" | "queued" | "analyzing" | "ready" | "failed";
+export type VideoStatus =
+  "uploaded" | "queued" | "analyzing" | "ready" | "failed";
 
 // Where the latest analysis request stands. Messages are written for the swimmer.
 export type AnalysisJob = {
@@ -77,6 +118,7 @@ export type VideoRecord = VideoDetails & {
   // Document id under videos/{id}/analyses, set when the status is "ready".
   latestAnalysisId: string | null;
   latestInterpretationId: string | null;
+  latestFeedbackId: string | null;
 };
 
 export const statusLabel: Record<VideoStatus, string> = {
@@ -123,7 +165,11 @@ export function formatDuration(seconds: number): string {
 function contentTypeFor(file: File): string {
   if (file.type.startsWith("video/")) return file.type;
   const ext = fileExtension(file.name);
-  return ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : "video/mp4";
+  return ext === "mov"
+    ? "video/quicktime"
+    : ext === "webm"
+      ? "video/webm"
+      : "video/mp4";
 }
 
 // Uploads the file, then saves its record. `onTask` hands back the upload so it can be
@@ -140,7 +186,9 @@ export async function uploadVideo(
   const storagePath = `videos/${uid}/${record.id}.${ext}`;
   const contentType = contentTypeFor(file);
 
-  const task = uploadBytesResumable(ref(storage, storagePath), file, { contentType });
+  const task = uploadBytesResumable(ref(storage, storagePath), file, {
+    contentType,
+  });
   onTask?.(task);
   await new Promise<void>((resolve, reject) => {
     task.on(
@@ -168,7 +216,13 @@ export async function uploadVideo(
   return record.id;
 }
 
-const knownStatuses: VideoStatus[] = ["uploaded", "queued", "analyzing", "ready", "failed"];
+const knownStatuses: VideoStatus[] = [
+  "uploaded",
+  "queued",
+  "analyzing",
+  "ready",
+  "failed",
+];
 
 function toJob(raw: unknown): AnalysisJob | null {
   if (!raw || typeof raw !== "object") return null;
@@ -193,7 +247,8 @@ function toRecord(id: string, v: DocumentData): VideoRecord {
     poolLength: typeof v.poolLength === "string" ? v.poolLength : undefined,
     timeSeconds: typeof v.timeSeconds === "number" ? v.timeSeconds : undefined,
     sessionDate: typeof v.sessionDate === "string" ? v.sessionDate : undefined,
-    durationSeconds: typeof v.durationSeconds === "number" ? v.durationSeconds : undefined,
+    durationSeconds:
+      typeof v.durationSeconds === "number" ? v.durationSeconds : undefined,
     fileName: v.fileName ?? "Video",
     sizeBytes: v.sizeBytes ?? 0,
     contentType: v.contentType ?? "video/mp4",
@@ -202,18 +257,27 @@ function toRecord(id: string, v: DocumentData): VideoRecord {
     createdAt: v.createdAt instanceof Timestamp ? v.createdAt.toDate() : null,
     analysis: parseAnalysis(id, v.analysis),
     job: toJob(v.job),
-    latestAnalysisId: typeof v.latestAnalysisId === "string" ? v.latestAnalysisId : null,
+    latestAnalysisId:
+      typeof v.latestAnalysisId === "string" ? v.latestAnalysisId : null,
     latestInterpretationId:
-      typeof v.latestInterpretationId === "string" ? v.latestInterpretationId : null,
+      typeof v.latestInterpretationId === "string"
+        ? v.latestInterpretationId
+        : null,
+    latestFeedbackId:
+      typeof v.latestFeedbackId === "string" ? v.latestFeedbackId : null,
   };
 }
 
 // The user's uploads, newest first.
 export async function listVideos(uid: string): Promise<VideoRecord[]> {
-  const snap = await getDocs(query(collection(db, "videos"), where("uid", "==", uid)));
+  const snap = await getDocs(
+    query(collection(db, "videos"), where("uid", "==", uid)),
+  );
   return snap.docs
     .map((d) => toRecord(d.id, d.data()))
-    .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+    .sort(
+      (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0),
+    );
 }
 
 // One upload, or null if it doesn't exist. Someone else's video fails with permission-denied.
@@ -236,12 +300,21 @@ export function watchVideo(
   );
 }
 
-export type AnalysisRequest = { id: string; status: VideoStatus; started: boolean; attempts: number };
+export type AnalysisRequest = {
+  id: string;
+  status: VideoStatus;
+  started: boolean;
+  attempts: number;
+};
 
 // Asks the backend to analyze one of the swimmer's own uploads. Asking again while a job is
 // waiting or running is harmless: the backend returns that job instead of starting another.
-export function requestAnalysis(id: string): Promise<ApiResult<AnalysisRequest>> {
-  return api<AnalysisRequest>(`/videos/${encodeURIComponent(id)}/analyze`, { method: "POST" });
+export function requestAnalysis(
+  id: string,
+): Promise<ApiResult<AnalysisRequest>> {
+  return api<AnalysisRequest>(`/videos/${encodeURIComponent(id)}/analyze`, {
+    method: "POST",
+  });
 }
 
 // A short-lived link to play the file; Storage rules only allow the owner.

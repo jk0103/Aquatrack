@@ -3,7 +3,9 @@
 import type { ReactNode } from "react";
 
 import {
+  GOALS,
   MAX_PBS,
+  MAX_WEAK_NOTE,
   PB_EVENTS,
   PB_POOLS,
   SWIM_LEVELS,
@@ -140,7 +142,9 @@ export function LevelField({ draft, set }: FieldsProps) {
                 onChange={() => set({ swim_level: level.value })}
                 className="sr-only"
               />
-              <span className="block font-medium text-slate-900">{level.label}</span>
+              <span className="block font-medium text-slate-900">
+                {level.label}
+              </span>
               <span className="text-sm text-slate-500">{level.note}</span>
             </label>
           );
@@ -205,7 +209,9 @@ const newPb = (): PbDraft => ({ event: "", pool: "25 m", time: "" });
 export function PbFields({ draft, set }: FieldsProps) {
   const rows = draft.pbs.length ? draft.pbs : [newPb()];
   function update(i: number, changes: Partial<PbDraft>) {
-    set({ pbs: rows.map((row, j) => (j === i ? { ...row, ...changes } : row)) });
+    set({
+      pbs: rows.map((row, j) => (j === i ? { ...row, ...changes } : row)),
+    });
   }
   return (
     <div className="space-y-4">
@@ -217,7 +223,9 @@ export function PbFields({ draft, set }: FieldsProps) {
             className="grid grid-cols-[1fr_auto] items-end gap-2 rounded-xl bg-sky-50/60 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto]"
           >
             <label className="col-span-2 block space-y-1 sm:col-span-1">
-              <span className="block text-xs font-medium text-slate-600">Event</span>
+              <span className="block text-xs font-medium text-slate-600">
+                Event
+              </span>
               <select
                 value={row.event}
                 onChange={(e) => update(i, { event: e.target.value })}
@@ -230,7 +238,9 @@ export function PbFields({ draft, set }: FieldsProps) {
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="block text-xs font-medium text-slate-600">Pool</span>
+              <span className="block text-xs font-medium text-slate-600">
+                Pool
+              </span>
               <select
                 value={row.pool}
                 onChange={(e) => update(i, { pool: e.target.value })}
@@ -242,7 +252,9 @@ export function PbFields({ draft, set }: FieldsProps) {
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="block text-xs font-medium text-slate-600">Time</span>
+              <span className="block text-xs font-medium text-slate-600">
+                Time
+              </span>
               <input
                 inputMode="decimal"
                 placeholder="1:02.30"
@@ -271,6 +283,134 @@ export function PbFields({ draft, set }: FieldsProps) {
           + Add another time
         </button>
       )}
+    </div>
+  );
+}
+
+// Optional goals. They decide what is put first when the analysis supports a finding;
+// they never make the app report something it could not measure.
+export function GoalFields({ draft, set }: FieldsProps) {
+  function toggle(goal: (typeof GOALS)[number]["value"]) {
+    const goals = draft.goals.includes(goal)
+      ? draft.goals.filter((g) => g !== goal)
+      : [...draft.goals, goal];
+    set({
+      goals,
+      primary_goal: goals.includes(draft.primary_goal as never)
+        ? draft.primary_goal
+        : "",
+    });
+  }
+  return (
+    <div className="space-y-6">
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium text-slate-700">
+          What would you like to work on?{" "}
+          <span className="font-normal text-slate-500">Optional</span>
+        </legend>
+        <p className="mb-3 text-sm text-slate-500">
+          Pick any that fit. Goals help us decide what to show first. They
+          don&apos;t change what a video can show: some of these, like
+          breathing, can&apos;t be measured from video yet.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {GOALS.map((g) => (
+            <Chip
+              key={g.value}
+              on={draft.goals.includes(g.value)}
+              onClick={() => toggle(g.value)}
+            >
+              {g.label}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
+
+      {draft.goals.length > 1 && (
+        <label className="block space-y-1.5">
+          <span className="block text-sm font-medium text-slate-700">
+            Which one matters most?
+          </span>
+          <select
+            value={draft.primary_goal}
+            onChange={(e) =>
+              set({
+                primary_goal: e.target.value as ProfileDraft["primary_goal"],
+              })
+            }
+            className={inputClass}
+          >
+            <option value="">No main goal</option>
+            {GOALS.filter((g) => draft.goals.includes(g.value)).map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      <fieldset>
+        <legend className="mb-3 text-sm font-medium text-slate-700">
+          A time you&apos;re aiming for{" "}
+          <span className="font-normal text-slate-500">Optional</span>
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <select
+            aria-label="Target event"
+            value={draft.target.event}
+            onChange={(e) =>
+              set({ target: { ...draft.target, event: e.target.value } })
+            }
+            className={inputClass}
+          >
+            <option value="">Event</option>
+            {PB_EVENTS.map((event) => (
+              <option key={event}>{event}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Target pool length"
+            value={draft.target.pool}
+            onChange={(e) =>
+              set({ target: { ...draft.target, pool: e.target.value } })
+            }
+            className={inputClass}
+          >
+            {PB_POOLS.map((pool) => (
+              <option key={pool}>{pool}</option>
+            ))}
+          </select>
+          <input
+            aria-label="Target time"
+            inputMode="decimal"
+            placeholder="1:02.30"
+            value={draft.target.time}
+            onChange={(e) =>
+              set({ target: { ...draft.target, time: e.target.value } })
+            }
+            className={inputClass}
+          />
+        </div>
+      </fieldset>
+
+      <label className="block space-y-1.5">
+        <span className="block text-sm font-medium text-slate-700">
+          Anything you feel is a weak point?{" "}
+          <span className="font-normal text-slate-500">Optional</span>
+        </span>
+        <textarea
+          rows={2}
+          maxLength={MAX_WEAK_NOTE}
+          value={draft.weak_note}
+          onChange={(e) => set({ weak_note: e.target.value })}
+          placeholder="In your own words"
+          className={inputClass}
+        />
+        <span className="block text-xs text-slate-500">
+          Kept on your profile as a note to yourself. It isn&apos;t analysed.
+        </span>
+      </label>
     </div>
   );
 }

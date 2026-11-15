@@ -16,16 +16,84 @@ export type Profile = {
   minutes_per_day: number;
   // Optional: people without race times leave this empty.
   pbs: PersonalBest[];
+  // Optional goals. They only change which findings are put first when the analysis
+  // itself supports a finding; choosing a goal never makes something measurable.
+  goals: GoalKey[];
+  primary_goal: GoalKey | null;
+  target: PersonalBest | null; // a time the swimmer is aiming for
+  weak_note: string; // the swimmer's own words; shown back to them, never analysed
 };
+
+export type GoalKey =
+  | "stroke_consistency"
+  | "body_alignment"
+  | "arm_technique"
+  | "speed"
+  | "endurance"
+  | "breathing"
+  | "overall_freestyle";
+
+// Keep in sync with firestore.rules and src/aquatrack/analysis/interpretation.py (GOALS).
+export const GOALS: { value: GoalKey; label: string; note: string }[] = [
+  {
+    value: "stroke_consistency",
+    label: "Stroke consistency",
+    note: "A steadier stroke rhythm",
+  },
+  {
+    value: "body_alignment",
+    label: "Body alignment",
+    note: "Body and head position in the water",
+  },
+  {
+    value: "arm_technique",
+    label: "Arm technique",
+    note: "The underwater pull",
+  },
+  { value: "speed", label: "Swimming speed", note: "Faster times" },
+  {
+    value: "endurance",
+    label: "Endurance",
+    note: "Holding technique over longer swims",
+  },
+  {
+    value: "breathing",
+    label: "Breathing",
+    note: "Breathing technique and timing",
+  },
+  {
+    value: "overall_freestyle",
+    label: "Overall freestyle",
+    note: "Freestyle technique in general",
+  },
+];
+export const MAX_WEAK_NOTE = 200; // keep in sync with firestore.rules
+
+export function goalLabel(key: string): string {
+  return GOALS.find((g) => g.value === key)?.label ?? key;
+}
 
 export type PersonalBest = { event: string; pool: string; seconds: number };
 
 export const PB_EVENTS = [
-  "50 Free", "100 Free", "200 Free", "400 Free", "800 Free", "1500 Free",
-  "50 Back", "100 Back", "200 Back",
-  "50 Breast", "100 Breast", "200 Breast",
-  "50 Fly", "100 Fly", "200 Fly",
-  "100 IM", "200 IM", "400 IM",
+  "50 Free",
+  "100 Free",
+  "200 Free",
+  "400 Free",
+  "800 Free",
+  "1500 Free",
+  "50 Back",
+  "100 Back",
+  "200 Back",
+  "50 Breast",
+  "100 Breast",
+  "200 Breast",
+  "50 Fly",
+  "100 Fly",
+  "200 Fly",
+  "100 IM",
+  "200 IM",
+  "400 IM",
 ];
 export const PB_POOLS = ["25 m", "50 m", "25 yd"];
 export const MAX_PBS = 20; // keep in sync with firestore.rules
@@ -46,21 +114,42 @@ export function formatSwimTime(seconds: number): string {
   return m ? `${m}:${s.padStart(5, "0")}` : s;
 }
 
-export const SWIM_LEVELS: { value: SwimLevel; label: string; note: string }[] = [
-  { value: "beginner", label: "Beginner", note: "Still learning the strokes" },
-  { value: "hobby", label: "Hobby", note: "Swim for fun or fitness" },
-  { value: "masters", label: "Masters", note: "Adult club or masters team" },
-  { value: "competitive", label: "Competitive", note: "Train and race in meets" },
-];
+export const SWIM_LEVELS: { value: SwimLevel; label: string; note: string }[] =
+  [
+    {
+      value: "beginner",
+      label: "Beginner",
+      note: "Still learning the strokes",
+    },
+    { value: "hobby", label: "Hobby", note: "Swim for fun or fitness" },
+    { value: "masters", label: "Masters", note: "Adult club or masters team" },
+    {
+      value: "competitive",
+      label: "Competitive",
+      note: "Train and race in meets",
+    },
+  ];
 
 export function levelLabel(level: SwimLevel): string {
   return SWIM_LEVELS.find((l) => l.value === level)?.label ?? level;
 }
 
 // Form state: inputs hold strings until the answers are checked.
-type NumberKey = Exclude<keyof Profile, "pbs">;
+type NumberKey =
+  | "age"
+  | "height_cm"
+  | "weight_kg"
+  | "swim_level"
+  | "sessions_per_week"
+  | "minutes_per_day";
 export type PbDraft = { event: string; pool: string; time: string };
-export type ProfileDraft = { [K in NumberKey]: string } & { pbs: PbDraft[] };
+export type ProfileDraft = { [K in NumberKey]: string } & {
+  pbs: PbDraft[];
+  goals: GoalKey[];
+  primary_goal: GoalKey | "";
+  target: PbDraft;
+  weak_note: string;
+};
 
 export const emptyDraft: ProfileDraft = {
   age: "",
@@ -70,6 +159,10 @@ export const emptyDraft: ProfileDraft = {
   sessions_per_week: "",
   minutes_per_day: "",
   pbs: [],
+  goals: [],
+  primary_goal: "",
+  target: { event: "", pool: PB_POOLS[0], time: "" },
+  weak_note: "",
 };
 
 export function toDraft(p: Profile): ProfileDraft {
@@ -80,11 +173,31 @@ export function toDraft(p: Profile): ProfileDraft {
     swim_level: p.swim_level,
     sessions_per_week: String(p.sessions_per_week),
     minutes_per_day: String(p.minutes_per_day),
-    pbs: p.pbs.map((pb) => ({ event: pb.event, pool: pb.pool, time: formatSwimTime(pb.seconds) })),
+    pbs: p.pbs.map((pb) => ({
+      event: pb.event,
+      pool: pb.pool,
+      time: formatSwimTime(pb.seconds),
+    })),
+    goals: p.goals,
+    primary_goal: p.primary_goal ?? "",
+    target: p.target
+      ? {
+          event: p.target.event,
+          pool: p.target.pool,
+          time: formatSwimTime(p.target.seconds),
+        }
+      : emptyDraft.target,
+    weak_note: p.weak_note,
   };
 }
 
-type Check = { key: NumberKey; label: string; min: number; max: number; integer?: boolean };
+type Check = {
+  key: NumberKey;
+  label: string;
+  min: number;
+  max: number;
+  integer?: boolean;
+};
 
 export const BODY_CHECKS: Check[] = [
   { key: "age", label: "Age", min: 5, max: 100, integer: true },
@@ -93,18 +206,35 @@ export const BODY_CHECKS: Check[] = [
 ];
 
 export const TRAINING_CHECKS: Check[] = [
-  { key: "sessions_per_week", label: "Sessions per week", min: 0, max: 14, integer: true },
-  { key: "minutes_per_day", label: "Time per day", min: 0, max: 600, integer: true },
+  {
+    key: "sessions_per_week",
+    label: "Sessions per week",
+    min: 0,
+    max: 14,
+    integer: true,
+  },
+  {
+    key: "minutes_per_day",
+    label: "Time per day",
+    min: 0,
+    max: 600,
+    integer: true,
+  },
 ];
 
 // Returns an error message for the first answer that's missing or out of range.
-export function checkDraft(draft: ProfileDraft, checks: Check[]): string | null {
+export function checkDraft(
+  draft: ProfileDraft,
+  checks: Check[],
+): string | null {
   for (const { key, label, min, max, integer } of checks) {
     const raw = draft[key].trim();
     const n = Number(raw);
     if (!raw || Number.isNaN(n)) return `Enter your ${label.toLowerCase()}.`;
-    if (integer && !Number.isInteger(n)) return `${label} must be a whole number.`;
-    if (n < min || n > max) return `${label} must be between ${min} and ${max}.`;
+    if (integer && !Number.isInteger(n))
+      return `${label} must be a whole number.`;
+    if (n < min || n > max)
+      return `${label} must be between ${min} and ${max}.`;
   }
   return null;
 }
@@ -116,8 +246,10 @@ export function checkPbs(draft: ProfileDraft): string | null {
     if (!pb.time.trim()) continue;
     if (!pb.event) return "Choose the event for each time you enter.";
     const seconds = parseSwimTime(pb.time);
-    if (seconds === null) return `Enter times like 28.45 or 1:02.30 (${pb.event}).`;
-    if (seconds < 10 || seconds > 3600) return `That time for ${pb.event} looks off.`;
+    if (seconds === null)
+      return `Enter times like 28.45 or 1:02.30 (${pb.event}).`;
+    if (seconds < 10 || seconds > 3600)
+      return `That time for ${pb.event} looks off.`;
     const key = `${pb.event}|${pb.pool}`;
     if (seen.has(key)) return `${pb.event} (${pb.pool}) is listed twice.`;
     seen.add(key);
@@ -126,8 +258,26 @@ export function checkPbs(draft: ProfileDraft): string | null {
   return null;
 }
 
+// Goals are optional. A primary goal has to be one of the chosen goals, and a target time
+// needs its event.
+export function checkGoals(draft: ProfileDraft): string | null {
+  if (draft.primary_goal && !draft.goals.includes(draft.primary_goal))
+    return "Your main goal has to be one of the goals you picked.";
+  if (draft.weak_note.length > MAX_WEAK_NOTE)
+    return `Keep the note under ${MAX_WEAK_NOTE} characters.`;
+  if (draft.target.time.trim()) {
+    if (!draft.target.event) return "Choose the event for your target time.";
+    const seconds = parseSwimTime(draft.target.time);
+    if (seconds === null) return "Enter the target time like 28.45 or 1:02.30.";
+    if (seconds < 10 || seconds > 3600) return "That target time looks off.";
+  }
+  return null;
+}
+
 export function checkLevel(draft: ProfileDraft): string | null {
-  return draft.swim_level ? null : "Choose the option that fits your swimming best.";
+  return draft.swim_level
+    ? null
+    : "Choose the option that fits your swimming best.";
 }
 
 export function fromDraft(draft: ProfileDraft): Profile {
@@ -140,7 +290,24 @@ export function fromDraft(draft: ProfileDraft): Profile {
     minutes_per_day: Number(draft.minutes_per_day),
     pbs: draft.pbs
       .filter((pb) => pb.event && pb.time.trim())
-      .map((pb) => ({ event: pb.event, pool: pb.pool, seconds: parseSwimTime(pb.time)! })),
+      .map((pb) => ({
+        event: pb.event,
+        pool: pb.pool,
+        seconds: parseSwimTime(pb.time)!,
+      })),
+    goals: draft.goals,
+    // With one goal chosen it is the main one; with several the swimmer says which.
+    primary_goal:
+      draft.primary_goal || (draft.goals.length === 1 ? draft.goals[0] : null),
+    target:
+      draft.target.event && draft.target.time.trim()
+        ? {
+            event: draft.target.event,
+            pool: draft.target.pool,
+            seconds: parseSwimTime(draft.target.time)!,
+          }
+        : null,
+    weak_note: draft.weak_note.trim(),
   };
 }
 
@@ -164,9 +331,26 @@ export async function loadProfile(uid: string): Promise<Profile | null> {
     sessions_per_week: d.sessions_per_week,
     minutes_per_day: d.minutes_per_day,
     pbs: Array.isArray(d.pbs) ? d.pbs : [],
+    // Profiles saved before goals existed simply have none.
+    goals: Array.isArray(d.goals)
+      ? d.goals.filter((g: unknown): g is GoalKey =>
+          GOALS.some((x) => x.value === g),
+        )
+      : [],
+    primary_goal: GOALS.some((x) => x.value === d.primary_goal)
+      ? d.primary_goal
+      : null,
+    target: d.target && typeof d.target.seconds === "number" ? d.target : null,
+    weak_note: typeof d.weak_note === "string" ? d.weak_note : "",
   };
 }
 
-export async function saveProfile(uid: string, profile: Profile): Promise<void> {
-  await setDoc(doc(db, "profiles", uid), { ...profile, updatedAt: serverTimestamp() });
+export async function saveProfile(
+  uid: string,
+  profile: Profile,
+): Promise<void> {
+  await setDoc(doc(db, "profiles", uid), {
+    ...profile,
+    updatedAt: serverTimestamp(),
+  });
 }

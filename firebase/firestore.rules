@@ -16,8 +16,24 @@ service cloud.firestore {
       allow write: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly([
           'age', 'height_cm', 'weight_kg', 'swim_level',
-          'sessions_per_week', 'minutes_per_day', 'pbs', 'updatedAt'
+          'sessions_per_week', 'minutes_per_day', 'pbs', 'updatedAt',
+          'goals', 'primary_goal', 'target', 'weak_note'
         ])
+        // Goals are optional. Values match frontend/app/lib/profile.ts (GOALS).
+        && request.resource.data.get('goals', []) is list
+        && request.resource.data.get('goals', []).size() <= 7
+        && request.resource.data.get('goals', []).hasOnly([
+          'stroke_consistency', 'body_alignment', 'arm_technique', 'speed',
+          'endurance', 'breathing', 'overall_freestyle'
+        ])
+        && (request.resource.data.get('primary_goal', null) == null
+          || request.resource.data.primary_goal in request.resource.data.get('goals', []))
+        && (request.resource.data.get('target', null) == null
+          || (request.resource.data.target.keys().hasOnly(['event', 'pool', 'seconds'])
+            && request.resource.data.target.event is string
+            && inRange(request.resource.data.target.seconds, 10, 3600)))
+        && request.resource.data.get('weak_note', '') is string
+        && request.resource.data.get('weak_note', '').size() <= 200
         // Personal bests are optional: a list of {event, pool, seconds}, at most 20.
         && request.resource.data.get('pbs', []) is list
         && request.resource.data.get('pbs', []).size() <= 20
@@ -46,6 +62,12 @@ service cloud.firestore {
 
       // One document per analysis run: structured results, no per-frame arrays.
       match /analyses/{analysisId} {
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+        allow write: if false;
+      }
+
+      // Feedback built from one interpretation (explanations, checkpoints, references).
+      match /feedback/{feedbackId} {
         allow read: if signedIn() && resource.data.uid == request.auth.uid;
         allow write: if false;
       }

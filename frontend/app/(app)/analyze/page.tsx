@@ -1,24 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+} from "react";
 import type { UploadTask } from "firebase/storage";
 
 import { useUser } from "@/app/components/AppShell";
 import { FormError } from "@/app/components/fields";
 import { UploadIcon } from "@/app/components/icons";
-import { Button, ButtonLink, Card, LaneProgress, PageHeader } from "@/app/components/ui";
+import {
+  Button,
+  ButtonLink,
+  Card,
+  LaneProgress,
+  PageHeader,
+} from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { parseSwimTime } from "@/app/lib/profile";
 import {
   CAMERAS,
   checkVideoFile,
   DISTANCES,
+  FILMING_TIPS,
   formatBytes,
   formatDuration,
   POOL_LENGTHS,
-  STROKES,
   requestAnalysis,
+  STROKES,
   SUGGESTED_MAX_SECONDS,
+  SUPPORTED_STROKE,
   uploadVideo,
 } from "@/app/lib/videos";
 
@@ -114,7 +128,9 @@ export default function AnalyzePage() {
     const timeText = String(form.get("time") ?? "").trim();
     const timeSeconds = timeText ? parseSwimTime(timeText) : undefined;
     if (timeSeconds === null)
-      return setError("Enter the time like 28.45 or 1:02.30, or leave it blank.");
+      return setError(
+        "Enter the time like 28.45 or 1:02.30, or leave it blank.",
+      );
     if (timeSeconds !== undefined && (timeSeconds < 5 || timeSeconds > 3600)) {
       return setError("That time looks off. Check it or leave it blank.");
     }
@@ -135,7 +151,9 @@ export default function AnalyzePage() {
           poolLength: String(form.get("pool_length")),
           timeSeconds,
           sessionDate: sessionDate || undefined,
-          durationSeconds: duration ? Math.round(duration * 10) / 10 : undefined,
+          durationSeconds: duration
+            ? Math.round(duration * 10) / 10
+            : undefined,
           comments: String(form.get("comments") ?? "").trim(),
           wantFeedback: form.get("want_feedback") === "on",
           wantPlan: form.get("want_plan") === "on",
@@ -146,7 +164,11 @@ export default function AnalyzePage() {
       // The upload is safe at this point. Analysis runs in the background; if the request
       // can't be sent now, the video's page offers to start it.
       const request = await requestAnalysis(id);
-      setSaved({ id, name: file.name, analysis: request.ok ? "started" : "not-started" });
+      setSaved({
+        id,
+        name: file.name,
+        analysis: request.ok ? "started" : "not-started",
+      });
       clearFile();
     } catch (err) {
       const code = (err as { code?: string })?.code;
@@ -167,7 +189,9 @@ export default function AnalyzePage() {
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-2xl text-teal-700">
           ✓
         </span>
-        <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">
+          Video uploaded
+        </h1>
         <p className="mt-2 text-slate-600">
           {saved.name} is saved to your history.{" "}
           {saved.analysis === "started"
@@ -176,7 +200,9 @@ export default function AnalyzePage() {
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink href={`/history/${saved.id}`}>
-            {saved.analysis === "started" ? "See the analysis" : "Open your video"}
+            {saved.analysis === "started"
+              ? "See the analysis"
+              : "Open your video"}
           </ButtonLink>
           <Button variant="secondary" onClick={() => setSaved(null)}>
             Upload another
@@ -190,11 +216,13 @@ export default function AnalyzePage() {
 
   return (
     <>
-      <PageHeader
-        title="Analyze a swim"
-      />
+      <PageHeader title="Analyze a swim" />
 
-      <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-5" noValidate>
+      <form
+        onSubmit={onSubmit}
+        className="grid gap-6 lg:grid-cols-5"
+        noValidate
+      >
         <Card className="lg:col-span-3">
           <input
             ref={input}
@@ -215,9 +243,12 @@ export default function AnalyzePage() {
             >
               {previewFailed ? (
                 <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-gradient-to-b from-sky-800 to-cyan-900 px-6 text-center text-sm text-sky-50">
-                  <p className="font-semibold">This browser can&apos;t preview this file</p>
+                  <p className="font-semibold">
+                    This browser can&apos;t preview this file
+                  </p>
                   <p className="mt-1 text-sky-100/80">
-                    Some phone videos (HEVC .mov) only play in Safari. You can still upload it.
+                    Some phone videos (HEVC .mov) only play in Safari. You can
+                    still upload it.
                   </p>
                 </div>
               ) : (
@@ -230,7 +261,9 @@ export default function AnalyzePage() {
                   preload="metadata"
                   onLoadedMetadata={(e) =>
                     setDuration(
-                      Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : null,
+                      Number.isFinite(e.currentTarget.duration)
+                        ? e.currentTarget.duration
+                        : null,
                     )
                   }
                   onError={() => setPreviewFailed(true)}
@@ -240,7 +273,9 @@ export default function AnalyzePage() {
               )}
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-slate-900">{file.name}</p>
+                  <p className="truncate font-medium text-slate-900">
+                    {file.name}
+                  </p>
                   <p className="text-sm text-slate-500">
                     {formatBytes(file.size)}
                     {duration !== null && ` · ${formatDuration(duration)}`}
@@ -254,15 +289,20 @@ export default function AnalyzePage() {
                   >
                     Replace
                   </Button>
-                  <Button variant="secondary" disabled={uploading} onClick={clearFile}>
+                  <Button
+                    variant="secondary"
+                    disabled={uploading}
+                    onClick={clearFile}
+                  >
                     Remove
                   </Button>
                 </div>
               </div>
               {longClip && (
                 <p className="mt-3 rounded-lg bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
-                  This clip is {formatDuration(duration!)} long. Clips under 2 minutes upload faster
-                  and are easier to analyze; trimming to one or two lengths is best.
+                  This clip is {formatDuration(duration!)} long. Clips under 2
+                  minutes upload faster and are easier to analyze; trimming to
+                  one or two lengths is best.
                 </p>
               )}
             </div>
@@ -283,7 +323,9 @@ export default function AnalyzePage() {
                 <UploadIcon className="h-6 w-6" />
               </span>
               <span className="mt-4 font-semibold text-slate-900">
-                {dragging ? "Drop the video here" : "Choose a video or drag it here"}
+                {dragging
+                  ? "Drop the video here"
+                  : "Choose a video or drag it here"}
               </span>
               <span className="mt-1 text-sm text-slate-500">
                 MP4, MOV or WebM, up to 500 MB. Under 2 minutes works best.
@@ -298,7 +340,9 @@ export default function AnalyzePage() {
           )}
 
           <fieldset className="mt-6">
-            <legend className="mb-2 text-sm font-medium text-slate-700">Filming angle</legend>
+            <legend className="mb-2 text-sm font-medium text-slate-700">
+              Filming angle
+            </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               {CAMERAS.map((c) => (
                 <label
@@ -317,18 +361,48 @@ export default function AnalyzePage() {
                     onChange={() => setCamera(c.value)}
                     className="sr-only"
                   />
-                  <span className="block font-medium text-slate-900">{c.value}</span>
+                  <span className="block font-medium text-slate-900">
+                    {c.value}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    {c.support === "full" ? "Supported" : "Limited analysis"}
+                  </span>
                 </label>
               ))}
             </div>
+            <p className="mt-2 text-sm text-slate-600" role="status">
+              {CAMERAS.find((c) => c.value === camera)?.detail}
+            </p>
           </fieldset>
+
+          <div className="mt-6 rounded-xl bg-slate-50 p-4">
+            <p className="text-sm font-medium text-slate-900">
+              Filming a video that can be analyzed
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              {FILMING_TIPS.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-slate-500">
+              How a video is filmed decides how much can be measured. Following
+              these tips makes more measurable; it does not guarantee that every
+              measurement will pass its checks. The measurements have only been
+              checked on {SUPPORTED_STROKE.toLowerCase()}.
+            </p>
+          </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label htmlFor="stroke" className={labelClass}>
                 Stroke
               </label>
-              <select id="stroke" name="stroke" className={selectClass} defaultValue="Freestyle">
+              <select
+                id="stroke"
+                name="stroke"
+                className={selectClass}
+                defaultValue="Freestyle"
+              >
                 {STROKES.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
@@ -338,7 +412,12 @@ export default function AnalyzePage() {
               <label htmlFor="distance" className={labelClass}>
                 Distance in clip
               </label>
-              <select id="distance" name="distance" className={selectClass} defaultValue="50 m">
+              <select
+                id="distance"
+                name="distance"
+                className={selectClass}
+                defaultValue="50 m"
+              >
                 {DISTANCES.map((d) => (
                   <option key={d}>{d}</option>
                 ))}
@@ -374,7 +453,8 @@ export default function AnalyzePage() {
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <label htmlFor="time" className={labelClass}>
-                Time <span className="font-normal text-slate-500">(optional)</span>
+                Time{" "}
+                <span className="font-normal text-slate-500">(optional)</span>
               </label>
               <input
                 id="time"
@@ -386,7 +466,8 @@ export default function AnalyzePage() {
                 className={selectClass}
               />
               <p id="time-hint" className="text-xs text-slate-500">
-                Your own timed result for the distance in the clip, if you have one.
+                Your own timed result for the distance in the clip, if you have
+                one.
               </p>
             </div>
           </div>
@@ -421,15 +502,18 @@ export default function AnalyzePage() {
                     className="mt-1 h-4 w-4 rounded border-slate-300 accent-sky-700"
                   />
                   <span>
-                    <span className="block font-medium text-slate-900">{label}</span>
+                    <span className="block font-medium text-slate-900">
+                      {label}
+                    </span>
                   </span>
                 </label>
               ))}
             </div>
             <p className="mt-4 text-xs text-slate-500">
-              Analysis currently measures stroke timing and how well the swimmer could be
-              tracked. Technique feedback and training plans aren&apos;t available yet; these
-              choices are saved for when they are.
+              Analysis currently measures stroke timing and how well the swimmer
+              could be tracked. Technique feedback and training plans
+              aren&apos;t available yet; these choices are saved for when they
+              are.
             </p>
           </Card>
 
@@ -449,8 +533,16 @@ export default function AnalyzePage() {
               </div>
             </div>
           )}
-          <Button type="submit" className="w-full py-3" disabled={uploading || !user}>
-            {uploading ? "Uploading…" : file ? "Upload video" : "Choose a video to upload"}
+          <Button
+            type="submit"
+            className="w-full py-3"
+            disabled={uploading || !user}
+          >
+            {uploading
+              ? "Uploading…"
+              : file
+                ? "Upload video"
+                : "Choose a video to upload"}
           </Button>
         </div>
       </form>
