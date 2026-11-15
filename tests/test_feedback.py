@@ -423,6 +423,9 @@ def test_the_same_inputs_give_the_same_feedback_and_id():
         feedback(UNEVEN, goals=["stroke_consistency"]),
         feedback(UNEVEN, goals=["stroke_consistency"]),
     )
+    for f in (a, b):
+        for c in f.checkpoints:
+            c.created_at = ""  # the time the interpretation ran, not part of the content
     assert a.model_dump(exclude={"created_at"}) == b.model_dump(exclude={"created_at"})
     assert feedback_id("i1", a) == feedback_id("i1", b)
     assert feedback_id("i1", a) != feedback_id("i2", a)

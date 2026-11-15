@@ -42,6 +42,10 @@ class VideoRecord:
     job: dict[str, Any] = field(default_factory=dict)
     session: SessionInfo = field(default_factory=SessionInfo)
     latest_analysis_id: str = ""
+    latest_interpretation_id: str = ""
+    latest_feedback_id: str = ""
+    file_name: str = ""
+    interpretation_summary: dict[str, Any] = field(default_factory=dict)
     created_at: str = ""  # ISO time of the upload, for ordering a swimmer's sessions
 
 
@@ -89,6 +93,19 @@ class Store(Protocol):
         """Add a feedback document unless one with this id exists. Returns True if added."""
         ...
 
+    def get_feedback(self, video_id: str, feedback_id: str) -> dict[str, Any] | None: ...
+
+    def get_interpretation(
+        self, video_id: str, interpretation_id: str
+    ) -> dict[str, Any] | None: ...
+
+    def delete_video_data(self, video: VideoRecord) -> None:
+        """Remove everything stored for one video: its analysis artifacts and video file in
+        Storage, its analyses, interpretations and feedback, and last the video record
+        itself. Every step tolerates data that is already gone, so it can be run again
+        after a failure. Raises if a step fails; the video record then still exists."""
+        ...
+
 
 def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
     return VideoRecord(
@@ -100,6 +117,10 @@ def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
         size_bytes=int(data.get("sizeBytes", 0) or 0),
         job=dict(data.get("job") or {}),
         latest_analysis_id=str(data.get("latestAnalysisId") or ""),
+        latest_interpretation_id=str(data.get("latestInterpretationId") or ""),
+        latest_feedback_id=str(data.get("latestFeedbackId") or ""),
+        file_name=str(data.get("fileName") or ""),
+        interpretation_summary=dict(data.get("interpretationSummary") or {}),
         created_at=_iso(data.get("createdAt")),
         session=SessionInfo(
             stroke=str(data.get("stroke", "")),
@@ -154,7 +175,8 @@ class MemoryStore:
 
     def update_video(self, video_id: str, fields: dict[str, Any]) -> None:
         with self._lock:
-            self.videos[video_id].update(fields)
+            if video_id in self.videos:  # never bring a deleted record back
+                self.videos[video_id].update(fields)
 
     def download_video(self, storage_path: str, dest: Path) -> None:
         dest.write_bytes(self.files[storage_path])
@@ -189,6 +211,33 @@ class MemoryStore:
             return False
         self.feedback[key] = {**document, "uid": video.uid}
         return True
+
+    def get_feedback(self, video_id, feedback_id):
+        return self.feedback.get((video_id, feedback_id))
+
+    def get_interpretation(self, video_id, interpretation_id):
+        return self.interpretations.get((video_id, interpretation_id))
+
+    def delete_video_data(self, video):
+        # `fail_delete_at` (a step name) lets tests stop part-way, like a lost connection.
+        def step(name):
+            if getattr(self, "fail_delete_at", None) == name:
+                raise RuntimeError(f"simulated failure at {name}")
+
+        step("artifacts")
+        prefix = f"analysis/{video.uid}/{video.id}/"
+        for path in [p for p in self.files if p.startswith(prefix)]:
+            del self.files[path]
+        step("video_file")
+        if video.storage_path.startswith(f"videos/{video.uid}/"):
+            self.files.pop(video.storage_path, None)
+        step("documents")
+        for table in (self.feedback, self.interpretations, self.analyses):
+            for key in [k for k in table if k[0] == video.id]:
+                del table[key]
+        step("record")
+        with self._lock:
+            self.videos.pop(video.id, None)
 
 
 class FirebaseStore:
@@ -244,7 +293,12 @@ class FirebaseStore:
         return run(self._db.transaction())
 
     def update_video(self, video_id: str, fields: dict[str, Any]) -> None:
-        self._ref(video_id).set(fields, merge=True)
+        from google.api_core.exceptions import NotFound
+
+        try:
+            self._ref(video_id).update(fields)  # unlike set(merge), never recreates the record
+        except NotFound:
+            pass  # deleted in the meantime: nothing to update
 
     def download_video(self, storage_path: str, dest: Path) -> None:
         self._bucket.blob(storage_path).download_to_filename(str(dest))
@@ -284,3 +338,32 @@ class FirebaseStore:
             return False  # same inputs, same feedback: keep what is there
         ref.create({**document, "uid": video.uid})
         return True
+
+    def get_feedback(self, video_id, feedback_id):
+        snap = self._ref(video_id).collection("feedback").document(feedback_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def get_interpretation(self, video_id, interpretation_id):
+        snap = self._ref(video_id).collection("interpretations").document(interpretation_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def delete_video_data(self, video):
+        from google.api_core.exceptions import NotFound
+
+        # Storage first, the record last: if anything fails the record (status "deleting")
+        # is still there to find what is left and try again.
+        for blob in list(self._bucket.list_blobs(prefix=f"analysis/{video.uid}/{video.id}/")):
+            try:
+                blob.delete()
+            except NotFound:
+                pass
+        if video.storage_path.startswith(f"videos/{video.uid}/"):
+            try:
+                self._bucket.blob(video.storage_path).delete()
+            except NotFound:
+                pass
+        ref = self._ref(video.id)
+        for name in ("feedback", "interpretations", "analyses"):
+            for snap in ref.collection(name).stream():
+                snap.reference.delete()
+        ref.delete()

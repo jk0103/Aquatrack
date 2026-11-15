@@ -119,3 +119,25 @@ def test_interpret_again_is_for_the_owner_of_a_finished_analysis(client, store):
     assert client.post("/videos/vid1/interpret").status_code == 401
     assert client.post("/videos/vid1/interpret", headers=OTHER).status_code == 404
     assert len(store.interpretations) == 2
+
+
+def test_delete_compare_and_progress_need_a_login_and_ownership(client, store):
+    assert client.post("/videos/vid1/analyze", headers=GOOD).status_code == 202
+    for method, path in (
+        ("delete", "/videos/vid1"),
+        ("get", "/videos/vid1/compare/vid1"),
+        ("get", "/progress"),
+    ):
+        assert getattr(client, method)(path).status_code == 401
+    assert client.delete("/videos/vid1", headers=OTHER).status_code == 404
+    assert client.get("/videos/vid1/compare/other", headers=GOOD).status_code == 404
+    mine = client.get("/progress", headers=GOOD).json()
+    assert mine["progress"]["analyzed"] == 1 and mine["progress"]["baseline"] is True
+    assert client.get("/progress", headers=OTHER).json()["progress"]["analyzed"] == 0
+    assert client.delete("/videos/vid1", headers=GOOD).json() == {
+        "deleted": True,
+        "already_deleted": False,
+    }
+    assert "vid1" not in store.videos and store.analyses == {} and store.feedback == {}
+    assert client.delete("/videos/vid1", headers=GOOD).json()["already_deleted"] is True
+    assert client.post("/videos/vid1/analyze", headers=GOOD).status_code == 404

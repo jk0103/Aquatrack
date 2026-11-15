@@ -1,0 +1,209 @@
+{
+ "comparison_version": "1.0",
+ "previous": {
+  "video_id": "a",
+  "analysis_id": "a-a",
+  "recorded_at": "2026-10-01T10:00:00+00:00",
+  "stroke": "Freestyle",
+  "camera": "Underwater",
+  "distance": "50 m",
+  "pool_length": "",
+  "schema_version": "1.2",
+  "tracking_grade": "good",
+  "view_status": "steady",
+  "stroke_rate": 50.0,
+  "synthetic": true
+ },
+ "current": {
+  "video_id": "sprint",
+  "analysis_id": "a-sprint",
+  "recorded_at": "2026-10-16T10:00:00+00:00",
+  "stroke": "Freestyle",
+  "camera": "Underwater",
+  "distance": "50 m",
+  "pool_length": "",
+  "schema_version": "1.2",
+  "tracking_grade": "good",
+  "view_status": "steady",
+  "stroke_rate": 75.0,
+  "synthetic": true
+ },
+ "comparable": false,
+ "session_reasons": [
+  "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+ ],
+ "metrics": [
+  {
+   "metric_key": "stroke_rate",
+   "label": "Stroke rate",
+   "unit": "cycles/min",
+   "state": "not_comparable",
+   "previous": 50.0,
+   "current": 75.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "cycle_duration",
+   "label": "Time per stroke cycle",
+   "unit": "s",
+   "state": "not_comparable",
+   "previous": 1.2,
+   "current": 0.8,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "rhythm_variation",
+   "label": "Rhythm variation",
+   "unit": "%",
+   "state": "not_comparable",
+   "previous": 1.9,
+   "current": 2.9,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "body_line_angle",
+   "label": "Body line angle",
+   "unit": "deg",
+   "state": "not_comparable",
+   "previous": 0.0,
+   "current": 0.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "leg_line_angle",
+   "label": "Legs against the trunk line",
+   "unit": "deg",
+   "state": "not_comparable",
+   "previous": 0.0,
+   "current": 0.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "head_height",
+   "label": "Head against the trunk line",
+   "unit": "trunk lengths",
+   "state": "not_comparable",
+   "previous": 0.0,
+   "current": 0.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "pull_depth",
+   "label": "Pull depth",
+   "unit": "trunk lengths",
+   "state": "not_comparable",
+   "previous": 1.27,
+   "current": 1.27,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "elbow_angle_min",
+   "label": "Elbow bend in the pull (2D)",
+   "unit": "deg",
+   "state": "not_comparable",
+   "previous": 180.0,
+   "current": 180.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "limited",
+   "current_status": "limited",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  },
+  {
+   "metric_key": "pull_path_variation",
+   "label": "Pull path variation",
+   "unit": "trunk lengths",
+   "state": "not_comparable",
+   "previous": 0.0,
+   "current": 0.0,
+   "change": null,
+   "relative_pct": null,
+   "threshold": null,
+   "previous_status": "reliable",
+   "current_status": "reliable",
+   "previous_cycles": 7,
+   "current_cycles": 7,
+   "reasons": [
+    "A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+   ],
+   "limitations": []
+  }
+ ],
+ "summary": "These two swims cannot be compared: A different effort: 50.0 cycles/min then, 75.0 now. A sprint and an easy swim are not the same task."
+}

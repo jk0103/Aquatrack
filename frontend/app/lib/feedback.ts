@@ -6,6 +6,7 @@
 // a chosen goal, NOT about the swimmer's video) and insufficient (could not be determined).
 // Pure parsing: no Firebase.
 
+import { parseFollowUps, type FollowUp } from "./history.ts";
 import type { FindingEvidence, FindingSample } from "./interpretation.ts";
 
 export type FeedbackCategory =
@@ -55,6 +56,7 @@ export type Feedback = {
   checkpoints: Checkpoint[];
   references: Reference[];
   recordingTips: string[];
+  followups: FollowUp[]; // how this video answers the previous video's checkpoints
   explanationSource: "template" | "llm";
   summary: string;
 };
@@ -201,6 +203,7 @@ export function parseFeedback(raw: unknown): Feedback | null {
         : [];
     }),
     recordingTips: strings(f.recording_tips),
+    followups: parseFollowUps(f.followups),
     explanationSource: explanation?.source === "llm" ? "llm" : "template",
     summary: str(f.summary),
   };

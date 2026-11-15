@@ -665,6 +665,7 @@ class AnalysisJobStatus(StrEnum):
     ANALYZING = "analyzing"
     READY = "ready"
     FAILED = "failed"
+    DELETING = "deleting"  # the swimmer asked for it to be deleted; nothing else may start
 
 
 class JobError(BaseModel):
@@ -749,6 +750,7 @@ class Finding(BaseModel):
     evidence_class: Literal["measured", "context_only"] = "measured"
     context_used: list[str] = []  # personal context that went into it
     changes: list[MetricChange] = []  # comparison with earlier swims, when used
+    recurrences: int = 0  # earlier compatible swims in which the same rule also triggered
     limitations: list[str] = []
     actionable: bool = False
     withheld: list[str] = []  # why nothing stronger is said
@@ -870,6 +872,15 @@ class FeedbackItem(BaseModel):
     factors: list[PriorityFactor] = []
 
 
+class CheckpointBaseline(BaseModel):
+    """A value measured in the video the checkpoint was made from, to compare against later."""
+
+    metric_key: str
+    label: str
+    value: float
+    unit: str
+
+
 class Checkpoint(BaseModel):
     """Something to look at in the next video. Not a drill, a plan or a promise."""
 
@@ -877,11 +888,136 @@ class Checkpoint(BaseModel):
     title: str
     related_item_id: str = ""
     metric_keys: list[str] = []
+    # Phase 5: what a later video is compared with, and where the checkpoint came from.
+    reason: str = ""
+    baseline: list[CheckpointBaseline] = []
+    source_video_id: str = ""
+    source_analysis_id: str = ""
+    created_at: str = ""
     what_to_film: str
     minimum: str = ""  # video length or cycles needed
     compare_with: str = ""
     what_counts_as_a_change: str = ""  # only where a threshold is justified
     limitations: list[str] = []
+
+
+# ---------- history: comparing sessions (Phase 5) ----------
+# Comparisons and progress are computed from stored analysis results each time they are
+# asked for. They are never stored as facts of their own, so they cannot go stale or be
+# silently rewritten; the analyses they rest on are named in every result.
+
+COMPARISON_VERSION = "1.0"
+
+ChangeState = Literal[
+    "increased", "decreased", "no_clear_change", "insufficient_evidence", "not_comparable"
+]
+
+
+class MetricComparison(BaseModel):
+    """One metric, an earlier swim against a later one. The words are neutral on purpose:
+    "increased" and "decreased" say which way a number moved, never whether that is good."""
+
+    metric_key: str
+    label: str
+    unit: str = ""
+    state: ChangeState
+    previous: float | None = None
+    current: float | None = None
+    change: float | None = None  # current - previous
+    relative_pct: float | None = None  # only where a ratio means something
+    threshold: float | None = None  # the smallest difference that counts
+    previous_status: str = ""
+    current_status: str = ""
+    previous_cycles: int = 0
+    current_cycles: int = 0
+    reasons: list[str] = []  # why it is not comparable or the evidence is insufficient
+    limitations: list[str] = []
+
+
+class SessionSummary(BaseModel):
+    video_id: str
+    analysis_id: str = ""
+    recorded_at: str = ""
+    stroke: str = ""
+    camera: str = ""
+    distance: str = ""
+    pool_length: str = ""
+    schema_version: str = ""
+    tracking_grade: str = ""
+    view_status: str = ""
+    stroke_rate: float | None = None
+    synthetic: bool = False
+
+
+class SessionComparisonResult(BaseModel):
+    comparison_version: str = COMPARISON_VERSION
+    previous: SessionSummary
+    current: SessionSummary
+    comparable: bool  # at least one metric could be compared
+    session_reasons: list[str] = []  # reasons that rule out every metric
+    metrics: list[MetricComparison] = []
+    summary: str = ""
+
+
+class CheckpointFollowUp(BaseModel):
+    """What a later video says about a checkpoint from an earlier one. A change is reported
+    as a change; it is never called an improvement here."""
+
+    checkpoint_id: str
+    title: str
+    source_video_id: str = ""
+    created_at: str = ""
+    state: Literal[
+        "not_yet_evaluated",
+        "comparable_measurement_available",
+        "measurable_change_observed",
+        "no_clear_measurable_change",
+        "cannot_evaluate",
+    ]
+    explanation: str = ""
+    metrics: list[MetricComparison] = []
+
+
+class ProgressPoint(BaseModel):
+    video_id: str
+    recorded_at: str = ""
+    value: float
+    low: float | None = None
+    high: float | None = None
+    cycles: int = 0
+
+
+class ProgressMetric(BaseModel):
+    metric_key: str
+    label: str
+    unit: str = ""
+    points: list[ProgressPoint] = []
+    # First point against last, when there are at least two: the same neutral states.
+    overall: MetricComparison | None = None
+
+
+class ProgressSeries(BaseModel):
+    """Sessions that may be put on one line: same stroke, filming angle, distance and a
+    similar effort. Sessions that do not fit start a series of their own."""
+
+    key: str
+    stroke: str = ""
+    camera: str = ""
+    distance: str = ""
+    sessions: list[SessionSummary] = []
+    metrics: list[ProgressMetric] = []
+
+
+class Progress(BaseModel):
+    progress_version: str = COMPARISON_VERSION
+    videos: int = 0  # uploaded
+    analyzed: int = 0
+    baseline: bool = True  # no two sessions can be compared yet
+    series: list[ProgressSeries] = []
+    not_in_any_series: list[SessionSummary] = []
+    not_included_reasons: dict[str, list[str]] = {}  # video id -> why
+    repeated_limitations: list[str] = []
+    note: str = ""
 
 
 class ExplanationInfo(BaseModel):
@@ -905,6 +1041,8 @@ class Feedback(BaseModel):
     checkpoints: list[Checkpoint] = []
     references: list[FeedbackReference] = []
     recording_tips: list[str] = []
+    # Phase 5: how this video answers the checkpoints of the swimmer's previous video.
+    followups: list["CheckpointFollowUp"] = []
     explanation: ExplanationInfo = ExplanationInfo()
     summary: str = ""
     created_at: str = Field(default_factory=_now)

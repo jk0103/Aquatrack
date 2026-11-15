@@ -107,6 +107,12 @@ general information for the swimmer's goals (labelled as not about their video),
 be determined with filming tips, and the research referred to. The upload form shows which
 filming angles are supported (`CAMERAS` in `app/lib/videos.ts`) and filming tips; optional goals
 are edited on the profile and in onboarding.
+History, comparison and progress: `app/lib/history.ts` (pure parsing, chart geometry, records)
+and `app/lib/historyApi.ts` call the backend; `app/components/ProgressPanel.tsx` shows real
+progress on the Progress page (the example chart below it stays labelled), `app/(app)/compare`
+shows two videos side by side, History has a status filter and a two-video compare selection,
+and the video page has a two-step delete. Changes are worded neutrally and both directions use
+the same colour.
 The contracts are defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet

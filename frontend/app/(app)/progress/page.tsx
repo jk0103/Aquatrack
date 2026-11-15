@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ProgressPanel } from "@/app/components/ProgressPanel";
 import { TimeChart } from "@/app/components/TimeChart";
 import { Card, ExampleNote, PageHeader, Stat } from "@/app/components/ui";
 import { formatDate, formatTime, progression } from "@/app/lib/mock";
@@ -24,13 +25,25 @@ export default function ProgressPage() {
   return (
     <>
       <PageHeader title="Progress" />
+      <div className="mb-10">
+        <ProgressPanel />
+      </div>
+
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-500">
+        Example: race times over a season
+      </h2>
       <div className="mb-6">
         <ExampleNote>
-          These times are examples. Your own times will appear here as you log them.
+          Everything below this line is example data, not yours. It shows what a
+          time chart could look like once race times are logged per date.
         </ExampleNote>
       </div>
 
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Event">
+      <div
+        className="mb-6 flex gap-2 overflow-x-auto pb-1"
+        role="tablist"
+        aria-label="Event"
+      >
         {names.map((name) => (
           <button
             key={name}
@@ -78,7 +91,9 @@ export default function ProgressPage() {
         }
         className="mb-6"
       >
-        <p className="-mt-2 mb-3 text-xs text-slate-500">Faster times are higher on the chart.</p>
+        <p className="-mt-2 mb-3 text-xs text-slate-500">
+          Faster times are higher on the chart.
+        </p>
         <TimeChart entries={entries} goal={goal} />
       </Card>
 
@@ -98,14 +113,19 @@ export default function ProgressPage() {
                 const prev = list[i + 1];
                 const diff = prev ? e.seconds - prev.seconds : null;
                 return (
-                  <tr key={e.date} className="border-b border-slate-100 last:border-0">
+                  <tr
+                    key={e.date}
+                    className="border-b border-slate-100 last:border-0"
+                  >
                     <td className="py-2.5 pr-4 text-slate-700">
                       {formatDate(e.date, { year: "numeric" })}
                     </td>
                     <td className="py-2.5 pr-4 font-display text-base font-semibold text-slate-900 tabular-nums">
                       {formatTime(e.seconds)}
                     </td>
-                    <td className="py-2.5 pr-4 text-slate-600">{e.meet ? "Meet" : "Practice"}</td>
+                    <td className="py-2.5 pr-4 text-slate-600">
+                      {e.meet ? "Meet" : "Practice"}
+                    </td>
                     <td
                       className={`py-2.5 ${diff === null ? "text-slate-500" : diff < 0 ? "text-teal-700" : "text-amber-700"}`}
                     >

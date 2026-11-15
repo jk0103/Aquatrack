@@ -79,7 +79,7 @@ export const POOL_LENGTHS = ["25 m", "50 m", "25 yd"];
 
 // Set by the backend (src/aquatrack/api/jobs.py); clients can't change it.
 export type VideoStatus =
-  "uploaded" | "queued" | "analyzing" | "ready" | "failed";
+  "uploaded" | "queued" | "analyzing" | "ready" | "failed" | "deleting";
 
 // Where the latest analysis request stands. Messages are written for the swimmer.
 export type AnalysisJob = {
@@ -127,6 +127,7 @@ export const statusLabel: Record<VideoStatus, string> = {
   analyzing: "Analyzing",
   ready: "Analyzed",
   failed: "Analysis failed",
+  deleting: "Being deleted",
 };
 
 export const statusTone = {
@@ -135,6 +136,7 @@ export const statusTone = {
   analyzing: "sky",
   ready: "teal",
   failed: "slate",
+  deleting: "slate",
 } as const;
 
 export function fileExtension(name: string): string {
@@ -222,6 +224,7 @@ const knownStatuses: VideoStatus[] = [
   "analyzing",
   "ready",
   "failed",
+  "deleting",
 ];
 
 function toJob(raw: unknown): AnalysisJob | null {

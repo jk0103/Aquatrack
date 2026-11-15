@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
@@ -18,6 +18,7 @@ import { loadFeedback } from "@/app/lib/feedbackLoad";
 import type { Interpretation } from "@/app/lib/interpretation";
 import { loadInterpretation } from "@/app/lib/interpretationLoad";
 import { describeFirebaseError } from "@/app/lib/firebase";
+import { deleteVideo } from "@/app/lib/historyApi";
 import { formatSwimTime } from "@/app/lib/profile";
 import {
   formatBytes,
@@ -286,9 +287,89 @@ export default function UploadPage() {
         </div>
         <div className="lg:col-span-2">
           <SessionCard video={video} />
+          <DeleteVideo id={video.id} stuck={video.status === "deleting"} />
         </div>
       </div>
     </>
+  );
+}
+
+// Deleting is permanent, so it takes two deliberate steps and says exactly what goes.
+function DeleteVideo({ id, stuck }: { id: string; stuck: boolean }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    const res = await deleteVideo(id);
+    if (res.ok) router.replace("/history");
+    else {
+      setError(res.error);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+      <p className="text-sm font-medium text-slate-900">Delete this video</p>
+      {stuck ? (
+        <p className="mt-1 text-sm text-slate-600">
+          Deleting this video was started but did not finish. Nothing new is
+          being added to it.
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-slate-600">
+          Removes the video file, its analysis and pose data, and the feedback
+          made from it. This can&apos;t be undone.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {confirming || stuck ? (
+        <div
+          className="mt-3 flex flex-wrap gap-2"
+          role="group"
+          aria-label="Confirm deletion"
+        >
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            className="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 focus-visible:ring-4 focus-visible:ring-red-600/30 focus-visible:outline-none disabled:opacity-60"
+          >
+            {busy
+              ? "Deleting…"
+              : stuck
+                ? "Finish deleting"
+                : "Yes, delete it permanently"}
+          </button>
+          {!stuck && (
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Keep it
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="mt-3 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Delete video…
+        </button>
+      )}
+    </div>
   );
 }
 

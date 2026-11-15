@@ -264,6 +264,18 @@ def test_profile_goals_are_optional_validated_and_private(alice, bob):
     assert httpx.get(theirs, headers=bob.firestore).status_code == 403
 
 
+def test_clients_cannot_delete_videos_or_their_results_directly(alice, bob, video):
+    """Deletion goes through the backend, which checks the owner and removes everything.
+    The rules never let a browser delete a record and leave its private data behind."""
+    doc = f"{DOCS}/videos/{video['id']}"
+    for user in (alice, bob):
+        assert httpx.delete(doc, headers=user.firestore).status_code == 403
+        for key in ("analysis", "interpretation", "feedback"):
+            assert httpx.delete(video[key], headers=user.firestore).status_code == 403
+    assert httpx.delete(obj(video["artifact"]), headers=alice.storage).status_code == 403
+    assert httpx.get(doc, headers=alice.firestore).status_code == 200
+
+
 # ---------- analysis artifacts in storage ----------
 
 

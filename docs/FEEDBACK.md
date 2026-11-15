@@ -40,6 +40,13 @@ What to film and look for next time; not a drill, plan or promise.
 
 At most four.
 
+Since Phase 5 each checkpoint also stores `reason`, `baseline` (the values measured in its
+video, with their reliability), `source_video_id`, `source_analysis_id` and `created_at`. When
+a later video is interpreted, the previous analysed video's checkpoints are followed up and the
+result is stored in that video's feedback as `followups` (states and wording:
+`docs/HISTORY_AND_DELETION.md`, section 4). Follow-ups are part of the feedback id, and earlier
+feedback documents are never modified.
+
 ## Language-model rewording (optional, off by default)
 
 - Switched on only with `AQUATRACK_LLM=claude`, the `llm` extra installed and credentials in the

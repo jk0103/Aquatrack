@@ -3,6 +3,7 @@
 import { Badge, Card } from "@/app/components/ui";
 import { formatMetric, unitLabel } from "@/app/lib/analysisV1";
 import type { Feedback, FeedbackItem } from "@/app/lib/feedback";
+import { followUpLabel } from "@/app/lib/history";
 
 // Feedback for one swim. Each part has its own card and its own label, so a measurement is
 // never read as a problem and general information is never read as something found in the
@@ -82,6 +83,27 @@ export function FeedbackPanel({
           </p>
         )}
       </Card>
+
+      {f.followups.length > 0 && (
+        <Card title="Checkpoints from your previous video">
+          <p className="mb-4 text-sm text-slate-600">
+            What this video says about the checkpoints set after your previous
+            one. A change means a number moved by more than the measurement can
+            account for. It is not called an improvement here.
+          </p>
+          <ul className="space-y-3">
+            {f.followups.map((u) => (
+              <li key={u.checkpointId} className="text-sm">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-medium text-slate-900">{u.title}</span>
+                  <Badge tone="slate">{followUpLabel[u.state]}</Badge>
+                </div>
+                <p className="mt-0.5 text-slate-600">{u.explanation}</p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {f.checkpoints.length > 0 && (
         <Card title="For your next video">

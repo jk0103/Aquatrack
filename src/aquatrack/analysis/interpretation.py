@@ -42,7 +42,7 @@ from aquatrack.contracts import (
     Undetermined,
 )
 
-RULES_VERSION = "2026.11-1"
+RULES_VERSION = "2026.11-2"  # -2: recurrence across compatible swims counts toward priorities
 
 # ---- which metrics may be used for what (availability is not interpretive validity)
 # May trigger an issue candidate, when they passed their own Phase 2 checks.
@@ -700,7 +700,7 @@ def _priorities(issues: list[Finding], used: ContextUsed) -> tuple[list[Priority
             (e.n_cycles for e in f.evidence if e.metric_key == "rhythm_variation"), default=0
         )
         odd = next((e.n_cycles for e in f.evidence if e.label == "Cycles off the rhythm"), 0)
-        earlier = sum(1 for c in f.changes if c.changed and c.now > c.before)
+        earlier = sum(1 for c in f.changes if c.changed and c.now > c.before) + f.recurrences
         matched = [g for g in used.goals if g in rule.goal_keys]
         goals = [GOALS[g] for g in matched]
         main = used.primary_goal in matched
@@ -908,7 +908,9 @@ def interpret(
                 rule_id="obs.history",
                 level="observation",
                 category="history",
-                title=f"{m.label}: {'changed' if latest.changed else 'no clear change'} since your earlier comparable swim",
+                title=f"{m.label}: steady across your last {len(changes) + 1} comparable swims"
+                if len(changes) >= 2 and not any(c.changed for c in changes)
+                else f"{m.label}: {'changed' if latest.changed else 'no clear change'} since your earlier comparable swim",
                 description=f"{_num(latest.before, m.unit)} then, {_num(latest.now, m.unit)} now. "
                 + (
                     f"The difference is more than the {_num(latest.threshold, m.unit)} that the measurement itself could account for."
@@ -934,6 +936,15 @@ def interpret(
         ):
             rules.append(status)
             if finding:
+                if finding.rule_id == "timing.uneven_rhythm":
+                    # The same rule on the swimmer's earlier compatible swims, as stored: a
+                    # pattern that keeps showing up is stronger evidence than one clip. It
+                    # still says "worth a look", never "a fault".
+                    finding.recurrences = sum(
+                        _rule_uneven_rhythm(p.result)[1] is not None for p in compatible
+                    )
+                    if finding.recurrences:
+                        finding.description += f" The same pattern was found in {finding.recurrences} of your earlier comparable swim{'s' if finding.recurrences != 1 else ''}."
                 finding.context_used = [
                     GOALS[g] for g in used.goals if g in RULE[finding.rule_id].goal_keys
                 ]

@@ -54,6 +54,11 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   without the owner's approval). Docs: `docs/FEEDBACK.md`, `docs/EVIDENCE_LIBRARY.md`.
 - Profile (`profiles/{uid}`): optional `goals`, `primary_goal`, `target`, `weak_note`; the
   free-text note is never analysed or sent to a model.
+- `src/aquatrack/analysis/comparison.py`: session comparison (per metric, neutral states),
+  progress series, checkpoint follow-up. Computed from stored analyses on request, never
+  stored. APIs: `GET /videos/{a}/compare/{b}`, `GET /progress`, `DELETE /videos/{id}`
+  (backend deletes everything for a video; clients can never delete directly). Doc:
+  `docs/HISTORY_AND_DELETION.md`.
 - Firebase: Auth, Firestore, Storage; rules in `firebase/`. Videos are uploaded by the web
   app straight to Storage; the API never receives files. Results: Firestore
   `videos/{id}/analyses/{analysisId}`, arrays in Storage `analysis/{uid}/...` (backend-only
@@ -99,6 +104,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   Findings, research-supported suggestions, engineering heuristics and unverified hypotheses
   are labelled as such. A paper discussing a technique does not validate a metric or switch on
   a rule. Bump `EVIDENCE_VERSION` on any change and update `docs/EVIDENCE_LIBRARY.md`.
+- Comparing sessions: a change in a number is not an improvement. Use only "increased",
+  "decreased", "no clearly measurable change", "insufficient evidence", "not comparable";
+  never colour one direction as good. Never put incompatible sessions (stroke, filming angle,
+  distance, effort, metric definition) on one line, never interpolate, never compare a sprint
+  with an easy swim. Times typed in by the swimmer are labelled as theirs and never linked to
+  a technique measurement. Synthetic history is for tests and must be labelled as such.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
 - The LLM only rewords validated findings. Send it structured metrics, never videos, names
@@ -136,7 +147,8 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   Firebase project, and do not create service-account keys.
 - Uploaded videos and pose data are private user data and may show minors. Per-user access
   only; no file paths or internals in user-facing errors; nothing sensitive in logs. Users
-  cannot delete their videos yet: deletion and privacy compliance are release blockers.
+  can delete their own videos (backend deletion, emulator-tested). Still release blockers: a
+  durable deletion queue, account deletion, backups and retention, and legal review.
 - Keep `experiments/` local and untracked. Never commit notebooks or scripts that contain
   Google Drive file IDs or sharing links.
 - Never commit weights, datasets, videos, pose dumps, private documents, `.env` files,
@@ -162,10 +174,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 3. Personalized pattern and issue detection. On the two real clips it yields observations
    and no issues, which is the intended result for that evidence.
    (Phase 3 done, local commit `c0e482e`, not pushed.)
-4. Feedback, checkpoints, verified evidence, LLM layer (implemented locally 2026-11-15,
-   uncommitted, awaiting the owner's review; the LLM path is tested with mocks only and no
-   interpretation rule was activated).
-5. History and optimization. 6. Training and calendar. 7. Hardening, full scenario tests,
+4. Feedback, checkpoints, verified evidence, LLM layer (done, local commit `4e46baa`, not
+   pushed; the LLM path is tested with mocks only and no interpretation rule was activated).
+5. History, comparison, progress, checkpoint follow-up and video deletion (implemented
+   locally 2026-11-15, uncommitted, awaiting the owner's review; comparison logic exercised on
+   labelled synthetic sessions only, since no real swimmer has two comparable sessions yet).
+6. Training and calendar (planned; the Training and Calendar pages stay as labelled examples). 7. Hardening, full scenario tests,
    production inference and deployment evaluation.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without

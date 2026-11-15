@@ -1,0 +1,17 @@
+{
+ "progress": {
+  "progress_version": "1.0",
+  "videos": 0,
+  "analyzed": 0,
+  "baseline": true,
+  "series": [],
+  "not_in_any_series": [],
+  "not_included_reasons": {},
+  "repeated_limitations": [],
+  "note": "No analysed videos yet."
+ },
+ "history": [],
+ "latest_video_id": null,
+ "open_checkpoints": [],
+ "followups": []
+}

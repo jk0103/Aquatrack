@@ -1,0 +1,195 @@
+{
+ "progress": {
+  "progress_version": "1.0",
+  "videos": 1,
+  "analyzed": 1,
+  "baseline": true,
+  "series": [
+   {
+    "key": "series-1",
+    "stroke": "Freestyle",
+    "camera": "Underwater",
+    "distance": "50 m",
+    "sessions": [
+     {
+      "video_id": "a",
+      "analysis_id": "a-a",
+      "recorded_at": "2026-10-01T10:00:00+00:00",
+      "stroke": "Freestyle",
+      "camera": "Underwater",
+      "distance": "50 m",
+      "pool_length": "",
+      "schema_version": "1.2",
+      "tracking_grade": "good",
+      "view_status": "steady",
+      "stroke_rate": 50.0,
+      "synthetic": true
+     }
+    ],
+    "metrics": [
+     {
+      "metric_key": "stroke_rate",
+      "label": "Stroke rate",
+      "unit": "cycles/min",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 50.0,
+        "low": 50.0,
+        "high": 50.0,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     },
+     {
+      "metric_key": "cycle_duration",
+      "label": "Time per stroke cycle",
+      "unit": "s",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 1.2,
+        "low": 1.2,
+        "high": 1.2,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     },
+     {
+      "metric_key": "rhythm_variation",
+      "label": "Rhythm variation",
+      "unit": "%",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 1.9,
+        "low": null,
+        "high": null,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     },
+     {
+      "metric_key": "body_line_angle",
+      "label": "Body line angle",
+      "unit": "deg",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     },
+     {
+      "metric_key": "leg_line_angle",
+      "label": "Legs against the trunk line",
+      "unit": "deg",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 0.0,
+        "low": 0.0,
+        "high": 0.0,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     },
+     {
+      "metric_key": "head_height",
+      "label": "Head against the trunk line",
+      "unit": "trunk lengths",
+      "points": [
+       {
+        "video_id": "a",
+        "recorded_at": "2026-10-01T10:00:00+00:00",
+        "value": 0.0,
+        "low": -0.0,
+        "high": -0.0,
+        "cycles": 7
+       }
+      ],
+      "overall": null
+     }
+    ]
+   }
+  ],
+  "not_in_any_series": [],
+  "not_included_reasons": {},
+  "repeated_limitations": [],
+  "note": "This is your baseline. Trends need at least two videos of the same stroke and distance, filmed the same way at a similar effort."
+ },
+ "history": [],
+ "latest_video_id": "a",
+ "open_checkpoints": [
+  {
+   "id": "cp.repeat_same_conditions",
+   "title": "Film the same swim again to see what changes",
+   "related_item_id": "",
+   "metric_keys": [
+    "stroke_rate",
+    "cycle_duration",
+    "body_line_angle",
+    "leg_line_angle",
+    "head_height"
+   ],
+   "reason": "This was a baseline: there was no earlier comparable swim.",
+   "baseline": [
+    {
+     "metric_key": "stroke_rate",
+     "label": "Stroke rate",
+     "value": 50.0,
+     "unit": "cycles/min"
+    },
+    {
+     "metric_key": "cycle_duration",
+     "label": "Time per stroke cycle",
+     "value": 1.2,
+     "unit": "s"
+    },
+    {
+     "metric_key": "body_line_angle",
+     "label": "Body line angle",
+     "value": 0.0,
+     "unit": "deg"
+    },
+    {
+     "metric_key": "leg_line_angle",
+     "label": "Legs against the trunk line",
+     "value": 0.0,
+     "unit": "deg"
+    },
+    {
+     "metric_key": "head_height",
+     "label": "Head against the trunk line",
+     "value": 0.0,
+     "unit": "trunk lengths"
+    }
+   ],
+   "source_video_id": "a",
+   "source_analysis_id": "a-a",
+   "created_at": "2026-11-15T14:33:58+00:00",
+   "what_to_film": "The same stroke and distance at the same effort, from the same place and angle as this clip.",
+   "minimum": "",
+   "compare_with": "This swim, which is your baseline.",
+   "what_counts_as_a_change": "A difference of more than about 4 degrees in body or leg line, 0.10 trunk lengths in head position, or 2 video frames in cycle time. Smaller differences are within measurement noise.",
+   "limitations": [
+    "A difference shows that something changed, not why, and not whether it is better.",
+    "A sprint and an easy swim are not compared with each other."
+   ]
+  }
+ ],
+ "followups": []
+}

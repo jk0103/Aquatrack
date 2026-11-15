@@ -24,6 +24,8 @@ from aquatrack import evidence
 from aquatrack.analysis.interpretation import GOALS, RESOLUTION, TIMING_FRAMES
 from aquatrack.contracts import (
     Checkpoint,
+    CheckpointBaseline,
+    CheckpointFollowUp,
     Feedback,
     FeedbackItem,
     FeedbackReference,
@@ -271,7 +273,18 @@ def _checkpoints(i: Interpretation, items: list[FeedbackItem]) -> list[Checkpoin
     return out[:MAX_CHECKPOINTS]
 
 
-def build_feedback(i: Interpretation, interpretation_id: str = "") -> Feedback:
+CHECKPOINT_REASONS = {
+    "cp.side_view": "The camera view changed, the camera side was unclear, or nothing could be measured.",
+    "cp.longer_clip": "The clip had fewer than 6 full cycles of one arm.",
+    "cp.repeat_same_conditions": "This was a baseline: there was no earlier comparable swim.",
+}
+
+
+def build_feedback(
+    i: Interpretation,
+    interpretation_id: str = "",
+    followups: list[CheckpointFollowUp] | None = None,
+) -> Feedback:
     """Feedback for one interpretation. The swimmer's goals and level are the ones recorded
     in the interpretation's context, so the two can never disagree."""
     goals = [g for g in i.context.goals if g in GUIDES]
@@ -333,7 +346,8 @@ def build_feedback(i: Interpretation, interpretation_id: str = "") -> Feedback:
         primary_goal=i.context.primary_goal,
         swim_level=i.context.swim_level,
         items=items,
-        checkpoints=_checkpoints(i, items),
+        checkpoints=_with_baselines(_checkpoints(i, items), items, i),
+        followups=followups or [],
         references=list(sources.values()),
         recording_tips=RECORDING_TIPS
         if (
@@ -345,6 +359,36 @@ def build_feedback(i: Interpretation, interpretation_id: str = "") -> Feedback:
         f"{count['focus'] + count['priority']} to look at, {count['priority']} ranked as a priority, "
         f"{count['education']} general note{'s' if count['education'] != 1 else ''} for your goals.",
     )
+
+
+def _with_baselines(
+    checkpoints: list[Checkpoint], items: list[FeedbackItem], i: Interpretation
+) -> list[Checkpoint]:
+    """Record with each checkpoint what a later video is compared against: the values measured
+    in this one, which analysis they came from, and why the checkpoint was made."""
+    measured = {}
+    for item in items:
+        if item.category == "education":
+            continue
+        for e in item.evidence:
+            if e.value is not None and e.status == "reliable":
+                measured.setdefault(
+                    e.metric_key,
+                    CheckpointBaseline(
+                        metric_key=e.metric_key, label=e.label, value=e.value, unit=e.unit
+                    ),
+                )
+    for cp in checkpoints:
+        cp.baseline = [measured[k] for k in cp.metric_keys if k in measured]
+        cp.reason = CHECKPOINT_REASONS.get(
+            cp.id, "A pattern in this swim was flagged as worth a look."
+        )
+        cp.source_video_id, cp.source_analysis_id, cp.created_at = (
+            i.video_id,
+            i.analysis_id,
+            i.created_at,
+        )
+    return checkpoints
 
 
 def feedback_id(basis: str, feedback: Feedback) -> str:
@@ -361,6 +405,7 @@ def feedback_id(basis: str, feedback: Feedback) -> str:
             feedback.primary_goal,
             feedback.explanation.source,
             feedback.explanation.model,
+            [f.model_dump() for f in feedback.followups],
         ],
         sort_keys=True,
     )

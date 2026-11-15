@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from aquatrack.analysis import comparison
+from aquatrack.analysis.comparison import Session
 from aquatrack.analysis.explain import Explainer, explain_feedback, explainer_from_env
 from aquatrack.analysis.feedback import build_feedback, feedback_id
 from aquatrack.analysis.interpretation import PriorSession, SwimmerContext, interpret
@@ -90,6 +92,8 @@ def request_analysis(
 
         attempts = int(video.job.get("attempts", 0) or 0)
         status = video.status
+        if status == Status.DELETING:
+            raise JobRequestError(409, "This video is being deleted.")
         if status in (Status.QUEUED, Status.ANALYZING):
             marker = video.job.get("startedAt") or video.job.get("queuedAt")
             if _age_seconds(marker, now) < STALE_AFTER_S:
@@ -183,6 +187,11 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
                 )
             result, processed = analyze(raw, video_id, video.session, identity, video_path=local)
 
+            # The swimmer may have asked for deletion while this ran: store nothing then.
+            current = store.get_video(video_id)
+            if current is None or current.status != Status.ANALYZING:
+                log.info("analysis dropped, video no longer waiting for it video=%s", video_id)
+                return
             raw_path = raw.save(work / "raw_pose.npz")
             processed_path = processed.save(work / "processed_pose.npz")
             attempts = int(video.job.get("attempts", 1) or 1)
@@ -193,6 +202,11 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
                 result.to_firestore(),
                 {"raw_pose.npz": raw_path, "processed_pose.npz": processed_path},
             )
+        # Deletion can also arrive between the check above and the save: clean up after it.
+        current = store.get_video(video_id)
+        if current is None or current.status == Status.DELETING:
+            store.delete_video_data(current or video)
+            return
         rate = next((m.value for m in result.measurements if m.key == "stroke_rate"), None)
         store.update_video(
             video_id,
@@ -304,7 +318,22 @@ def interpret_video(
     # Feedback is built from the interpretation just stored. It never changes a finding; a
     # failure here leaves the interpretation and the analysis as they are.
     try:
-        feedback = build_feedback(found, interpretation_id)
+        followups = []
+        if history:  # the swimmer's previous video and the checkpoints stored with it
+            last = history[0]
+            source = next((v for v in store.list_videos(video.uid) if v.id == last.video_id), None)
+            stored = (
+                store.get_feedback(last.video_id, source.latest_feedback_id)
+                if source and source.latest_feedback_id
+                else None
+            )
+            if stored and stored.get("uid") == video.uid:
+                followups = comparison.follow_up(
+                    [c for c in stored.get("checkpoints") or [] if isinstance(c, dict)],
+                    Session(last.video_id, last.result, last.analysis_id, last.recorded_at),
+                    Session(video.id, result, analysis_id, video.created_at),
+                )
+        feedback = build_feedback(found, interpretation_id, followups)
         feedback = explain_feedback(feedback, explainer or explainer_from_env())
         # Keyed by what the interpretation says, not by which run said it: interpreting the
         # same analysis again with nothing changed reuses the feedback already stored.
@@ -341,6 +370,116 @@ def reinterpret(store: Store, video_id: str, uid: str) -> Interpretation:
     if found is None:
         raise JobRequestError(409, "This video's analysis could not be read.")
     return found
+
+
+def load_sessions(store: Store, uid: str) -> tuple[list[Session], list[VideoRecord]]:
+    """The swimmer's own analysed videos as comparison sessions, plus all their video records."""
+    videos = [v for v in store.list_videos(uid) if v.uid == uid]
+    sessions = []
+    for v in videos:
+        if v.status != Status.READY or not v.latest_analysis_id:
+            continue
+        stored = store.get_analysis(v.id, v.latest_analysis_id)
+        if stored is None or stored.get("uid") != uid:
+            continue
+        try:
+            sessions.append(
+                Session(
+                    v.id, AnalysisResult.model_validate(stored), v.latest_analysis_id, v.created_at
+                )
+            )
+        except ValueError:
+            continue
+    return sessions, videos
+
+
+def compare_videos(store: Store, uid: str, first_id: str, second_id: str) -> dict:
+    """Compare two of the caller's own analysed videos, the earlier one against the later."""
+    sessions, videos = load_sessions(store, uid)
+    owned = {v.id for v in videos}
+    if first_id not in owned or second_id not in owned or first_id == second_id:
+        raise JobRequestError(404, "Video not found.")
+    by_id = {s.video_id: s for s in sessions}
+    if first_id not in by_id or second_id not in by_id:
+        raise JobRequestError(
+            409, "Both videos need a finished analysis before they can be compared."
+        )
+    before, now = sorted((by_id[first_id], by_id[second_id]), key=lambda s: s.recorded_at)
+    return comparison.compare(now, before).model_dump(mode="json")
+
+
+def progress_for(store: Store, uid: str) -> dict:
+    """Everything the progress page needs, computed from the swimmer's stored analyses."""
+    sessions, videos = load_sessions(store, uid)
+    live = [v for v in videos if v.status != Status.DELETING]
+    progress = comparison.build_progress(sessions, len(live))
+    by_id = {v.id: v for v in videos}
+    history = []
+    for s in sorted(sessions, key=lambda s: s.recorded_at):
+        v = by_id[s.video_id]
+        stored = (
+            store.get_interpretation(v.id, v.latest_interpretation_id)
+            if v.latest_interpretation_id
+            else None
+        )
+        own = stored if stored and stored.get("uid") == uid else {}
+        history.append(
+            {
+                "video_id": v.id,
+                "recorded_at": v.created_at,
+                "file_name": v.file_name,
+                "observations": len(own.get("observations") or []),
+                "issue_candidates": [
+                    str(f.get("title", "")) for f in own.get("issue_candidates") or []
+                ],
+                "priorities": [str(p.get("title", "")) for p in own.get("priorities") or []],
+            }
+        )
+    latest = max(
+        (v for v in live if v.status == Status.READY and v.latest_feedback_id),
+        key=lambda v: v.created_at,
+        default=None,
+    )
+    feedback = store.get_feedback(latest.id, latest.latest_feedback_id) if latest else None
+    feedback = feedback if feedback and feedback.get("uid") == uid else {}
+    return {
+        "progress": progress.model_dump(mode="json"),
+        "history": history,
+        "latest_video_id": latest.id if latest else None,
+        # The newest video's checkpoints are open until a later video answers them.
+        "open_checkpoints": feedback.get("checkpoints") or [],
+        "followups": feedback.get("followups") or [],
+    }
+
+
+def delete_video(store: Store, video_id: str, uid: str) -> dict:
+    """Delete one of the caller's own videos and everything stored for it. Safe to call
+    again: a second call finishes what an interrupted one left, and a video that is already
+    gone is reported as deleted. Someone else's video looks exactly like a missing one."""
+
+    def decide(video: VideoRecord | None):
+        if video is None:
+            return None, "gone"
+        if video.uid != uid:
+            raise JobRequestError(404, "Video not found.")
+        # From here on no analysis can start (request_analysis) or store results (run_job).
+        job = {**video.job, "deleteRequestedAt": _now()}
+        return {"status": Status.DELETING.value, "job": job}, "go"
+
+    if store.transact(video_id, decide) == "gone":
+        return {"deleted": True, "already_deleted": True}
+    video = store.get_video(video_id)
+    if video is not None:
+        try:
+            store.delete_video_data(video)
+        except Exception:
+            log.exception("deletion incomplete video=%s", video_id)
+            raise JobRequestError(
+                503,
+                "Some of this video's data could not be deleted yet. Nothing new will be added "
+                "to it; try again to finish deleting it.",
+            ) from None
+    return {"deleted": True, "already_deleted": False}
 
 
 class JobRunner:

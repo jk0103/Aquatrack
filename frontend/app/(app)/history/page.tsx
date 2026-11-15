@@ -5,17 +5,50 @@ import { useEffect, useState } from "react";
 
 import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
-import { Badge, ButtonLink, LoadingState, PageHeader } from "@/app/components/ui";
+import {
+  Badge,
+  ButtonLink,
+  LoadingState,
+  PageHeader,
+} from "@/app/components/ui";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { analyses, formatDate } from "@/app/lib/mock";
 import { formatSwimTime } from "@/app/lib/profile";
-import { listVideos, statusLabel, statusTone, videoDate, type VideoRecord } from "@/app/lib/videos";
+import {
+  listVideos,
+  statusLabel,
+  statusTone,
+  videoDate,
+  type VideoRecord,
+} from "@/app/lib/videos";
 
-const strokes = ["All strokes", "Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
+const strokes = [
+  "All strokes",
+  "Freestyle",
+  "Backstroke",
+  "Breaststroke",
+  "Butterfly",
+];
+const statuses = [
+  { value: "all", label: "Any status" },
+  { value: "done", label: "Analyzed" },
+  { value: "pending", label: "In progress" },
+  { value: "failed", label: "Failed" },
+  { value: "none", label: "Not analyzed" },
+];
+function statusGroup(s: VideoRecord["status"]): string {
+  if (s === "ready") return "done";
+  if (s === "failed") return "failed";
+  if (s === "uploaded") return "none";
+  return "pending"; // queued, analyzing, being deleted
+}
 
 export default function HistoryPage() {
   const user = useUser();
   const [stroke, setStroke] = useState(strokes[0]);
+  const [status, setStatus] = useState(statuses[0].value);
+  // Up to two analyzed videos picked for a side-by-side comparison.
+  const [picked, setPicked] = useState<string[]>([]);
   const [uploads, setUploads] = useState<VideoRecord[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -26,7 +59,16 @@ export default function HistoryPage() {
       .then(setUploads)
       .catch((err) => setLoadError(describeFirebaseError(err)));
   }, [uid]);
-  const myUploads = (uploads ?? []).filter((v) => stroke === strokes[0] || v.stroke === stroke);
+  const myUploads = (uploads ?? []).filter(
+    (v) =>
+      (stroke === strokes[0] || v.stroke === stroke) &&
+      (status === "all" || statusGroup(v.status) === status),
+  );
+  function togglePick(id: string) {
+    setPicked((now) =>
+      now.includes(id) ? now.filter((x) => x !== id) : [...now, id].slice(-2),
+    );
+  }
   const list = [...analyses]
     .filter((a) => stroke === strokes[0] || a.stroke === stroke)
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -57,6 +99,19 @@ export default function HistoryPage() {
               <option key={s}>{s}</option>
             ))}
           </select>
+          <span className="sr-only">Analysis status</span>
+          <select
+            aria-label="Analysis status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-4 focus:ring-sky-600/15"
+          >
+            {statuses.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 
@@ -65,6 +120,20 @@ export default function HistoryPage() {
           Couldn&apos;t load your uploads. {loadError}
         </p>
       )}
+      {(uploads ?? []).filter((v) => v.status === "ready").length >= 2 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3 text-sm text-slate-600">
+          <p>
+            {picked.length === 2
+              ? "Two videos chosen."
+              : `Choose two analyzed videos to compare (${picked.length} of 2 chosen).`}
+          </p>
+          {picked.length === 2 ? (
+            <ButtonLink href={`/compare?a=${picked[0]}&b=${picked[1]}`}>
+              Compare
+            </ButtonLink>
+          ) : null}
+        </div>
+      )}
       {uploads === null && !loadError ? (
         <div className="mb-8">
           <LoadingState label="Loading your uploads…" />
@@ -72,7 +141,22 @@ export default function HistoryPage() {
       ) : myUploads.length ? (
         <ul className="mb-10 space-y-3">
           {myUploads.map((v, i) => (
-            <li key={v.id} className="list-enter" style={{ animationDelay: `${i * 70}ms` }}>
+            <li
+              key={v.id}
+              className="list-enter"
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
+              {v.status === "ready" && (
+                <label className="mb-1 ml-1 flex w-fit items-center gap-2 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(v.id)}
+                    onChange={() => togglePick(v.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-700 focus:ring-sky-600"
+                  />
+                  Compare
+                </label>
+              )}
               <Link
                 href={`/history/${v.id}`}
                 className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
@@ -96,7 +180,9 @@ export default function HistoryPage() {
                     <span className="hidden sm:inline">
                       <Badge tone="slate">{v.camera}</Badge>
                     </span>
-                    <Badge tone={statusTone[v.status]}>{statusLabel[v.status]}</Badge>
+                    <Badge tone={statusTone[v.status]}>
+                      {statusLabel[v.status]}
+                    </Badge>
                   </div>
                   <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">
                     {v.fileName}
@@ -107,7 +193,9 @@ export default function HistoryPage() {
                       day: "numeric",
                       year: "numeric",
                     }) ?? "Just now"}
-                    {v.timeSeconds !== undefined ? ` · ${formatSwimTime(v.timeSeconds)}` : ""}
+                    {v.timeSeconds !== undefined
+                      ? ` · ${formatSwimTime(v.timeSeconds)}`
+                      : ""}
                     {v.comments ? ` · “${v.comments}”` : ""}
                   </p>
                 </div>
@@ -120,12 +208,17 @@ export default function HistoryPage() {
         !loadError && (
           <div className="mb-8 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
             {uploads?.length ? (
-              <p>No {stroke.toLowerCase()} uploads. Pick another stroke to see the rest.</p>
+              <p>
+                No {stroke.toLowerCase()} uploads. Pick another stroke to see
+                the rest.
+              </p>
             ) : (
               <>
                 <p>No uploads yet. Your videos will show up here.</p>
                 <div className="mt-4 flex justify-center">
-                  <ButtonLink href="/analyze">Upload your first swim</ButtonLink>
+                  <ButtonLink href="/analyze">
+                    Upload your first swim
+                  </ButtonLink>
                 </div>
               </>
             )}
@@ -137,7 +230,8 @@ export default function HistoryPage() {
         Example analyses <Badge tone="amber">Example</Badge>
       </h2>
       <p className="mb-4 text-sm text-slate-500">
-        Sample results showing what feedback will look like. These aren&apos;t your swims.
+        Sample results showing what feedback will look like. These aren&apos;t
+        your swims.
       </p>
       <ul className="space-y-3">
         {list.map((a, i) => (
@@ -173,12 +267,16 @@ export default function HistoryPage() {
                   <span className="hidden sm:inline">
                     <Badge tone="slate">{a.camera}</Badge>
                   </span>
-                  {a.status === "Processing" && <Badge tone="amber">Processing</Badge>}
+                  {a.status === "Processing" && (
+                    <Badge tone="amber">Processing</Badge>
+                  )}
                 </div>
                 <p className="truncate font-medium text-slate-900 group-hover:text-sky-800">
                   {a.headline}
                 </p>
-                <p className="text-sm text-slate-500">{formatDate(a.date, { year: "numeric" })}</p>
+                <p className="text-sm text-slate-500">
+                  {formatDate(a.date, { year: "numeric" })}
+                </p>
               </div>
               {a.status === "Ready" && (
                 <div className="hidden text-right sm:block">

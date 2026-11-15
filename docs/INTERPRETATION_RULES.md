@@ -1,4 +1,4 @@
-# Interpretation rules (interpretation 1.0, rules 2026.11-1)
+# Interpretation rules (interpretation 1.0, rules 2026.11-2)
 
 Status: engineering baseline, Phase 3 (2026-11-15). The rules below decide what AquaTrack says
 about a swim. They are deterministic and documented; none of them is a scientifically validated
@@ -114,6 +114,18 @@ compared only if all hold; otherwise it is listed with the reason and not used:
 
 No compatible session: the result is marked `baseline`. Nothing is said about causes, and a
 change is never linked to race times.
+
+### Added in rules 2026.11-2 (Phase 5)
+
+- **Recurrence.** When `timing.uneven_rhythm` triggers, the same rule is run again on the
+  stored analyses of the swimmer's earlier compatible swims. The number of earlier swims where
+  it also triggered is stored as `recurrences` and counts toward "Seen across swims" in the
+  priority ranking, so a recurring pattern can be ranked without a goal. No threshold changed.
+- **Steady values.** With two or more comparisons against earlier compatible swims and no
+  measurable change in any of them, the history observation says the value is steady across
+  those swims. A steady value is never an issue, whatever the value.
+- Exercised on labelled synthetic histories only. Full comparison rules:
+  `docs/HISTORY_AND_DELETION.md`.
 
 ## 8. Priorities (level 3)
 
