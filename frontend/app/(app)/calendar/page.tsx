@@ -43,7 +43,6 @@ export default function CalendarPage() {
     <>
       <PageHeader
         title="Calendar"
-        subtitle="Training sessions and upcoming competitions in one place."
         action={
           <Button disabled title="Adding your own events isn't available yet">
             Add event (soon)
@@ -67,7 +66,7 @@ export default function CalendarPage() {
               >
                 <ChevronIcon className="h-5 w-5 rotate-180" />
               </button>
-              <h2 className="min-w-36 text-center font-semibold text-slate-900">
+              <h2 className="min-w-36 text-center text-lg font-semibold text-slate-900">
                 {month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h2>
               <button
@@ -174,7 +173,7 @@ export default function CalendarPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">Nothing planned. A good day for recovery.</p>
+              <p className="text-sm text-slate-500">Nothing planned</p>
             )}
           </Card>
 

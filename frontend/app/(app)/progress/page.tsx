@@ -23,7 +23,7 @@ export default function ProgressPage() {
 
   return (
     <>
-      <PageHeader title="Progress" subtitle="How your times are dropping over the season." />
+      <PageHeader title="Progress" />
       <div className="mb-6">
         <ExampleNote>
           These times are examples. Your own times will appear here as you log them.
@@ -102,7 +102,7 @@ export default function ProgressPage() {
                     <td className="py-2.5 pr-4 text-slate-700">
                       {formatDate(e.date, { year: "numeric" })}
                     </td>
-                    <td className="py-2.5 pr-4 font-medium text-slate-900">
+                    <td className="py-2.5 pr-4 font-display text-base font-semibold text-slate-900 tabular-nums">
                       {formatTime(e.seconds)}
                     </td>
                     <td className="py-2.5 pr-4 text-slate-600">{e.meet ? "Meet" : "Practice"}</td>

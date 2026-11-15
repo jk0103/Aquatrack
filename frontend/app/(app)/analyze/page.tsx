@@ -158,9 +158,7 @@ export default function AnalyzePage() {
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-2xl text-teal-700">
           ✓
         </span>
-        <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
-          Video uploaded
-        </h1>
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
         <p className="mt-2 text-slate-600">
           {saved.name} is saved to your history. It hasn&apos;t been analyzed yet: technique
           feedback will appear on its page once analysis is connected.
@@ -181,7 +179,6 @@ export default function AnalyzePage() {
     <>
       <PageHeader
         title="Analyze a swim"
-        subtitle="Upload a video and tell us about the swim. It's saved to your history, ready for technique analysis."
       />
 
       <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-5" noValidate>
@@ -308,7 +305,6 @@ export default function AnalyzePage() {
                     className="sr-only"
                   />
                   <span className="block font-medium text-slate-900">{c.value}</span>
-                  <span className="text-sm text-slate-500">{c.note}</span>
                 </label>
               ))}
             </div>
@@ -393,7 +389,7 @@ export default function AnalyzePage() {
               name="comments"
               rows={5}
               maxLength={2000}
-              placeholder="How did it feel? Anything you want us to look at, like your breathing or the kick on the last length?"
+              placeholder="How did it feel?"
               className={`${selectClass} resize-y`}
             />
           </Card>
@@ -401,13 +397,9 @@ export default function AnalyzePage() {
           <Card title="What would you like back?">
             <div className="space-y-3">
               {[
-                ["want_feedback", "Technique feedback", "Annotated frames and what to fix first"],
-                [
-                  "want_plan",
-                  "Training plan suggestion",
-                  "Drills and sets built around the feedback",
-                ],
-              ].map(([name, label, note]) => (
+                ["want_feedback", "Technique feedback"],
+                ["want_plan", "Training plan suggestion"],
+              ].map(([name, label]) => (
                 <label key={name} className="flex gap-3">
                   <input
                     type="checkbox"
@@ -417,7 +409,6 @@ export default function AnalyzePage() {
                   />
                   <span>
                     <span className="block font-medium text-slate-900">{label}</span>
-                    <span className="text-sm text-slate-500">{note}</span>
                   </span>
                 </label>
               ))}

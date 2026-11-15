@@ -19,7 +19,7 @@ export function Logo({ className = "" }: { className?: string }) {
           opacity="0.6"
         />
       </svg>
-      <span className="text-xl">Aquatrack</span>
+      <span className="font-display text-2xl tracking-wide">Aquatrack</span>
     </span>
   );
 }

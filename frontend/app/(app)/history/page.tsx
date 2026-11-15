@@ -35,7 +35,6 @@ export default function HistoryPage() {
     <>
       <PageHeader
         title="History"
-        subtitle="Every swim you've uploaded, and where its analysis stands."
         action={<ButtonLink href="/analyze">Analyze a swim</ButtonLink>}
       />
 
@@ -72,8 +71,8 @@ export default function HistoryPage() {
         </div>
       ) : myUploads.length ? (
         <ul className="mb-10 space-y-3">
-          {myUploads.map((v) => (
-            <li key={v.id}>
+          {myUploads.map((v, i) => (
+            <li key={v.id} className="list-enter" style={{ animationDelay: `${i * 70}ms` }}>
               <Link
                 href={`/history/${v.id}`}
                 className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
@@ -134,15 +133,19 @@ export default function HistoryPage() {
         )
       )}
 
-      <h2 className="mb-1 flex items-center gap-2 font-semibold text-slate-900">
+      <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-slate-900">
         Example analyses <Badge tone="amber">Example</Badge>
       </h2>
       <p className="mb-4 text-sm text-slate-500">
         Sample results showing what feedback will look like. These aren&apos;t your swims.
       </p>
       <ul className="space-y-3">
-        {list.map((a) => (
-          <li key={a.id}>
+        {list.map((a, i) => (
+          <li
+            key={a.id}
+            className="list-enter"
+            style={{ animationDelay: `${(myUploads.length + i) * 70 + 80}ms` }}
+          >
             <Link
               href={`/feedback/${a.id}`}
               className="group flex items-center gap-4 rounded-2xl glass p-3 transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4"
@@ -179,7 +182,9 @@ export default function HistoryPage() {
               </div>
               {a.status === "Ready" && (
                 <div className="hidden text-right sm:block">
-                  <p className="text-2xl font-semibold text-slate-900">{a.score}</p>
+                  <p className="font-display text-3xl font-semibold text-slate-900 tabular-nums">
+                    {a.score}
+                  </p>
                   <p className="text-xs text-slate-500">score</p>
                 </div>
               )}

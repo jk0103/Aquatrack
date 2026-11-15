@@ -23,7 +23,6 @@ export default function TrainingPage() {
     <>
       <PageHeader
         title="Training"
-        subtitle="Plans you're working through, built from your feedback."
         action={<ButtonLink href="/analyze">Get a new plan</ButtonLink>}
       />
       <div className="mb-6">
@@ -74,7 +73,7 @@ export default function TrainingPage() {
         </p>
       </Card>
 
-      <h2 className="mb-4 font-semibold text-slate-900">In progress</h2>
+      <h2 className="mb-4 text-lg font-semibold text-slate-900">In progress</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {trainingPlans.map((plan) => (
           <Card key={plan.id} className="flex flex-col">

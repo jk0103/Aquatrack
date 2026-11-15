@@ -194,7 +194,7 @@ export default function ProfilePage() {
                     <p className="text-sm text-sky-800">
                       {pb.event} · {pb.pool}
                     </p>
-                    <p className="mt-1 text-2xl font-semibold text-slate-900">
+                    <p className="mt-1 font-display text-3xl font-semibold text-slate-900 tabular-nums">
                       {formatSwimTime(pb.seconds)}
                     </p>
                   </li>

@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside className="relative hidden w-[44%] overflow-hidden bg-gradient-to-br from-sky-900 via-sky-800 to-cyan-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <Logo />
         <div className="relative z-10 max-w-md">
-          <h2 className="text-4xl font-semibold leading-tight">See your stroke. Swim faster.</h2>
+          <h2 className="text-5xl font-semibold leading-tight">See your stroke. Swim faster.</h2>
           <ul className="mt-8 space-y-4 text-sky-100">
             {highlights.map((text) => (
               <li key={text} className="flex gap-3">
@@ -22,9 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </ul>
         </div>
-        <p className="relative z-10 text-sm text-sky-100">
-          Personalized swim technique feedback
-        </p>
+        <p className="relative z-10 text-sm text-sky-100">Personalized swim technique feedback</p>
         {/* Lane lines */}
         <svg
           aria-hidden="true"
