@@ -100,7 +100,15 @@ def video(alice):
         headers={"Content-Type": "application/octet-stream"},
     )
     assert up.status_code == 200
-    return {"id": video_id, "analysis": analysis, "artifact": artifact}
+    interpretation = f"{DOCS}/videos/{video_id}/interpretations/i1"
+    body = {"fields": fields(uid=alice.uid, interpretation_version="1.0")}
+    assert httpx.patch(interpretation, json=body, headers=ADMIN).status_code == 200
+    return {
+        "id": video_id,
+        "analysis": analysis,
+        "artifact": artifact,
+        "interpretation": interpretation,
+    }
 
 
 def obj(path: str) -> str:
@@ -182,6 +190,23 @@ def test_clients_cannot_write_analysis_results(alice, video):
     other = f"{DOCS}/videos/{video['id']}/analyses/forged"
     assert httpx.patch(other, json=forged, headers=alice.firestore).status_code == 403
     assert httpx.delete(video["analysis"], headers=alice.firestore).status_code == 403
+
+
+def test_interpretations_are_read_only_and_private_to_their_owner(alice, bob, video):
+    res = httpx.get(video["interpretation"], headers=alice.firestore)
+    assert res.status_code == 200
+    assert res.json()["fields"]["interpretation_version"]["stringValue"] == "1.0"
+    assert httpx.get(video["interpretation"], headers=bob.firestore).status_code == 403
+    assert httpx.get(video["interpretation"]).status_code == 403
+    forged = {"fields": fields(uid=alice.uid, interpretation_version="1.0", note="forged")}
+    for user in (alice, bob):
+        assert (
+            httpx.patch(video["interpretation"], json=forged, headers=user.firestore).status_code
+            == 403
+        )
+    other = f"{DOCS}/videos/{video['id']}/interpretations/forged"
+    assert httpx.patch(other, json=forged, headers=alice.firestore).status_code == 403
+    assert httpx.delete(video["interpretation"], headers=alice.firestore).status_code == 403
 
 
 # ---------- analysis artifacts in storage ----------

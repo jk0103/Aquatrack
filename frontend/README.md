@@ -95,7 +95,12 @@ behind (tracking, arms seen, stroke cycles, measurements), then each metric with
 spread, evidence, limits and buttons that jump to the moment in the video, and the list of what
 is not measured, with reasons. Results from schema 1.0 keep their original layout. Nothing on
 that panel is example data, and nothing on it judges the technique.
-The contract is defined in `src/aquatrack/contracts.py`.
+Above it, `app/components/InterpretationPanel.tsx` shows the interpretation of that analysis
+(`videos/{id}/interpretations/{interpretationId}`, parsed by `app/lib/interpretation.ts`) in four
+parts: what we observed, what may need attention, improvement priorities, what we could not
+determine. Empty parts stay empty with the reason; no filler advice. If the interpretation is
+missing the measurements still show.
+The contracts are defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet
 

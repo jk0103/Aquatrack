@@ -15,6 +15,8 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   dashboards, account linking, athlete or team management, assigned workouts, approval
   flows or coach-specific screens. AI text may sound like coaching but must never imply a
   human coach reviewed the swim.
+- Posture analysis and improvement priorities are the main product value; personalized
+  training schedules and the calendar stay on the roadmap as a supporting feature (Phase 6).
 - Priorities, in order: (1) posture analysis, (2) personalized issue detection,
   (3) improvement priorities and correction guidance, (4) video and performance history,
   (5) stroke optimization over time, (6) training recommendations and schedules.
@@ -41,6 +43,11 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   `metrics/technique.py` (geometry reused by `biomechanics`), `pipeline.py`. Docs:
   `docs/POSE_PROCESSING.md`, `docs/BIOMECHANICS_METRICS.md` (metric specification; update it
   with any metric or threshold change), `docs/PHASE2_VALIDATION.md`.
+- `src/aquatrack/analysis/interpretation.py`: reads a stored AnalysisResult plus the
+  swimmer's profile and earlier analyses, writes an `Interpretation`
+  (`videos/{id}/interpretations/{id}`, a new document per run). No pose data or model needed;
+  `POST /videos/{id}/interpret` runs it again. Rules and thresholds:
+  `docs/INTERPRETATION_RULES.md` (update it with any rule change and bump `RULES_VERSION`).
 - Firebase: Auth, Firestore, Storage; rules in `firebase/`. Videos are uploaded by the web
   app straight to Storage; the API never receives files. Results: Firestore
   `videos/{id}/analyses/{analysisId}`, arrays in Storage `analysis/{uid}/...` (backend-only
@@ -69,6 +76,14 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   the body are reported as not verified and never measured. Every metric carries its own
   status (reliable / limited / unavailable), evidence and limits; the tracking grade never
   vouches for a metric.
+- A metric is not a technique problem. Interpretation (`analysis/interpretation.py`) keeps
+  three levels apart: observations, issue candidates, priorities (at most three, often
+  none). No ideal angles, no technique score, no comparison with other swimmers: only the
+  swimmer's own cycles and their own compatible earlier swims. Rules needing an outside norm
+  stay `pending_validation` until a source is verified. Limited or unavailable metrics, arm
+  metrics and anything measured under a changing camera view never trigger an issue.
+  Measurement limits are reported apart from findings and are never technique faults.
+  Missing evidence, missing history or a missing profile must never be filled in.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
 - The LLM only rewords validated findings. Send it structured metrics, never videos, names
@@ -128,9 +143,11 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
    precomputed pose data (done, local commit `6aa3852`, not pushed). Pose files for the
    public test clips: `data/precomputed_pose/` (ignored).
 2. Biomechanics metrics (freestyle, underwater side view first), shown through that flow
-   (implemented, then refined after a side-by-side visual check, on two real clips locally
-   2026-11-15; uncommitted, awaiting the owner's review). Manual annotations and check scripts: `experiments/phase2_validation/`.
-3. Personalized issue detection. 4. Feedback, checkpoints, verified evidence, LLM layer.
+   (done, local commit `1357fba`, not pushed). Manual annotations and check scripts: `experiments/phase2_validation/`.
+3. Personalized pattern and issue detection (implemented locally 2026-11-15, uncommitted,
+   awaiting the owner's review). On the two real clips it yields observations and no issues,
+   which is the intended result for that evidence.
+4. Feedback, checkpoints, verified evidence, LLM layer.
 5. History and optimization. 6. Training and calendar. 7. Hardening, full scenario tests,
    production inference and deployment evaluation.
 

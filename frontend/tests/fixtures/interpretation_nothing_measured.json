@@ -1,0 +1,118 @@
+{
+ "interpretation_version": "1.0",
+ "rules_version": "2026.11-1",
+ "video_id": "fixture",
+ "analysis_id": "a1",
+ "analysis_schema_version": "1.2",
+ "baseline": true,
+ "context": {
+  "swim_level": null,
+  "personal_best_s": null,
+  "personal_best_event": null,
+  "goals": [],
+  "notes": [
+   "No swimmer profile was available."
+  ]
+ },
+ "observations": [],
+ "issue_candidates": [],
+ "priorities": [],
+ "priorities_note": "No improvement priorities: the measurements from this clip do not support any.",
+ "undetermined": [
+  {
+   "key": "left_right_balance",
+   "title": "Left-right balance",
+   "reason": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull.",
+   "kind": "measurement"
+  },
+  {
+   "key": "arm_coordination",
+   "title": "Arm coordination",
+   "reason": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view.",
+   "kind": "measurement"
+  },
+  {
+   "key": "kick_rhythm",
+   "title": "Kick rhythm",
+   "reason": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden.",
+   "kind": "measurement"
+  },
+  {
+   "key": "breathing_timing",
+   "title": "Breathing timing",
+   "reason": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video.",
+   "kind": "measurement"
+  },
+  {
+   "key": "body_rotation",
+   "title": "Body rotation",
+   "reason": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view.",
+   "kind": "measurement"
+  },
+  {
+   "key": "propulsion",
+   "title": "Propulsion and efficiency",
+   "reason": "Force and efficiency cannot be measured from video of joint positions alone.",
+   "kind": "measurement"
+  },
+  {
+   "key": "no_history",
+   "title": "Change since earlier swims",
+   "reason": "This is a baseline: there is no earlier swim that can be compared with it.",
+   "kind": "interpretation"
+  },
+  {
+   "key": "no_reference",
+   "title": "Whether any value is good or bad",
+   "reason": "No reference values have been verified for these measurements, so nothing is compared with other swimmers or with an ideal.",
+   "kind": "interpretation"
+  },
+  {
+   "key": "no_goals",
+   "title": "What matters most to you",
+   "reason": "The profile has no goals yet, so findings are not ranked by them.",
+   "kind": "interpretation"
+  }
+ ],
+ "sessions": [],
+ "rules": [
+  {
+   "rule_id": "timing.uneven_rhythm",
+   "title": "Several stroke cycles were off the swimmer's own rhythm",
+   "state": "not_applicable",
+   "reason": "Cycle time or rhythm variation did not pass its own checks for this clip."
+  },
+  {
+   "rule_id": "history.rhythm_less_steady",
+   "title": "Stroke rhythm less steady than in the swimmer's earlier comparable swim",
+   "state": "not_applicable",
+   "reason": "There is no compatible earlier swim to compare with."
+  },
+  {
+   "rule_id": "pending.body_line_direction",
+   "title": "Body line or leg line judged as better or worse",
+   "state": "pending_validation",
+   "reason": "Not active. It needs a verified source for how body and leg line relate to drag or speed for swimmers of this level, and a check that the picture angle measures it."
+  },
+  {
+   "rule_id": "pending.head_position",
+   "title": "Head position judged as better or worse",
+   "state": "pending_validation",
+   "reason": "Not active. It needs a verified source on head position in freestyle, and a head measure that separates lifting from turning to breathe."
+  },
+  {
+   "rule_id": "pending.stroke_rate_for_distance",
+   "title": "Stroke rate judged against the distance or the swimmer's level",
+   "state": "pending_validation",
+   "reason": "Not active. It needs swim speed or distance per stroke for the clip (not measured) and verified reference ranges for the swimmer's level and event."
+  },
+  {
+   "rule_id": "pending.arm_pull",
+   "title": "Elbow bend, pull depth or pull path judged",
+   "state": "pending_validation",
+   "reason": "Not active. It needs arm points that can be trusted through the whole pull (Phase 2 left wrist placement at the end of the push unresolved) and a second camera view."
+  }
+ ],
+ "summary": "0 observations, 0 that may need attention, 0 improvement priorities. Baseline: nothing earlier to compare with.",
+ "created_at": "2026-11-15T12:00:00+00:00"
+}

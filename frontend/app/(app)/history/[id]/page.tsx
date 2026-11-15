@@ -5,12 +5,15 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
+import { InterpretationPanel } from "@/app/components/InterpretationPanel";
 import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
 import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
 import { VideoPlayer } from "@/app/components/VideoPlayer";
 import { loadAnalysis } from "@/app/lib/analysisLoad";
 import type { AnalysisV1 } from "@/app/lib/analysisV1";
+import type { Interpretation } from "@/app/lib/interpretation";
+import { loadInterpretation } from "@/app/lib/interpretationLoad";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { formatSwimTime } from "@/app/lib/profile";
 import {
@@ -84,7 +87,12 @@ export default function UploadPage() {
       .then((result) => live && setLoaded({ analysisId, result, error: null }))
       .catch(
         (err) =>
-          live && setLoaded({ analysisId, result: null, error: describeFirebaseError(err) }),
+          live &&
+          setLoaded({
+            analysisId,
+            result: null,
+            error: describeFirebaseError(err),
+          }),
       );
     return () => {
       live = false;
@@ -94,6 +102,27 @@ export default function UploadPage() {
   // undefined while loading; null when the stored result can't be read.
   const analysis = current ? current.result : undefined;
   const analysisError = current?.error ?? null;
+
+  // The interpretation is a separate document. If it is missing or unreadable the
+  // measurements below still show; findings are simply not shown.
+  const interpretationId =
+    video?.status === "ready" ? video.latestInterpretationId : null;
+  const [found, setFound] = useState<{
+    id: string;
+    value: Interpretation | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!id || !interpretationId) return;
+    let live = true;
+    loadInterpretation(id, interpretationId)
+      .then((value) => live && setFound({ id: interpretationId, value }))
+      .catch(() => live && setFound({ id: interpretationId, value: null }));
+    return () => {
+      live = false;
+    };
+  }, [id, interpretationId]);
+  const interpretation =
+    found && found.id === interpretationId ? found.value : null;
 
   function seek(seconds: number) {
     const player = document.querySelector<HTMLVideoElement>("main video");
@@ -140,7 +169,9 @@ export default function UploadPage() {
   if (video === null) {
     return (
       <div className="mx-auto max-w-lg py-10 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Video not found</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Video not found
+        </h1>
         <p className="mt-2 text-slate-600">
           It may have been removed, or it belongs to another account.
         </p>
@@ -178,7 +209,9 @@ export default function UploadPage() {
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge tone="indigo">Your upload</Badge>
-            <Badge tone={statusTone[video.status]}>{statusLabel[video.status]}</Badge>
+            <Badge tone={statusTone[video.status]}>
+              {statusLabel[video.status]}
+            </Badge>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             {[video.distance, video.stroke].filter(Boolean).join(" ")}
@@ -200,6 +233,12 @@ export default function UploadPage() {
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-3">
           {player}
+          {interpretation && (
+            <InterpretationPanel
+              interpretation={interpretation}
+              onSeek={url ? seek : undefined}
+            />
+          )}
           <AnalysisPanel
             video={video}
             analysis={analysis}
@@ -207,12 +246,13 @@ export default function UploadPage() {
             onSeek={url ? seek : undefined}
           />
           <p className="text-sm text-slate-600">
-            Technique feedback and improvement priorities aren&apos;t available yet.{" "}
+            Written technique explanations and drills aren&apos;t available yet.{" "}
             <Link
               href="/feedback/a-1042"
               className="inline-flex items-center gap-0.5 font-medium text-sky-700 hover:text-sky-900"
             >
-              See an example of what they will look like <ChevronIcon className="h-4 w-4" />
+              See an example of what they will look like{" "}
+              <ChevronIcon className="h-4 w-4" />
             </Link>
           </p>
         </div>
@@ -230,15 +270,23 @@ function SessionCard({ video }: { video: VideoRecord }) {
     ["Filming angle", video.camera],
     ["Distance in clip", video.distance || undefined],
     ["Pool length", video.poolLength],
-    ["Time", video.timeSeconds !== undefined ? formatSwimTime(video.timeSeconds) : undefined],
+    [
+      "Time",
+      video.timeSeconds !== undefined
+        ? formatSwimTime(video.timeSeconds)
+        : undefined,
+    ],
     [
       "Swim date",
       video.sessionDate
-        ? new Date(`${video.sessionDate}T00:00:00`).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+        ? new Date(`${video.sessionDate}T00:00:00`).toLocaleDateString(
+            "en-US",
+            {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            },
+          )
         : undefined,
     ],
     [

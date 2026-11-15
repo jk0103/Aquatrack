@@ -76,6 +76,7 @@ export type VideoRecord = VideoDetails & {
   job: AnalysisJob | null;
   // Document id under videos/{id}/analyses, set when the status is "ready".
   latestAnalysisId: string | null;
+  latestInterpretationId: string | null;
 };
 
 export const statusLabel: Record<VideoStatus, string> = {
@@ -202,6 +203,8 @@ function toRecord(id: string, v: DocumentData): VideoRecord {
     analysis: parseAnalysis(id, v.analysis),
     job: toJob(v.job),
     latestAnalysisId: typeof v.latestAnalysisId === "string" ? v.latestAnalysisId : null,
+    latestInterpretationId:
+      typeof v.latestInterpretationId === "string" ? v.latestInterpretationId : null,
   };
 }
 

@@ -49,6 +49,12 @@ service cloud.firestore {
         allow read: if signedIn() && resource.data.uid == request.auth.uid;
         allow write: if false;
       }
+
+      // One document per interpretation of a stored analysis: findings, not measurements.
+      match /interpretations/{interpretationId} {
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+        allow write: if false;
+      }
     }
   }
 }

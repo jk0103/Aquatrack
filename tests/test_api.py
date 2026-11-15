@@ -106,3 +106,16 @@ def test_error_responses_do_not_leak_paths(client, store):
     store.videos["vid1"]["storagePath"] = "videos/someone-else/secret.mp4"
     res = client.post("/videos/vid1/analyze", headers=GOOD)
     assert res.status_code == 422 and "secret" not in res.text
+
+
+def test_interpret_again_is_for_the_owner_of_a_finished_analysis(client, store):
+    assert client.post("/videos/vid1/interpret", headers=GOOD).status_code == 409  # nothing yet
+    assert client.post("/videos/vid1/analyze", headers=GOOD).status_code == 202
+    assert len(store.interpretations) == 1
+    res = client.post("/videos/vid1/interpret", headers=GOOD)
+    assert res.status_code == 201 and len(store.interpretations) == 2
+    body = res.json()
+    assert body["baseline"] is True and body["priorities"] == 0 and body["observations"] > 0
+    assert client.post("/videos/vid1/interpret").status_code == 401
+    assert client.post("/videos/vid1/interpret", headers=OTHER).status_code == 404
+    assert len(store.interpretations) == 2

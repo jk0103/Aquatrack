@@ -684,3 +684,137 @@ class AnalysisJob(BaseModel):
     pose_source: str | None = None
     error: JobError | None = None
     analysis_id: str | None = None
+
+
+# ---------- interpretation (Phase 3) ----------
+# Stored apart from analysis results, one document per interpretation run, so saved
+# metrics can be read again under newer rules without new pose inference and without
+# rewriting anything. Analysis results stay at ANALYSIS_SCHEMA_VERSION.
+
+INTERPRETATION_VERSION = "1.0"
+
+
+class FindingEvidence(BaseModel):
+    """One measurement a finding rests on, copied from the analysis it was read from."""
+
+    metric_key: str
+    label: str
+    value: float | None = None
+    unit: str = ""
+    low: float | None = None
+    high: float | None = None
+    n_cycles: int = 0
+    status: str = ""  # the metric's own Phase 2 status
+    samples: list[MetricSample] = []  # where to look in the video
+    note: str = ""
+
+
+class SessionComparison(BaseModel):
+    """An earlier swim of the same swimmer and whether it may be compared with this one."""
+
+    video_id: str
+    analysis_id: str = ""
+    recorded_at: str = ""
+    compatible: bool
+    reasons: list[str] = []  # why not, when not compatible
+    synthetic: bool = False  # test fixture, never real progress
+
+
+class MetricChange(BaseModel):
+    """This swim against one compatible earlier swim, for one metric."""
+
+    metric_key: str
+    video_id: str
+    before: float
+    now: float
+    unit: str
+    threshold: float  # the smallest difference that counts, from resolution and spread
+    changed: bool
+
+
+class Finding(BaseModel):
+    """A structured finding. `level` separates what was observed from what may need
+    attention; nothing here is a judgement against an outside standard of good technique."""
+
+    id: str  # stable: the same finding gets the same id on every run
+    rule_id: str
+    level: Literal["observation", "issue_candidate"]
+    category: Literal["timing", "body_position", "arm", "history"]
+    title: str
+    description: str
+    metric_keys: list[str] = []
+    evidence: list[FindingEvidence] = []
+    # "measured": from metrics that passed their own checks. "context_only": from limited
+    # metrics or ones kept out of issue detection; shown for information, never a trigger.
+    evidence_class: Literal["measured", "context_only"] = "measured"
+    context_used: list[str] = []  # personal context that went into it
+    changes: list[MetricChange] = []  # comparison with earlier swims, when used
+    limitations: list[str] = []
+    actionable: bool = False
+    withheld: list[str] = []  # why nothing stronger is said
+
+
+class PriorityFactor(BaseModel):
+    name: str
+    points: int
+    detail: str
+
+
+class PriorityCandidate(BaseModel):
+    rank: int
+    finding_id: str
+    title: str
+    score: int
+    factors: list[PriorityFactor]
+
+
+class Undetermined(BaseModel):
+    """Something that could not be measured or judged, and why. Never a technique problem."""
+
+    key: str
+    title: str
+    reason: str
+    kind: Literal["measurement", "interpretation"] = "measurement"
+
+
+class RuleStatus(BaseModel):
+    """What each issue rule did on this swim, including rules that are not active yet."""
+
+    rule_id: str
+    title: str
+    state: Literal[
+        "triggered", "not_triggered", "suppressed", "not_applicable", "pending_validation"
+    ]
+    reason: str = ""
+
+
+class ContextUsed(BaseModel):
+    """The personal information that was available. Missing fields are never guessed."""
+
+    swim_level: str | None = None
+    personal_best_s: float | None = None  # for this clip's event, when the profile has one
+    personal_best_event: str | None = None
+    goals: list[str] = []
+    notes: list[str] = []
+
+
+class Interpretation(BaseModel):
+    interpretation_version: str = INTERPRETATION_VERSION
+    rules_version: str
+    video_id: str
+    analysis_id: str = ""
+    analysis_schema_version: str = ""
+    baseline: bool = True  # no compatible earlier swim to compare with
+    context: ContextUsed = ContextUsed()
+    observations: list[Finding] = []
+    issue_candidates: list[Finding] = []
+    priorities: list[PriorityCandidate] = []  # at most three; empty is a normal result
+    priorities_note: str = ""  # why there are none, or what the ranking rests on
+    undetermined: list[Undetermined] = []
+    sessions: list[SessionComparison] = []
+    rules: list[RuleStatus] = []
+    summary: str = ""
+    created_at: str = Field(default_factory=_now)
+
+    def to_firestore(self) -> dict:
+        return json.loads(self.model_dump_json())

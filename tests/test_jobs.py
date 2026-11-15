@@ -236,3 +236,83 @@ def test_tracking_starts_from_area_times_confidence_and_falls_back_to_nearest():
     picked, how = select_target(far, np.array(SWIMMER[:4]))
     assert how is Selection.NEAREST and picked[0] == 400.0
     assert select_target(np.empty((0, 5)), None) == (None, Selection.NONE)
+
+
+# ---------- interpretation: stored next to the analysis, never overwriting ----------
+
+
+def test_analysis_is_followed_by_an_interpretation_stored_as_its_own_document(store, source):
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    video = store.videos["vid1"]
+    ((key, doc),) = store.interpretations.items()
+    assert key == ("vid1", video["latestInterpretationId"])
+    assert doc["uid"] == UID and doc["analysis_id"] == video["latestAnalysisId"]
+    assert doc["interpretation_version"] == "1.0" and doc["baseline"] is True
+    assert video["interpretationSummary"]["observations"] == len(doc["observations"]) > 0
+    assert video["interpretationSummary"]["priorities"] == 0
+    # The analysis document itself is unchanged by interpretation.
+    analysis = store.analyses[("vid1", video["latestAnalysisId"])]
+    assert "observations" not in analysis and analysis["schema_version"] == "1.2"
+
+
+def test_reinterpreting_adds_a_document_and_needs_no_video_or_pose(store, source):
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    first_id = store.videos["vid1"]["latestInterpretationId"]
+    first = dict(store.interpretations[("vid1", first_id)])
+    store.files.clear()  # no video, no pose arrays: only the stored result is read
+
+    found = jobs.reinterpret(store, "vid1", UID)
+
+    assert len(store.interpretations) == 2
+    assert store.interpretations[("vid1", first_id)] == first  # earlier one untouched
+    assert store.videos["vid1"]["latestInterpretationId"] != first_id
+    assert found.analysis_id == store.videos["vid1"]["latestAnalysisId"]
+    with pytest.raises(JobRequestError) as other:
+        jobs.reinterpret(store, "vid1", OTHER)
+    assert other.value.status_code == 404
+    assert len(store.interpretations) == 2
+
+
+def test_only_finished_videos_can_be_interpreted(store):
+    with pytest.raises(JobRequestError) as e:
+        jobs.reinterpret(store, "vid1", UID)
+    assert e.value.status_code == 409 and store.interpretations == {}
+
+
+def test_history_is_the_swimmers_own_earlier_swims_and_their_profile(store, source):
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    done = store.videos["vid1"]
+    analysis = store.analyses[("vid1", done["latestAnalysisId"])]
+    done["createdAt"] = "2026-11-10T10:00:00+00:00"
+    # An earlier swim of the same swimmer, a later one, and someone else's.
+    for vid, uid, created in (
+        ("earlier", UID, "2026-11-01T10:00:00+00:00"),
+        ("later", UID, "2026-11-12T10:00:00+00:00"),
+        ("theirs", OTHER, "2026-11-01T10:00:00+00:00"),
+    ):
+        store.videos[vid] = {**done, "uid": uid, "createdAt": created, "latestAnalysisId": "a"}
+        store.analyses[(vid, "a")] = {**analysis, "uid": uid}
+    store.profiles[UID] = {"swim_level": "hobby", "pbs": [{"event": "50 Free", "seconds": 40.0}]}
+    store.profiles[OTHER] = {"swim_level": "competitive", "goals": ["steadier_rhythm"]}
+
+    found = jobs.reinterpret(store, "vid1", UID)
+
+    assert [s.video_id for s in found.sessions] == ["earlier"]  # not later, not someone else's
+    assert found.sessions[0].compatible and not found.baseline
+    assert found.context.swim_level == "hobby" and found.context.personal_best_s == 40.0
+    assert found.context.goals == []  # the other swimmer's goals are not this swimmer's
+    assert any(f.category == "history" for f in found.observations)
+
+
+def test_a_failed_interpretation_does_not_undo_the_analysis(store, source, monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("interpretation bug")
+
+    monkeypatch.setattr(jobs, "interpret", boom)
+    request_analysis(store, "vid1", UID)
+    run_job(store, source, "vid1")
+    assert store.videos["vid1"]["status"] == "ready" and store.interpretations == {}
+    assert store.videos["vid1"].get("latestInterpretationId") is None

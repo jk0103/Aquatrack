@@ -18,12 +18,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from aquatrack.analysis.interpretation import PriorSession, SwimmerContext, interpret
 from aquatrack.analysis.pipeline import analyze
 from aquatrack.analysis.pose.sources import PoseSource, PoseSourceError
 from aquatrack.analysis.video import video_identity
 from aquatrack.api.store import Store, VideoRecord
 from aquatrack.contracts import AnalysisJobStatus as Status
-from aquatrack.contracts import JobError
+from aquatrack.contracts import AnalysisResult, Interpretation, JobError
 
 log = logging.getLogger("aquatrack.jobs")
 
@@ -211,6 +212,14 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
             },
         )
         log.info("analysis ready video=%s grade=%s", video_id, result.quality.grade.value)
+        # Interpretation is a separate step on the stored result. If it fails the analysis
+        # still stands, and it can be run again without new pose inference.
+        try:
+            ready = store.get_video(video_id)
+            if ready is not None:
+                interpret_video(store, ready, analysis_id)
+        except Exception:
+            log.exception("interpretation failed video=%s", video_id)
     except Exception:
         log.exception("analysis crashed video=%s", video_id)
         _fail(
@@ -222,6 +231,83 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
                 retryable=True,
             ),
         )
+
+
+def interpret_video(store: Store, video: VideoRecord, analysis_id: str) -> Interpretation | None:
+    """Interpret one stored analysis of the swimmer's own video and save the result as a new
+    document. Uses only what is already stored: no video, no pose data, no model. Earlier
+    swims of the same swimmer are compared when they are compatible. Returns None when the
+    analysis document is missing or cannot be read."""
+    stored = store.get_analysis(video.id, analysis_id)
+    if stored is None or stored.get("uid") != video.uid:
+        return None
+    try:
+        result = AnalysisResult.model_validate(stored)
+    except ValueError:
+        log.warning("analysis not readable for interpretation video=%s", video.id)
+        return None
+    history = []
+    for other in store.list_videos(video.uid):
+        if other.id == video.id or other.uid != video.uid or not other.latest_analysis_id:
+            continue
+        if other.status != Status.READY or not (other.created_at < video.created_at):
+            continue  # only finished swims uploaded before this one count as "earlier"
+        earlier = store.get_analysis(other.id, other.latest_analysis_id)
+        if earlier is None or earlier.get("uid") != video.uid:
+            continue
+        try:
+            history.append(
+                PriorSession(
+                    video_id=other.id,
+                    analysis_id=other.latest_analysis_id,
+                    recorded_at=other.created_at,
+                    result=AnalysisResult.model_validate(earlier),
+                )
+            )
+        except ValueError:
+            continue
+    history.sort(key=lambda p: p.recorded_at, reverse=True)
+    profile = store.get_profile(video.uid)
+    context = None
+    if profile:
+        goals = profile.get("goals")
+        context = SwimmerContext(
+            swim_level=profile.get("swim_level"),
+            pbs=[p for p in profile.get("pbs") or [] if isinstance(p, dict)],
+            goals=[g for g in goals if isinstance(g, str)] if isinstance(goals, list) else [],
+        )
+    found = interpret(result, video.id, analysis_id, context, history)
+    interpretation_id = f"{_now():%Y%m%dT%H%M%S%f}"
+    store.save_interpretation(video, interpretation_id, found.to_firestore())
+    store.update_video(
+        video.id,
+        {
+            "latestInterpretationId": interpretation_id,
+            "interpretationSummary": {
+                "interpretationVersion": found.interpretation_version,
+                "rulesVersion": found.rules_version,
+                "analysisId": analysis_id,
+                "baseline": found.baseline,
+                "observations": len(found.observations),
+                "issueCandidates": len(found.issue_candidates),
+                "priorities": len(found.priorities),
+            },
+        },
+    )
+    return found
+
+
+def reinterpret(store: Store, video_id: str, uid: str) -> Interpretation:
+    """Interpret the caller's own video again from its stored analysis."""
+    video = store.get_video(video_id)
+    if video is None or video.uid != uid:
+        raise JobRequestError(404, "Video not found.")
+    if video.status != Status.READY or not video.latest_analysis_id:
+        raise JobRequestError(409, "This video has no finished analysis to interpret.")
+    found = interpret_video(store, video, video.latest_analysis_id)
+    if found is None:
+        raise JobRequestError(409, "This video's analysis could not be read.")
+    return found
 
 
 class JobRunner:

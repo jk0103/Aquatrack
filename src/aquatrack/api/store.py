@@ -8,6 +8,9 @@ Firestore layout:
   videos/{id}                      the upload record; the backend adds `status`, `job`,
                                    `latestAnalysisId` and a small `analysisSummary`
   videos/{id}/analyses/{analysisId}  one AnalysisResult (structured, no per-frame arrays)
+  videos/{id}/interpretations/{interpretationId}  one Interpretation of a stored analysis;
+                                   a new document per run, earlier ones are never changed
+  profiles/{uid}                   the swimmer's own survey answers (read only here)
 Storage layout:
   videos/{uid}/{id}.{ext}          the uploaded video (written by the web app)
   analysis/{uid}/{id}/{analysisId}/raw_pose.npz, processed_pose.npz   per-frame arrays
@@ -36,6 +39,8 @@ class VideoRecord:
     size_bytes: int = 0
     job: dict[str, Any] = field(default_factory=dict)
     session: SessionInfo = field(default_factory=SessionInfo)
+    latest_analysis_id: str = ""
+    created_at: str = ""  # ISO time of the upload, for ordering a swimmer's sessions
 
 
 # Given the current record (None if the video doesn't exist), return the fields to merge
@@ -64,6 +69,20 @@ class Store(Protocol):
         """Store the result document and artifact files; returns {name: (path, bytes)}."""
         ...
 
+    def get_analysis(self, video_id: str, analysis_id: str) -> dict[str, Any] | None: ...
+
+    def list_videos(self, uid: str) -> list[VideoRecord]:
+        """All of one swimmer's video records (never anyone else's)."""
+        ...
+
+    def get_profile(self, uid: str) -> dict[str, Any] | None: ...
+
+    def save_interpretation(
+        self, video: VideoRecord, interpretation_id: str, document: dict[str, Any]
+    ) -> None:
+        """Add one interpretation document. Never replaces an existing one."""
+        ...
+
 
 def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
     return VideoRecord(
@@ -74,6 +93,8 @@ def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
         content_type=str(data.get("contentType", "")),
         size_bytes=int(data.get("sizeBytes", 0) or 0),
         job=dict(data.get("job") or {}),
+        latest_analysis_id=str(data.get("latestAnalysisId") or ""),
+        created_at=_iso(data.get("createdAt")),
         session=SessionInfo(
             stroke=str(data.get("stroke", "")),
             camera=str(data.get("camera", "")),
@@ -81,6 +102,12 @@ def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
             pool_length=str(data.get("poolLength", "")),
         ),
     )
+
+
+def _iso(value: Any) -> str:
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value) if value else ""
 
 
 def artifact_path(video: VideoRecord, analysis_id: str, name: str) -> str:
@@ -103,6 +130,8 @@ class MemoryStore:
         self.videos: dict[str, dict[str, Any]] = {}
         self.files: dict[str, bytes] = {}
         self.analyses: dict[tuple[str, str], dict[str, Any]] = {}
+        self.interpretations: dict[tuple[str, str], dict[str, Any]] = {}
+        self.profiles: dict[str, dict[str, Any]] = {}
         self._lock = threading.Lock()
 
     def get_video(self, video_id: str) -> VideoRecord | None:
@@ -131,6 +160,21 @@ class MemoryStore:
             saved[name] = (target, len(self.files[target]))
         self.analyses[(video.id, analysis_id)] = _document(video, result, saved)
         return saved
+
+    def get_analysis(self, video_id, analysis_id):
+        return self.analyses.get((video_id, analysis_id))
+
+    def list_videos(self, uid):
+        return [_record(k, v) for k, v in self.videos.items() if v.get("uid") == uid]
+
+    def get_profile(self, uid):
+        return self.profiles.get(uid)
+
+    def save_interpretation(self, video, interpretation_id, document):
+        key = (video.id, interpretation_id)
+        if key in self.interpretations:
+            raise ValueError("An interpretation with this id already exists.")
+        self.interpretations[key] = {**document, "uid": video.uid}
 
 
 class FirebaseStore:
@@ -203,3 +247,19 @@ class FirebaseStore:
             _document(video, result, saved)
         )
         return saved
+
+    def get_analysis(self, video_id, analysis_id):
+        snap = self._ref(video_id).collection("analyses").document(analysis_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def list_videos(self, uid):
+        query = self._db.collection("videos").where("uid", "==", uid)
+        return [_record(snap.id, snap.to_dict()) for snap in query.stream()]
+
+    def get_profile(self, uid):
+        snap = self._db.collection("profiles").document(uid).get()
+        return snap.to_dict() if snap.exists else None
+
+    def save_interpretation(self, video, interpretation_id, document):
+        ref = self._ref(video.id).collection("interpretations").document(interpretation_id)
+        ref.create({**document, "uid": video.uid})  # fails rather than overwrite
