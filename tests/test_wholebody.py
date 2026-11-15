@@ -210,3 +210,15 @@ def test_render_overlay_keeps_every_frame(sample_video, tmp_path):
     cap = cv2.VideoCapture(str(out))
     assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 10
     cap.release()
+
+
+def test_carried_box_keeps_its_size_when_the_last_detections_changed_shape():
+    tracker = BoxTracker(max_missing=5)
+    tracker.update(np.array([100.0, 100.0, 400.0, 240.0]))
+    tracker.update(np.array([104.0, 100.0, 404.0, 380.0]))  # box suddenly twice as tall
+    sizes = []
+    for _ in range(5):
+        box, carried = tracker.update(None)
+        assert carried
+        sizes.append((box[2] - box[0], box[3] - box[1]))
+    assert sizes == [(300.0, 280.0)] * 5  # position drifts, size does not grow

@@ -4,26 +4,29 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { AnalysisPanel } from "@/app/components/AnalysisPanel";
 import { useUser } from "@/app/components/AppShell";
-import { FeedbackStage } from "@/app/components/FeedbackStage";
 import { ChevronIcon } from "@/app/components/icons";
 import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
 import { VideoPlayer } from "@/app/components/VideoPlayer";
+import { loadAnalysis, type AnalysisV1 } from "@/app/lib/analysisV1";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { formatSwimTime } from "@/app/lib/profile";
 import {
   formatBytes,
   formatDuration,
-  getVideo,
   getVideoUrl,
   statusLabel,
   statusTone,
   videoDate,
+  watchVideo,
   type VideoRecord,
 } from "@/app/lib/videos";
 
 // One of the swimmer's own uploads: the real video from Storage, what they told us about the
-// swim, and where analysis stands. Example feedback lives at /feedback/[id] instead.
+// swim, where analysis stands, and its real results. The record is watched live, so status
+// changes made by the backend appear without a reload. Example feedback lives at
+// /feedback/[id] instead.
 export default function UploadPage() {
   const { id } = useParams<{ id: string }>();
   const user = useUser();
@@ -32,40 +35,71 @@ export default function UploadPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  // The loaded result, tagged with the run it belongs to so a re-run never shows old numbers.
+  const [loaded, setLoaded] = useState<{
+    analysisId: string;
+    result: AnalysisV1 | null;
+    error: string | null;
+  } | null>(null);
 
   const uid = user?.uid;
   useEffect(() => {
     if (!uid || !id) return;
+    return watchVideo(id, setVideo, (err) => {
+      const code = (err as { code?: string })?.code;
+      // Someone else's video reads as permission-denied; treat it like a missing one.
+      if (code === "permission-denied") setVideo(null);
+      else setLoadError(describeFirebaseError(err));
+    });
+  }, [uid, id]);
+
+  const storagePath = video?.storagePath;
+  useEffect(() => {
+    if (!video || !storagePath) return;
     let live = true;
-    getVideo(id)
-      .then(async (record) => {
-        if (!live) return;
-        setVideo(record);
-        if (!record) return;
-        try {
-          const link = await getVideoUrl(record);
-          if (live) setUrl(link);
-        } catch (err) {
-          const code = (err as { code?: string })?.code;
-          if (live)
-            setUrlError(
-              code === "storage/object-not-found"
-                ? "The video file is missing from storage."
-                : describeFirebaseError(err),
-            );
-        }
-      })
+    getVideoUrl(video)
+      .then((link) => live && setUrl(link))
       .catch((err) => {
-        if (!live) return;
         const code = (err as { code?: string })?.code;
-        // Someone else's video reads as permission-denied; treat it like a missing one.
-        if (code === "permission-denied") setVideo(null);
-        else setLoadError(describeFirebaseError(err));
+        if (live)
+          setUrlError(
+            code === "storage/object-not-found"
+              ? "The video file is missing from storage."
+              : describeFirebaseError(err),
+          );
       });
     return () => {
       live = false;
     };
-  }, [uid, id]);
+    // The link only depends on where the file is, not on the rest of the record.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storagePath]);
+
+  const analysisId = video?.status === "ready" ? video.latestAnalysisId : null;
+  useEffect(() => {
+    if (!id || !analysisId) return;
+    let live = true;
+    loadAnalysis(id, analysisId)
+      .then((result) => live && setLoaded({ analysisId, result, error: null }))
+      .catch(
+        (err) =>
+          live && setLoaded({ analysisId, result: null, error: describeFirebaseError(err) }),
+      );
+    return () => {
+      live = false;
+    };
+  }, [id, analysisId]);
+  const current = loaded && loaded.analysisId === analysisId ? loaded : null;
+  // undefined while loading; null when the stored result can't be read.
+  const analysis = current ? current.result : undefined;
+  const analysisError = current?.error ?? null;
+
+  function seek(seconds: number) {
+    const player = document.querySelector<HTMLVideoElement>("main video");
+    if (!player) return;
+    player.currentTime = seconds;
+    player.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   const back = (
     <nav className="mb-4 text-sm">
@@ -117,11 +151,6 @@ export default function UploadPage() {
   }
 
   const date = videoDate(video);
-  const session = {
-    stroke: video.stroke,
-    distance: video.distance,
-    camera: video.camera,
-  };
   const player = urlError ? (
     <p
       role="alert"
@@ -167,51 +196,30 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {video.status === "ready" && video.analysis ? (
-        <FeedbackStage
-          source="analysis"
-          session={session}
-          result={video.analysis}
-          videoUrl={url}
-          aside={<SessionCard video={video} />}
-        />
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            {player}
-            <AnalysisStatus video={video} />
-          </div>
-          <div className="lg:col-span-2">
-            <SessionCard video={video} />
-          </div>
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="space-y-6 lg:col-span-3">
+          {player}
+          <AnalysisPanel
+            video={video}
+            analysis={analysis}
+            analysisError={analysisError}
+            onSeek={url ? seek : undefined}
+          />
+          <p className="text-sm text-slate-600">
+            Technique feedback and improvement priorities aren&apos;t available yet.{" "}
+            <Link
+              href="/feedback/a-1042"
+              className="inline-flex items-center gap-0.5 font-medium text-sky-700 hover:text-sky-900"
+            >
+              See an example of what they will look like <ChevronIcon className="h-4 w-4" />
+            </Link>
+          </p>
         </div>
-      )}
+        <div className="lg:col-span-2">
+          <SessionCard video={video} />
+        </div>
+      </div>
     </>
-  );
-}
-
-function AnalysisStatus({ video }: { video: VideoRecord }) {
-  const text = {
-    uploaded:
-      "Your video is uploaded but hasn't been analyzed yet. Technique analysis is still being connected; when it runs, the feedback will appear on this page.",
-    analyzing: "Your video is being analyzed. Feedback will appear on this page when it's done.",
-    ready:
-      "Analysis finished, but its results couldn't be shown. This page will update once the results format is supported.",
-    failed: "Analysis couldn't finish for this video. Your upload is still saved.",
-  }[video.status];
-  return (
-    <Card title="Technique feedback">
-      <p className="text-sm text-slate-600">{text}</p>
-      <p className="mt-3 text-sm text-slate-600">
-        Want to see what feedback will look like?{" "}
-        <Link
-          href="/feedback/a-1042"
-          className="inline-flex items-center gap-0.5 font-medium text-sky-700 hover:text-sky-900"
-        >
-          Open an example analysis <ChevronIcon className="h-4 w-4" />
-        </Link>
-      </p>
-    </Card>
   );
 }
 

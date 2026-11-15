@@ -1,34 +1,108 @@
 import pytest
+from conftest import make_raw_pose
 from fastapi.testclient import TestClient
+from firebase_admin import auth
 
-from aquatrack.api import main
+from aquatrack.analysis.pose.sources import PrecomputedPoseSource
+from aquatrack.analysis.video import video_identity
+from aquatrack.api import firebase, main
+from aquatrack.api.jobs import InlineRunner
+from aquatrack.api.store import MemoryStore
+
+UID = "swimmer-1"
+GOOD = {"Authorization": "Bearer good-token"}
+OTHER = {"Authorization": "Bearer other-token"}
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
-    monkeypatch.setattr(main, "UPLOAD_DIR", tmp_path / "uploads")
-    return TestClient(main.app)
+def store(swim_video):
+    s = MemoryStore()
+    path = f"videos/{UID}/vid1.mp4"
+    s.files[path] = swim_video.read_bytes()
+    s.videos["vid1"] = {
+        "uid": UID,
+        "storagePath": path,
+        "status": "uploaded",
+        "contentType": "video/mp4",
+        "sizeBytes": len(s.files[path]),
+        "stroke": "Freestyle",
+        "camera": "Underwater",
+    }
+    return s
+
+
+@pytest.fixture
+def client(monkeypatch, store, tmp_path, swim_video):
+    def fake_verify(token: str) -> dict:
+        if token == "good-token":
+            return {"uid": UID, "email": "alice@example.com"}
+        if token == "other-token":
+            return {"uid": "swimmer-2"}
+        raise auth.InvalidIdTokenError("bad token")
+
+    monkeypatch.setattr(firebase, "verify_token", fake_verify)
+    source = PrecomputedPoseSource(tmp_path / "poses")
+    source.directory.mkdir()
+    make_raw_pose(swim_video).save(source.path_for(video_identity(swim_video).sha256))
+    main.app.dependency_overrides[main.get_runner] = lambda: InlineRunner(store, source)
+    yield TestClient(main.app)
+    main.app.dependency_overrides.clear()
 
 
 def test_health(client):
     assert client.get("/health").json()["status"] == "ok"
 
 
-def test_upload_video(client, sample_video):
+def test_the_old_unauthenticated_upload_endpoint_is_gone(client, sample_video):
+    """POST /videos used to accept any file from anyone. Uploads go to Firebase Storage."""
     with sample_video.open("rb") as f:
         res = client.post("/videos", files={"file": ("swim.mp4", f, "video/mp4")})
-    assert res.status_code == 200
-    body = res.json()
-    assert body["frame_count"] == 10
-    assert body["duration_s"] == pytest.approx(1.0)
+    assert res.status_code in (404, 405)
+    assert all(r.path != "/videos" for r in main.app.routes)
 
 
-def test_upload_rejects_non_video(client):
-    res = client.post("/videos", files={"file": ("notes.txt", b"hello", "text/plain")})
-    assert res.status_code == 400
+@pytest.mark.parametrize(
+    "headers",
+    [{}, {"Authorization": "Bearer bad-token"}, {"Authorization": "Basic good-token"}],
+)
+def test_analyze_requires_a_valid_login(client, store, headers):
+    assert client.post("/videos/vid1/analyze", headers=headers).status_code == 401
+    assert store.videos["vid1"]["status"] == "uploaded"
 
 
-def test_upload_rejects_corrupt_video(client, tmp_path):
-    res = client.post("/videos", files={"file": ("swim.mp4", b"garbage", "video/mp4")})
-    assert res.status_code == 400
-    assert not any((tmp_path / "uploads").iterdir())
+def test_analyze_own_video_runs_and_stores_results(client, store):
+    res = client.post("/videos/vid1/analyze", headers=GOOD)
+    assert res.status_code == 202
+    assert res.json() == {"id": "vid1", "status": "queued", "started": True, "attempts": 1}
+    assert store.videos["vid1"]["status"] == "ready"
+    assert store.videos["vid1"]["analysisSummary"]["cyclesPerMin"] == 50.0
+
+
+def test_analyze_twice_does_not_rerun(client, store):
+    client.post("/videos/vid1/analyze", headers=GOOD)
+    first_id = store.videos["vid1"]["latestAnalysisId"]
+    res = client.post("/videos/vid1/analyze", headers=GOOD)
+    assert res.status_code == 202 and res.json()["started"] is False
+    assert res.json()["status"] == "ready"
+    assert store.videos["vid1"]["latestAnalysisId"] == first_id
+
+
+def test_cannot_analyze_someone_elses_video(client, store):
+    res = client.post("/videos/vid1/analyze", headers=OTHER)
+    assert res.status_code == 404
+    assert store.videos["vid1"]["status"] == "uploaded" and not store.analyses
+
+
+def test_unknown_video_is_404(client):
+    assert client.post("/videos/missing/analyze", headers=GOOD).status_code == 404
+
+
+def test_retry_limit_is_reported_as_conflict(client, store):
+    store.videos["vid1"].update(status="failed", job={"attempts": 3})
+    assert client.post("/videos/vid1/analyze", headers=GOOD).status_code == 409
+
+
+def test_error_responses_do_not_leak_paths(client, store):
+    store.videos["vid1"]["storagePath"] = "videos/someone-else/secret.mp4"
+    res = client.post("/videos/vid1/analyze", headers=GOOD)
+    assert res.status_code == 422 and "secret" not in res.text

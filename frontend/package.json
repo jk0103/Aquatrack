@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "emulators": "firebase emulators:start --project demo-aquatrack --config ../firebase.json"
+    "emulators": "node scripts/emulators.mjs"
   },
   "dependencies": {
     "firebase": "^13.0.0",

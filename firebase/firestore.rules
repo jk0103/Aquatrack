@@ -40,8 +40,15 @@ service cloud.firestore {
         && request.resource.data.status == 'uploaded'
         && request.resource.data.storagePath.matches('videos/' + request.auth.uid + '/.*')
         && request.resource.data.createdAt == request.time;
-      // Analysis results are written by the backend, which bypasses these rules.
+      // Job state and analysis results are written by the backend, which bypasses these
+      // rules. Clients can never change a video's status or forge a result.
       allow update, delete: if false;
+
+      // One document per analysis run: structured results, no per-frame arrays.
+      match /analyses/{analysisId} {
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+        allow write: if false;
+      }
     }
   }
 }

@@ -224,7 +224,7 @@ function RecentUploads({
   error: string | null;
 }) {
   const waiting =
-    uploads?.filter((v) => v.status === "uploaded" || v.status === "analyzing").length ?? 0;
+    uploads?.filter((v) => ["uploaded", "queued", "analyzing"].includes(v.status)).length ?? 0;
   return (
     <GlassCard
       title="Your uploads"

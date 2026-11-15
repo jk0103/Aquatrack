@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
@@ -19,6 +20,7 @@ import {
 import { getDownloadURL, ref, uploadBytesResumable, type UploadTask } from "firebase/storage";
 
 import { parseAnalysis, type AnalysisResult } from "@/app/lib/analysis";
+import { api, type ApiResult } from "@/app/lib/api";
 import { db, storage } from "@/app/lib/firebase";
 
 export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // keep in sync with storage.rules
@@ -35,7 +37,16 @@ export const CAMERAS = [
 export const DISTANCES = ["25 m", "50 m", "100 m", "200 m", "400 m"];
 export const POOL_LENGTHS = ["25 m", "50 m", "25 yd"];
 
-export type VideoStatus = "uploaded" | "analyzing" | "ready" | "failed";
+// Set by the backend (src/aquatrack/api/jobs.py); clients can't change it.
+export type VideoStatus = "uploaded" | "queued" | "analyzing" | "ready" | "failed";
+
+// Where the latest analysis request stands. Messages are written for the swimmer.
+export type AnalysisJob = {
+  attempts: number;
+  errorCode: string | null;
+  errorMessage: string | null;
+  retryable: boolean;
+};
 
 export type VideoDetails = {
   stroke: string;
@@ -59,12 +70,17 @@ export type VideoRecord = VideoDetails & {
   storagePath: string;
   status: VideoStatus;
   createdAt: Date | null;
-  // Written by the analysis backend; null until it has run (or if its shape is unknown).
+  // Legacy inline result field (never written by the current backend); kept so old
+  // records still parse.
   analysis: AnalysisResult | null;
+  job: AnalysisJob | null;
+  // Document id under videos/{id}/analyses, set when the status is "ready".
+  latestAnalysisId: string | null;
 };
 
 export const statusLabel: Record<VideoStatus, string> = {
   uploaded: "Not analyzed yet",
+  queued: "Waiting to analyze",
   analyzing: "Analyzing",
   ready: "Analyzed",
   failed: "Analysis failed",
@@ -72,6 +88,7 @@ export const statusLabel: Record<VideoStatus, string> = {
 
 export const statusTone = {
   uploaded: "amber",
+  queued: "sky",
   analyzing: "sky",
   ready: "teal",
   failed: "slate",
@@ -150,7 +167,18 @@ export async function uploadVideo(
   return record.id;
 }
 
-const knownStatuses: VideoStatus[] = ["uploaded", "analyzing", "ready", "failed"];
+const knownStatuses: VideoStatus[] = ["uploaded", "queued", "analyzing", "ready", "failed"];
+
+function toJob(raw: unknown): AnalysisJob | null {
+  if (!raw || typeof raw !== "object") return null;
+  const j = raw as Record<string, unknown>;
+  return {
+    attempts: typeof j.attempts === "number" ? j.attempts : 0,
+    errorCode: typeof j.errorCode === "string" ? j.errorCode : null,
+    errorMessage: typeof j.errorMessage === "string" ? j.errorMessage : null,
+    retryable: j.retryable === true,
+  };
+}
 
 function toRecord(id: string, v: DocumentData): VideoRecord {
   return {
@@ -172,6 +200,8 @@ function toRecord(id: string, v: DocumentData): VideoRecord {
     status: knownStatuses.includes(v.status) ? v.status : "uploaded",
     createdAt: v.createdAt instanceof Timestamp ? v.createdAt.toDate() : null,
     analysis: parseAnalysis(id, v.analysis),
+    job: toJob(v.job),
+    latestAnalysisId: typeof v.latestAnalysisId === "string" ? v.latestAnalysisId : null,
   };
 }
 
@@ -187,6 +217,28 @@ export async function listVideos(uid: string): Promise<VideoRecord[]> {
 export async function getVideo(id: string): Promise<VideoRecord | null> {
   const snap = await getDoc(doc(db, "videos", id));
   return snap.exists() ? toRecord(snap.id, snap.data()) : null;
+}
+
+// Live updates for one upload, so status changes made by the backend show up on their own.
+// Calls back with null when the video doesn't exist. Returns the function that stops it.
+export function watchVideo(
+  id: string,
+  onChange: (record: VideoRecord | null) => void,
+  onError: (err: unknown) => void,
+): () => void {
+  return onSnapshot(
+    doc(db, "videos", id),
+    (snap) => onChange(snap.exists() ? toRecord(snap.id, snap.data()) : null),
+    onError,
+  );
+}
+
+export type AnalysisRequest = { id: string; status: VideoStatus; started: boolean; attempts: number };
+
+// Asks the backend to analyze one of the swimmer's own uploads. Asking again while a job is
+// waiting or running is harmless: the backend returns that job instead of starting another.
+export function requestAnalysis(id: string): Promise<ApiResult<AnalysisRequest>> {
+  return api<AnalysisRequest>(`/videos/${encodeURIComponent(id)}/analyze`, { method: "POST" });
 }
 
 // A short-lived link to play the file; Storage rules only allow the owner.

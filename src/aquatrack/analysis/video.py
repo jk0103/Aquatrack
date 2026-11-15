@@ -1,11 +1,14 @@
 """Reading swim videos frame by frame."""
 
+import hashlib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+from aquatrack.contracts import VideoIdentity
 
 
 @dataclass(frozen=True)
@@ -56,3 +59,30 @@ def iter_frames(path: str | Path, step: int = 1) -> Iterator[tuple[int, np.ndarr
             index += 1
     finally:
         cap.release()
+
+
+def file_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def video_identity(path: str | Path) -> VideoIdentity:
+    """Content hash plus what decoding the file actually gives.
+
+    Frames are counted by reading them: the container's own frame count is an estimate for
+    some formats (WebM in particular) and can be off by a few frames.
+    """
+    info = read_video_info(path)
+    frames = sum(1 for _ in iter_frames(path))
+    if frames == 0 or info.fps <= 0:
+        raise ValueError(f"Could not read any frames from video: {Path(path).name}")
+    return VideoIdentity(
+        sha256=file_sha256(path),
+        frame_count=frames,
+        fps=info.fps,
+        width=info.width,
+        height=info.height,
+    )

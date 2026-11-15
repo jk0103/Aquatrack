@@ -1,21 +1,32 @@
-"""FastAPI app. Run locally with: uv run uvicorn aquatrack.api.main:app --reload"""
+"""FastAPI app. Run locally with: uv run uvicorn aquatrack.api.main:app --reload
 
-import os
-import shutil
-import uuid
-from pathlib import Path
+Videos are uploaded by the web app straight to Firebase Storage (security rules check the
+owner, type and size). This API never receives video files; it runs analysis on a video
+that is already stored and writes the results back.
+"""
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from functools import cache
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException
 
 from aquatrack import __version__
-from aquatrack.analysis.video import read_video_info
+from aquatrack.analysis.pose.sources import pose_source_from_env
 from aquatrack.api.firebase import CurrentUser
-
-UPLOAD_DIR = Path(os.environ.get("AQUATRACK_UPLOAD_DIR", "data/uploads"))
-ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv"}
-
+from aquatrack.api.jobs import JobRequestError, JobRunner, request_analysis
+from aquatrack.api.store import FirebaseStore
+from aquatrack.contracts import ModelConfig
 
 app = FastAPI(title="Aquatrack", version=__version__)
+
+
+@cache
+def get_runner() -> JobRunner:
+    """The process-wide job runner (store + pose source), created on first use."""
+    return JobRunner(FirebaseStore(), pose_source_from_env(ModelConfig.from_env()))
+
+
+Runner = Annotated[JobRunner, Depends(get_runner)]
 
 
 @app.get("/health")
@@ -29,30 +40,18 @@ def me(user: CurrentUser) -> dict:
     return {"uid": user.uid, "email": user.email, "name": user.name}
 
 
-@app.post("/videos")
-def upload_video(file: UploadFile) -> dict:
-    """Store an uploaded swim video and return its basic properties."""
-    suffix = Path(file.filename or "").suffix.lower()
-    if suffix not in ALLOWED_SUFFIXES:
-        raise HTTPException(400, f"Unsupported video type {suffix!r}")
+@app.post("/videos/{video_id}/analyze", status_code=202)
+def analyze_video(video_id: str, user: CurrentUser, runner: Runner, rerun: bool = False) -> dict:
+    """Queue analysis of one of the caller's own uploaded videos.
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    video_id = uuid.uuid4().hex
-    dest = UPLOAD_DIR / f"{video_id}{suffix}"
-    with dest.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
-
+    Returns the job state. Asking again while a job is queued or running returns that job
+    (`started` false) instead of starting a second one. Progress and results are written to
+    the video's Firestore document, which the web app listens to.
+    """
     try:
-        info = read_video_info(dest)
-    except ValueError as e:
-        dest.unlink(missing_ok=True)
-        raise HTTPException(400, "File is not a readable video") from e
-
-    return {
-        "id": video_id,
-        "width": info.width,
-        "height": info.height,
-        "fps": info.fps,
-        "frame_count": info.frame_count,
-        "duration_s": round(info.duration_s, 2),
-    }
+        job = request_analysis(runner.store, video_id, user.uid, rerun=rerun)
+    except JobRequestError as e:
+        raise HTTPException(e.status_code, e.detail) from e
+    if job.started:
+        runner.submit(video_id)
+    return {"id": video_id, "status": job.status, "started": job.started, "attempts": job.attempts}

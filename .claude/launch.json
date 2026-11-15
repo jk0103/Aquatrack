@@ -4,31 +4,72 @@
     {
       "name": "backend",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "uvicorn", "aquatrack.api.main:app", "--reload", "--reload-dir", "src", "--env-file", ".env"],
+      "runtimeArgs": [
+        "run",
+        "uvicorn",
+        "aquatrack.api.main:app",
+        "--reload",
+        "--reload-dir",
+        "src",
+        "--env-file",
+        ".env"
+      ],
       "port": 8000
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "firebase-emulators",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "emulators"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "emulators"
+      ],
       "port": 4000
     },
     {
       "name": "backend-emulated",
       "runtimeExecutable": "env",
-      "runtimeArgs": ["FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099", "FIREBASE_PROJECT_ID=demo-aquatrack", "uv", "run", "uvicorn", "aquatrack.api.main:app", "--reload", "--reload-dir", "src"],
+      "runtimeArgs": [
+        "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099",
+        "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080",
+        "STORAGE_EMULATOR_HOST=http://127.0.0.1:9199",
+        "FIREBASE_PROJECT_ID=demo-aquatrack",
+        "AQUATRACK_POSE_SOURCE=precomputed",
+        "AQUATRACK_PRECOMPUTED_POSE_DIR=data/precomputed_pose",
+        "AQUATRACK_MAX_ATTEMPTS=10",
+        "uv",
+        "run",
+        "uvicorn",
+        "aquatrack.api.main:app",
+        "--reload",
+        "--reload-dir",
+        "src"
+      ],
       "port": 8000
     },
     {
       "name": "frontend-emulated",
       "runtimeExecutable": "env",
-      "runtimeArgs": ["NEXT_PUBLIC_FIREBASE_EMULATORS=true", "npm", "--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "NEXT_PUBLIC_FIREBASE_EMULATORS=true",
+        "npm",
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 3000
     }
   ]

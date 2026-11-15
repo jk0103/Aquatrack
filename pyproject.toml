@@ -9,6 +9,7 @@ dependencies = [
     "firebase-admin>=7.7.0",
     "numpy>=1.26",
     "opencv-python-headless>=4.10",
+    "pydantic>=2.7",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.30",
 ]
@@ -41,6 +42,8 @@ packages = ["src/aquatrack"]
 
 [tool.ruff]
 line-length = 100
+# Local, untracked experiment scripts are not part of the package.
+extend-exclude = ["experiments"]
 target-version = "py311"
 
 [tool.ruff.lint]

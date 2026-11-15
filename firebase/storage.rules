@@ -10,5 +10,11 @@ service firebase.storage {
         && request.resource.size < 500 * 1024 * 1024;
       allow update, delete: if false;
     }
+
+    // Pose arrays and other analysis artifacts, written by the backend only.
+    match /analysis/{uid}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
   }
 }

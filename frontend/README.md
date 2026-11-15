@@ -44,7 +44,8 @@ Open http://localhost:3000. You'll be sent to the login page; create an account 
 
 ### Without a Firebase project
 
-`npm run emulators` starts local Auth, Firestore and Storage emulators (needs Java) with an
+`npm run emulators` starts local Auth, Firestore and Storage emulators (needs Java 21+; the
+script picks a suitable installed JDK by itself) with an
 admin UI at http://localhost:4000. Set `NEXT_PUBLIC_FIREBASE_EMULATORS=true` in `.env.local`
 and `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` in the repo's `.env`. Emulator data is wiped
 when they stop.
@@ -65,7 +66,7 @@ when they stop.
 | --- | --- | --- |
 | Home | Upload count, latest three uploads, greeting and date | Week strip, training plans, 100 m chart, coming up, example feedback |
 | Analyze | Everything: uploads to Storage, record in Firestore | — |
-| History | Uploads list and `/history/[id]` | "Example analyses" list |
+| History | Uploads list and `/history/[id]`, including real analysis status and results | "Example analyses" list |
 | Feedback | — (real results show on `/history/[id]`) | All of it |
 | Profile | Survey answers and personal bests | Headline stats |
 | Training, Calendar, Progress | — | All of it |
@@ -79,14 +80,19 @@ notes), `wantFeedback` and `wantPlan`. Newer uploads may also have `poolLength`,
 records without them still load (`toRecord` in `app/lib/videos.ts`). The security rules allow
 these extra fields as they are, so no rules change was needed.
 
-### Analysis results (provisional)
+### Analysis (v1)
 
-The analysis engine has no output contract yet. `app/lib/analysis.ts` describes what the UI
-can show: measurements with units, confidence or a reason they weren't measured, stroke
-rate, stroke cycles, key frames, the main priority, other issues and next-video checkpoints.
-The web app looks for these in an `analysis` field on the video record, which only the
-backend can write. Once the backend's real output exists, change `parseAnalysis` to match it.
-Until then every upload shows as "not analyzed yet" and nothing is made up.
+After an upload the app calls `POST /api/videos/{id}/analyze`. The backend sets the video's
+`status` (`uploaded`, `queued`, `analyzing`, `ready`, `failed`) and a `job` field with the
+attempt count and, on failure, a message for the swimmer. `/history/[id]` listens to the
+video record (`watchVideo`), so status changes appear without a reload, and offers a retry
+when the failure is retryable.
+
+Results are one document per run at `videos/{id}/analyses/{analysisId}` (read-only for the
+owner, written only by the backend). `app/lib/analysisV1.ts` parses them and
+`app/components/AnalysisPanel.tsx` shows stroke timing, the tracking quality report and the
+list of measures that are not available, with reasons. Nothing on that panel is example data.
+The contract is defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet
 

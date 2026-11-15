@@ -41,3 +41,22 @@ node_modules/
 
 # Model weights (downloaded or exported from Colab)
 models/*
+
+# Private documents: the project overview PDF contains personal information
+docs/*.pdf
+docs/private/
+
+# Local experiments: only scripts and written reports are meant for git
+experiments/**/data/
+experiments/**/runs/
+experiments/**/.venv/
+test_videos/
+*.webm
+*.m4v
+*.npz
+
+# Credentials and local environment files
+.env.*
+!.env.example
+*service-account*.json
+*serviceAccount*.json

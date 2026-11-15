@@ -52,6 +52,25 @@ each cycle. `--distance-m` and `--time-s` add pace and distance per stroke.
 `--device mps` runs RTMW on CoreML, about 4x faster than CPU with the same output; `--reuse`
 re-runs cleanup and cycles from the saved raw points without the model.
 
+## Local development with the Firebase emulators
+
+No real Firebase project is used. Three processes (also in `.claude/launch.json`):
+
+```bash
+npm --prefix frontend run emulators      # Auth, Firestore, Storage (needs a JDK 21+ installed)
+env FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+    STORAGE_EMULATOR_HOST=http://127.0.0.1:9199 FIREBASE_PROJECT_ID=demo-aquatrack \
+    uv run uvicorn aquatrack.api.main:app --reload --reload-dir src
+env NEXT_PUBLIC_FIREBASE_EMULATORS=true npm --prefix frontend run dev
+```
+
+Upload → analysis: the web app uploads to Storage and calls `POST /videos/{id}/analyze`. The
+API runs the job in the background and writes status and results to Firestore. Pose data
+comes from a configurable source (`AQUATRACK_POSE_SOURCE`): `precomputed` (default; files
+named `<video sha256>.rawpose.npz` in `data/precomputed_pose/`, produced in Colab), `local`
+(needs the pose extra and weights) or `remote` (interface only). A video without pose data
+fails with a clear reason; nothing is made up. See `docs/POSE_PROCESSING.md`.
+
 ## Roadmap
 
 1. Run pose estimation on 5 to 10 sample clips (underwater side view and overhead) and see where tracking breaks.

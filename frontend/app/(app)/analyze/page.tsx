@@ -17,6 +17,7 @@ import {
   formatDuration,
   POOL_LENGTHS,
   STROKES,
+  requestAnalysis,
   SUGGESTED_MAX_SECONDS,
   uploadVideo,
 } from "@/app/lib/videos";
@@ -43,7 +44,12 @@ export default function AnalyzePage() {
   const [error, setError] = useState<string | null>(null);
   // Problems with the chosen file show by the drop zone, where the file was chosen.
   const [fileError, setFileError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ id: string; name: string } | null>(null);
+  // `analysis` says whether the backend accepted the analysis request for the upload.
+  const [saved, setSaved] = useState<{
+    id: string;
+    name: string;
+    analysis: "started" | "not-started";
+  } | null>(null);
   const [today] = useState(() => localIsoDay());
   const uploading = progress !== null;
 
@@ -137,7 +143,10 @@ export default function AnalyzePage() {
         setProgress,
         (t) => (task.current = t),
       );
-      setSaved({ id, name: file.name });
+      // The upload is safe at this point. Analysis runs in the background; if the request
+      // can't be sent now, the video's page offers to start it.
+      const request = await requestAnalysis(id);
+      setSaved({ id, name: file.name, analysis: request.ok ? "started" : "not-started" });
       clearFile();
     } catch (err) {
       const code = (err as { code?: string })?.code;
@@ -160,11 +169,15 @@ export default function AnalyzePage() {
         </span>
         <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900">Video uploaded</h1>
         <p className="mt-2 text-slate-600">
-          {saved.name} is saved to your history. It hasn&apos;t been analyzed yet: technique
-          feedback will appear on its page once analysis is connected.
+          {saved.name} is saved to your history.{" "}
+          {saved.analysis === "started"
+            ? "Analysis has started. Its status and results appear on the video's page."
+            : "Analysis couldn't be started just now. You can start it from the video's page."}
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <ButtonLink href={`/history/${saved.id}`}>Watch your video</ButtonLink>
+          <ButtonLink href={`/history/${saved.id}`}>
+            {saved.analysis === "started" ? "See the analysis" : "Open your video"}
+          </ButtonLink>
           <Button variant="secondary" onClick={() => setSaved(null)}>
             Upload another
           </Button>
@@ -414,8 +427,9 @@ export default function AnalyzePage() {
               ))}
             </div>
             <p className="mt-4 text-xs text-slate-500">
-              Analysis isn&apos;t connected yet. Your video and these choices are saved so it can
-              run later.
+              Analysis currently measures stroke timing and how well the swimmer could be
+              tracked. Technique feedback and training plans aren&apos;t available yet; these
+              choices are saved for when they are.
             </p>
           </Card>
 
