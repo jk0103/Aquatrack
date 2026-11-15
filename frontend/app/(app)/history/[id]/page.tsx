@@ -9,7 +9,8 @@ import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
 import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
 import { VideoPlayer } from "@/app/components/VideoPlayer";
-import { loadAnalysis, type AnalysisV1 } from "@/app/lib/analysisV1";
+import { loadAnalysis } from "@/app/lib/analysisLoad";
+import type { AnalysisV1 } from "@/app/lib/analysisV1";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { formatSwimTime } from "@/app/lib/profile";
 import {

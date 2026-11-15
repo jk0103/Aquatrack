@@ -1,0 +1,365 @@
+{
+ "schema_version": "1.0",
+ "engine_version": "0.1.0",
+ "video_id": "fixture",
+ "video": {
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "frame_count": 250,
+  "fps": 25.0,
+  "width": 640,
+  "height": 400
+ },
+ "session": {
+  "stroke": "Freestyle",
+  "camera": "Underwater",
+  "distance": "",
+  "pool_length": ""
+ },
+ "config": {
+  "detector_weights": "yolo11m.pt",
+  "detector_imgsz": 640,
+  "detector_confidence": 0.15,
+  "target_selection": "tracking",
+  "max_box_carry_s": 0.5,
+  "pose_model": "rtmw-x",
+  "pose_weights": "rtmw_x_stock.onnx",
+  "pose_input_width": 288,
+  "pose_input_height": 384,
+  "frame_step": 1
+ },
+ "detector": {
+  "name": "yolo11m.pt",
+  "version": "",
+  "sha256": null
+ },
+ "pose": {
+  "name": "rtmw_x_stock.onnx",
+  "version": "",
+  "sha256": null
+ },
+ "pose_source": "precomputed",
+ "stroke": {
+  "measurable": true,
+  "reason": "",
+  "cycle_count": {
+   "left": 8,
+   "right": 7
+  },
+  "stroke_count": null,
+  "cycles_per_min": {
+   "left": 50.0,
+   "right": 50.0
+  },
+  "cycles": [
+   {
+    "arm": "left",
+    "start_s": 0.32,
+    "end_s": 1.52,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "start"
+   },
+   {
+    "arm": "right",
+    "start_s": 0.84,
+    "end_s": 2.04,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "start"
+   },
+   {
+    "arm": "left",
+    "start_s": 1.52,
+    "end_s": 2.72,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "start"
+   },
+   {
+    "arm": "right",
+    "start_s": 2.04,
+    "end_s": 3.24,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "start"
+   },
+   {
+    "arm": "left",
+    "start_s": 2.72,
+    "end_s": 3.92,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "right",
+    "start_s": 3.24,
+    "end_s": 4.44,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "left",
+    "start_s": 3.92,
+    "end_s": 5.12,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "right",
+    "start_s": 4.44,
+    "end_s": 5.64,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "left",
+    "start_s": 5.12,
+    "end_s": 6.32,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "right",
+    "start_s": 5.64,
+    "end_s": 6.84,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle"
+   },
+   {
+    "arm": "left",
+    "start_s": 6.32,
+    "end_s": 7.52,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "end"
+   },
+   {
+    "arm": "right",
+    "start_s": 6.84,
+    "end_s": 8.04,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "end"
+   },
+   {
+    "arm": "left",
+    "start_s": 7.52,
+    "end_s": 8.72,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "end"
+   },
+   {
+    "arm": "right",
+    "start_s": 8.04,
+    "end_s": 9.24,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "end"
+   },
+   {
+    "arm": "left",
+    "start_s": 8.72,
+    "end_s": 9.88,
+    "duration_s": 1.199,
+    "trusted": true,
+    "reason": "",
+    "section": "end"
+   }
+  ]
+ },
+ "timing": {
+  "clip_duration_s": 10.0,
+  "swim_start_s": 0.0,
+  "swim_end_s": 9.96,
+  "sections": [
+   {
+    "name": "start",
+    "start_s": 0.0,
+    "end_s": 3.28
+   },
+   {
+    "name": "middle",
+    "start_s": 3.32,
+    "end_s": 6.64
+   },
+   {
+    "name": "end",
+    "start_s": 6.68,
+    "end_s": 9.96
+   }
+  ],
+  "median_cycle_s": 1.2
+ },
+ "quality": {
+  "total_frames": 250,
+  "analyzed_frames": 250,
+  "frames_with_swimmer": 250,
+  "valid_pose_frames": 250,
+  "valid_pose_pct": 100.0,
+  "observed_pct": 100.0,
+  "interpolated_pct": 0.0,
+  "rejected_pct": 0.0,
+  "missing_pct": 0.0,
+  "per_joint_coverage": {
+   "nose": 100.0,
+   "left_eye": 100.0,
+   "right_eye": 100.0,
+   "left_ear": 100.0,
+   "right_ear": 100.0,
+   "left_shoulder": 100.0,
+   "right_shoulder": 100.0,
+   "left_elbow": 100.0,
+   "right_elbow": 100.0,
+   "left_wrist": 100.0,
+   "right_wrist": 100.0,
+   "left_hip": 100.0,
+   "right_hip": 100.0,
+   "left_knee": 100.0,
+   "right_knee": 100.0,
+   "left_ankle": 100.0,
+   "right_ankle": 100.0
+  },
+  "body_part_coverage": {
+   "head": 100.0,
+   "trunk": 100.0,
+   "arms": 100.0,
+   "legs": 100.0,
+   "hands": 100.0,
+   "feet": 100.0
+  },
+  "longest_missing_s": 0.0,
+  "tracking": {
+   "recorded": true,
+   "detected_pct": 100.0,
+   "carried_pct": 0.0,
+   "no_box_pct": 0.0,
+   "multiple_people_pct": 0.0,
+   "identity_breaks": 0,
+   "other_swimmer_pct": 0.0
+  },
+  "reliable_stroke_cycles": 15,
+  "grade": "good",
+  "grade_reasons": [
+   "Meets every criterion: 100% of frames have a usable pose; shoulders and hips seen 100%; elbows and wrists seen 100%; 0% of frames followed someone else."
+  ],
+  "filming_limitations": [
+   "Side view: the arm and leg farther from the camera are often hidden behind the body.",
+   "Body rotation cannot be measured from a side view."
+  ],
+  "unavailable": [
+   {
+    "key": "cycle_time_change",
+    "label": "Cycle time, start to end",
+    "reason": "The clip is too short to compare its start, middle and end: each third needs at least 3 reliable cycles (2 in the start, 3 in the middle, 2 in the end)."
+   },
+   {
+    "key": "left_right_balance",
+    "label": "Left-right balance",
+    "reason": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull."
+   },
+   {
+    "key": "arm_coordination",
+    "label": "Arm coordination",
+    "reason": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view."
+   },
+   {
+    "key": "kick_rhythm",
+    "label": "Kick rhythm",
+    "reason": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden."
+   },
+   {
+    "key": "breathing_timing",
+    "label": "Breathing timing",
+    "reason": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video."
+   },
+   {
+    "key": "body_rotation",
+    "label": "Body rotation",
+    "reason": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view."
+   },
+   {
+    "key": "propulsion",
+    "label": "Propulsion and efficiency",
+    "reason": "Force and efficiency cannot be measured from video of joint positions alone."
+   }
+  ]
+ },
+ "measurements": [
+  {
+   "key": "stroke_rate",
+   "label": "Stroke rate",
+   "value": 50.0,
+   "unit": "cycles/min",
+   "confidence": null,
+   "basis": "7 reliable cycles of the right arm, nearer the camera"
+  },
+  {
+   "key": "cycle_duration",
+   "label": "Time per stroke cycle",
+   "value": 1.2,
+   "unit": "s",
+   "confidence": null,
+   "basis": "7 reliable cycles of the right arm, nearer the camera"
+  }
+ ],
+ "unavailable": [
+  {
+   "key": "cycle_time_change",
+   "label": "Cycle time, start to end",
+   "reason": "The clip is too short to compare its start, middle and end: each third needs at least 3 reliable cycles (2 in the start, 3 in the middle, 2 in the end)."
+  },
+  {
+   "key": "left_right_balance",
+   "label": "Left-right balance",
+   "reason": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull."
+  },
+  {
+   "key": "arm_coordination",
+   "label": "Arm coordination",
+   "reason": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view."
+  },
+  {
+   "key": "kick_rhythm",
+   "label": "Kick rhythm",
+   "reason": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden."
+  },
+  {
+   "key": "breathing_timing",
+   "label": "Breathing timing",
+   "reason": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video."
+  },
+  {
+   "key": "body_rotation",
+   "label": "Body rotation",
+   "reason": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view."
+  },
+  {
+   "key": "propulsion",
+   "label": "Propulsion and efficiency",
+   "reason": "Force and efficiency cannot be measured from video of joint positions alone."
+  }
+ ],
+ "artifacts": [],
+ "created_at": "2026-11-15T12:00:00+00:00"
+}

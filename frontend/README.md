@@ -90,8 +90,11 @@ when the failure is retryable.
 
 Results are one document per run at `videos/{id}/analyses/{analysisId}` (read-only for the
 owner, written only by the backend). `app/lib/analysisV1.ts` parses them and
-`app/components/AnalysisPanel.tsx` shows stroke timing, the tracking quality report and the
-list of measures that are not available, with reasons. Nothing on that panel is example data.
+`app/components/AnalysisPanel.tsx` shows, for schema 1.1 results, what the analysis can stand
+behind (tracking, arms seen, stroke cycles, measurements), then each metric with its own status,
+spread, evidence, limits and buttons that jump to the moment in the video, and the list of what
+is not measured, with reasons. Results from schema 1.0 keep their original layout. Nothing on
+that panel is example data, and nothing on it judges the technique.
 The contract is defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet
@@ -106,5 +109,6 @@ out or drop them is still to be decided.
 
 ```bash
 npm run lint
+npm test        # parser tests for analysis results (Node's built-in runner)
 npm run build
 ```

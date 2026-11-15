@@ -18,7 +18,11 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.0"  # pose files (RawPose, ProcessedPose)
+# Analysis results. 1.1 adds `metrics` and `coverage` and more detail on stroke cycles; it
+# only adds fields, so 1.0 results stay readable and are never rewritten. 1.2 adds the five
+# exclusive arm classes (`ArmObservation.*_pct`), `coverage.view` and `Metric.excluded_cycles`.
+ANALYSIS_SCHEMA_VERSION = "1.2"
 NUM_KEYPOINTS = 133
 # RawPose files written by the student's CLI before this schema existed.
 LEGACY_SCHEMA_VERSION = "0"
@@ -436,6 +440,17 @@ class StrokeCycleOut(BaseModel):
     trusted: bool
     reason: str = ""
     section: str = ""
+    # 1.1: why an untrusted cycle is unclear: "merged" (looks like two cycles, a pull was not
+    # seen), "fragment" (too short to be a cycle), "hidden" (arm not seen well enough).
+    kind: str = ""
+
+
+class PartialCycleOut(BaseModel):
+    """Arm movement at the edge of the clip that is not a whole cycle. Never counted."""
+
+    arm: Literal["left", "right"]
+    start_s: float
+    end_s: float
 
 
 class SectionOut(BaseModel):
@@ -453,6 +468,12 @@ class StrokeSummary(BaseModel):
     stroke_count: int | None = None
     cycles_per_min: dict[str, float | None] = {}
     cycles: list[StrokeCycleOut] = []
+    # 1.1
+    partial: list[PartialCycleOut] = []
+    counted_arm: str | None = None  # the arm the count and timing come from
+    # Whole cycles of `counted_arm` between its first and last mid-pull, only when none of
+    # them is unclear; else None. One cycle is two arm strokes (one per arm).
+    counted_cycles: int | None = None
 
 
 class Timing(BaseModel):
@@ -478,13 +499,141 @@ class ArtifactRef(BaseModel):
     bytes: int | None = None
 
 
-class AnalysisResult(BaseModel):
-    """Analysis v1: basic stroke timing plus an honest account of data quality.
+class MetricStatus(StrEnum):
+    RELIABLE = "reliable"  # met every criterion set for this metric
+    LIMITED = "limited"  # measured, but on thin or indirect evidence: read with the reason
+    UNAVAILABLE = "unavailable"  # not shown as a number
 
-    No posture scores, issues or corrections: those wait for validated biomechanics metrics.
+
+class MetricKind(StrEnum):
+    TEMPORAL = "temporal"  # timing and rhythm
+    GEOMETRIC = "geometric"  # positions and angles in the picture, in body units
+    PROXY = "proxy"  # a 2D stand-in for something that is really three-dimensional
+
+
+class MetricSample(BaseModel):
+    """One value behind a metric, usually one stroke cycle, with where to look in the video."""
+
+    t_s: float  # a moment that shows it
+    value: float
+    start_s: float | None = None
+    end_s: float | None = None
+    label: str = ""
+
+
+class Metric(BaseModel):
+    """One biomechanics measurement with its own evidence and reliability.
+
+    Definitions, criteria and limits per key: docs/BIOMECHANICS_METRICS.md.
     """
 
-    schema_version: str = SCHEMA_VERSION
+    key: str
+    label: str
+    group: Literal["timing", "body", "arm", "consistency"]
+    kind: MetricKind
+    unit: str
+    description: str  # what the number means, in one sentence
+    status: MetricStatus
+    value: float | None = None  # median over the samples; None when unavailable
+    low: float | None = None  # 25th and 75th percentile over the samples
+    high: float | None = None
+    n_cycles: int = 0
+    excluded_cycles: int = 0  # 1.2: reliable cycles left out because of the camera view
+    coverage_pct: float | None = None  # frames of those cycles where the needed joints were usable
+    side: str | None = None  # the arm it was read from, for arm metrics
+    samples: list[MetricSample] = []
+    basis: str = ""
+    reason: str = ""  # why it is limited or unavailable
+    limitations: list[str] = []
+
+
+class CameraSide(BaseModel):
+    """Which arm faces the camera in a side view, and what that rests on."""
+
+    arm: Literal["left", "right"] | None = None
+    evidence: list[str] = []
+    reason: str = ""  # why it could not be established
+
+
+class ArmObservation(BaseModel):
+    """What is known about one arm's elbow and wrist, as shares of the frames in the main
+    stretch of swimming.
+
+    Since 1.2 every frame is in exactly one of five classes, which add up to 100:
+    supported, interpolated, model_only, rejected, missing. "Supported" means the model's
+    points lie inside an underwater pull that was followed and have believable segment
+    lengths; it is the only class arm metrics read. It is not a person confirming the arm
+    was visible. `model_only` is what the model drew without anything to back it up; a high
+    model score does not move a point out of it.
+    """
+
+    arm: Literal["left", "right"]
+    camera_side: bool
+    pulls: int  # underwater pulls seen passing straight down
+    pulls_followed_back: int  # of those, followed to the end of the push
+    # 1.2: exclusive classes (None in 1.1 documents)
+    supported_pct: float | None = None
+    interpolated_pct: float | None = None
+    model_only_pct: float | None = None
+    rejected_pct: float | None = None
+    missing_pct: float | None = None
+    # 1.2: parts of model_only, for explanation
+    model_only_in_front_pct: float | None = None  # drawn stretched ahead; not confirmed
+    model_only_collapsed_pct: float | None = None  # in a pull, segment impossibly short
+    # 1.1 fields. They overlapped (interpolated points inside a pull counted as unverified)
+    # and "in front" read as confirmed; kept filled for older readers only.
+    followed_pct: float
+    in_front_pct: float = 0.0
+    unverified_pct: float
+    not_observed_pct: float
+
+
+class ViewSuitability(BaseModel):
+    """1.2: whether the camera kept a steady view of the swimmer. Not a measured angle."""
+
+    status: Literal["steady", "changing", "unknown"] = "unknown"
+    smallest_size_share: float | None = None  # apparent trunk size, smallest / largest cycle
+    cycles_left_out: int = 0
+    cycles_checked: int = 0
+    note: str = ""
+
+
+class CycleCompleteness(BaseModel):
+    arm: str | None = None  # the arm cycles are counted on
+    detected: int = 0
+    reliable: int = 0
+    ambiguous: int = 0  # merged, fragment or hidden
+    partial: int = 0  # at the clip edges
+    count_measurable: bool = False
+    status: Literal["complete", "partial", "none"] = "none"
+    note: str = ""
+
+
+class AnalysisCoverage(BaseModel):
+    """What the analysis could and could not stand behind, level by level. Tracking quality
+    (QualityReport.grade) is only the first level: a well tracked clip can still have
+    unclear stroke cycles or metrics that cannot be measured."""
+
+    tracking_grade: QualityGrade
+    camera_side: CameraSide
+    arms: list[ArmObservation] = []
+    cycles: CycleCompleteness
+    view: ViewSuitability | None = None  # 1.2
+    metrics_reliable: int = 0
+    metrics_limited: int = 0
+    metrics_unavailable: int = 0
+    summary: str = ""
+
+
+class AnalysisResult(BaseModel):
+    """Analysis result: stroke timing, biomechanics metrics that each carry their own
+    reliability, and an account of what could not be measured.
+
+    No posture scores, issues or corrections: a metric here is a measurement, not a judgement.
+    Schema 1.0 results (Phase 1) have no `metrics` or `coverage`.
+    """
+
+    schema_version: str = ANALYSIS_SCHEMA_VERSION
     engine_version: str
     video_id: str
     video: VideoIdentity
@@ -496,8 +645,10 @@ class AnalysisResult(BaseModel):
     stroke: StrokeSummary
     timing: Timing
     quality: QualityReport
-    measurements: list[Measurement] = []
+    measurements: list[Measurement] = []  # 1.0 summary numbers, kept for older readers
     unavailable: list[Unavailable] = []
+    metrics: list[Metric] = []  # 1.1
+    coverage: AnalysisCoverage | None = None  # 1.1
     artifacts: list[ArtifactRef] = []
     created_at: str = Field(default_factory=_now)
 

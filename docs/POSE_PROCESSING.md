@@ -83,22 +83,20 @@ Grade, from the data only:
 - **insufficient** if under 40% of frames have a valid pose, or under 2 s of valid pose in total.
   Stroke numbers are then withheld.
 - **good** if all hold: at least 80% valid frames; shoulders and hips usable at least 80%;
-  elbows and wrists at least 60%; at most 5% of frames followed someone else; at least 4
-  reliable stroke cycles.
+  elbows and wrists at least 60%; at most 5% of frames followed someone else.
 - **limited** otherwise. Numbers are shown with the reasons.
+
+Since analysis schema 1.1 the grade is about tracking only (the earlier "at least 4 reliable
+stroke cycles" criterion was removed). Whether the stroke cycles were all found and whether a
+metric can be trusted are separate levels: see `docs/BIOMECHANICS_METRICS.md`, section 6.
 
 The filming angle never changes the grade. Known limits of a view or stroke are listed
 separately (`filming_limitations`).
 
-## Stroke numbers
+## Stroke numbers and metrics
 
-- A stroke cycle is one full turn of one arm, found from the arm's angle around the shoulder
-  (`metrics/cycles.py`). A cycle is "reliable" when enough of its frames have a trusted
-  shoulder and wrist and its length is plausible for the clip.
-- Stroke rate and time per cycle use the reliable cycles only.
-- A stroke **count** is reported only when every cycle found in the clip is reliable. If any
-  were unclear, the count is withheld with the reason, because the reliable ones alone would
-  undercount (seen on the sprint test clip: 8 reliable of about 17 real arm cycles).
+Stroke cycles, the count rule, arm usability, the camera side and every metric are specified in
+`docs/BIOMECHANICS_METRICS.md`; the check against real video is in `docs/PHASE2_VALIDATION.md`.
 
 ## Limits
 
@@ -106,9 +104,9 @@ separately (`filming_limitations`).
   elbows and wrists were within tolerance only 59% of the time even with a perfect box.
 - One 2D camera: the far arm and leg are often hidden; body rotation is not measurable from
   the side.
-- Stroke cycles are found from the arm turning around the shoulder: validated by unit tests
-  on a synthetic swimmer, checked on real video only as far as Phase 1 reports. Breaststroke
-  is not supported.
+- Stroke cycles are found from the arm passing straight down under the shoulder: unit tests on
+  a synthetic swimmer, and a comparison with manual annotation on two real clips
+  (`docs/PHASE2_VALIDATION.md`). Breaststroke is not supported.
 - Identity handling follows the box, not appearance. Two swimmers who overlap in the picture
   can still be confused.
 

@@ -178,7 +178,7 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
                 return _fail(
                     store, video, JobError(code=e.code, message=e.message, retryable=e.retryable)
                 )
-            result, processed = analyze(raw, video_id, video.session, identity)
+            result, processed = analyze(raw, video_id, video.session, identity, video_path=local)
 
             raw_path = raw.save(work / "raw_pose.npz")
             processed_path = processed.save(work / "processed_pose.npz")
@@ -204,6 +204,9 @@ def run_job(store: Store, source: PoseSource, video_id: str) -> None:
                     "strokeMeasurable": result.stroke.measurable,
                     "cyclesPerMin": rate,  # the same number the result page shows
                     "strokeCount": result.stroke.stroke_count,
+                    "cycleCount": result.stroke.counted_cycles,
+                    "metricsReliable": result.coverage.metrics_reliable,
+                    "metricsLimited": result.coverage.metrics_limited,
                 },
             },
         )

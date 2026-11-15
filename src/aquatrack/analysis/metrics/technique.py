@@ -31,6 +31,7 @@ from aquatrack.analysis.pose.wholebody import (
 )
 
 MIN_CONFIDENCE = 0.3
+ELBOW_MAX_STEP_DEG = 30  # per frame; a value further than this from both neighbours is dropped
 CATCH_UPPER_ARM_DEG = 30  # the catch: upper arm this far below the travel line
 MIN_KICK_PROMINENCE = 0.05  # trunk lengths; smaller ankle bumps are noise
 MIN_KICK_SPACING_S = 0.15
@@ -209,8 +210,10 @@ def angle_between(u: np.ndarray, v: np.ndarray) -> np.ndarray:
 class _Geometry:
     """Travel-aligned measurements on a CleanPose."""
 
-    def __init__(self, pose: CleanPose, horizon: np.ndarray):
+    def __init__(self, pose: CleanPose, horizon: np.ndarray, unusable: np.ndarray | None = None):
         self.pose = pose
+        # (frames, 133) bool: points a caller has ruled out for measuring (kept in the pose).
+        self.unusable = unusable
         self.xy = pose.xy
         self.travel = np.stack([np.cos(horizon), np.sin(horizon)], axis=1)
         self.down = np.stack([-np.sin(horizon), np.cos(horizon)], axis=1)
@@ -233,7 +236,10 @@ class _Geometry:
         flags = np.bitwise_or.reduce(self.pose.flags[:, points], axis=1)
         guessed = (flags & int(Fix.FILLED | DROPPED)) > 0
         finite = np.isfinite(self.xy[:, points]).all(axis=(1, 2)) & np.isfinite(self.trunk)
-        return (conf >= MIN_CONFIDENCE) & ~guessed & finite, conf
+        usable = (conf >= MIN_CONFIDENCE) & ~guessed & finite
+        if self.unusable is not None:
+            usable &= ~self.unusable[:, points].any(axis=1)
+        return usable, conf
 
     def center(self, points, min_fraction: float = 0.5) -> tuple[np.ndarray, np.ndarray]:
         """Median of the trustworthy points of a group (hand, foot), per frame."""
@@ -246,6 +252,22 @@ class _Geometry:
         return center, each.mean(axis=1) >= min_fraction
 
 
+def _agrees_with_neighbours(frames: np.ndarray, values: np.ndarray) -> np.ndarray:
+    """Which values sit within `ELBOW_MAX_STEP_DEG` of a neighbouring frame's value.
+
+    An elbow cannot open or close faster than that between frames, so a value that no
+    neighbour (up to two frames away) comes near is a misplaced point, not a movement. It
+    matters because the smallest angle of a pull is taken from a single frame.
+    """
+    keep = np.zeros(len(frames), dtype=bool)
+    for i in range(len(frames)):
+        for j in (i - 1, i + 1):
+            if 0 <= j < len(frames) and abs(frames[j] - frames[i]) <= 2:
+                if abs(values[j] - values[i]) <= ELBOW_MAX_STEP_DEG * abs(frames[j] - frames[i]):
+                    keep[i] = True
+    return keep
+
+
 def _pick_median(frames: np.ndarray, values: np.ndarray) -> int:
     """The frame whose value is closest to the median, for key-frame images."""
     return int(frames[np.argmin(np.abs(values - np.median(values)))])
@@ -255,15 +277,21 @@ def _arm_measures(g: _Geometry, c: StrokeCycle, out: dict[str, Measure], paths: 
     s, e, w, hand = ARMS[c.arm]
     xy = g.xy
     tag = {"side": c.arm, "section": c.section, "cycle_start": c.start}
-    pull = np.arange(c.reach, c.end + 1)
+    # One whole underwater pull: from the reach to the last frame the arm was followed back.
+    pull_end = c.pull_end if c.pull_end is not None else c.end
+    pull = np.arange(c.reach, pull_end + 1)
+    # The part where the arm is actually moving back: from where it leaves the front. The
+    # wrist path is compared over this part, so a long glide before it doesn't count.
+    moving = pull[pull >= (c.pull_start if c.pull_start is not None else c.reach)]
     ok_sew, conf_sew = g.ok([s, e, w])
     ok_sw, conf_sw = g.ok([s, w])
     elbow = joint_angle(xy[:, s], xy[:, e], xy[:, w])
     pf = pull[ok_sew[pull]]
+    pf = pf[_agrees_with_neighbours(pf, elbow[pf])]
 
     if len(pf) >= 3:
         k = int(pf[np.argmin(elbow[pf])])
-        phase = (pf - c.reach) / max(1, c.end - c.reach)
+        phase = (pf - c.reach) / max(1, pull_end - c.reach)
         curve = np.interp(np.linspace(0, 1, 11), phase, elbow[pf]).tolist()
         out["elbow_min_pull"].values.append(Value(elbow[k], conf_sew[k], k, curve=curve, **tag))
         out["elbow_mean_pull"].values.append(
@@ -311,8 +339,10 @@ def _arm_measures(g: _Geometry, c: StrokeCycle, out: dict[str, Measure], paths: 
         depth = g.depth(xy[:, w] - xy[:, s])
         k = int(pw[np.argmax(depth[pw])])
         out["pull_depth"].values.append(Value(depth[k], conf_sw[k], k, **tag))
-        if len(pw) >= 0.6 * len(pull):
-            phase = (pw - c.reach) / max(1, c.end - c.reach)
+        pm = moving[ok_sw[moving]]
+        if len(pm) >= 0.6 * len(moving):
+            pw = pm
+            phase = (pw - moving[0]) / max(1, pull_end - moving[0])
             grid = np.linspace(0, 1, PATH_SAMPLES)
             ahead = g.along(xy[:, w] - xy[:, s])
             path = np.stack(
@@ -682,12 +712,13 @@ def measure_technique(
     distance_m: float | None = None,
     time_s: float | None = None,
     near_side: str | None = None,
+    unusable: np.ndarray | None = None,
 ) -> TechniqueReport:
     """All technique measures for one clip. `horizon` is the travel direction per frame
     (radians, oriented frame); see `aquatrack.analysis.horizon.horizontal`."""
     if horizon is None:
         horizon = np.zeros(len(pose))
-    g = _Geometry(pose, horizon)
+    g = _Geometry(pose, horizon, unusable)
     out = _new_measures()
     trusted = [c for c in strokes.cycles if c.trusted and c.reach is not None]
 

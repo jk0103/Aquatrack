@@ -8,6 +8,7 @@ from aquatrack.analysis.processing import find_segments, process
 from aquatrack.analysis.quality import build_quality_report
 from aquatrack.contracts import (
     JointState,
+    MetricStatus,
     ProcessedPose,
     QualityGrade,
     RawPose,
@@ -44,7 +45,7 @@ def test_clean_clip_is_all_observed_and_good():
     assert (q.valid_pose_pct, q.observed_pct, q.interpolated_pct) == (100.0, 100.0, 0.0)
     assert q.tracking.recorded and q.tracking.detected_pct == 100.0
     assert q.total_frames == SWIM_FRAMES and q.analyzed_frames == SWIM_FRAMES
-    assert result.stroke.measurable and result.stroke.cycle_count == {"left": 7, "right": 7}
+    assert result.stroke.measurable and result.stroke.cycle_count == {"left": 8, "right": 7}
     assert result.stroke.cycles_per_min == {"left": 50.0, "right": 50.0}
     assert {m.key: m.value for m in result.measurements}["stroke_rate"] == 50.0
 
@@ -171,9 +172,9 @@ def test_breaststroke_cycles_are_reported_as_unavailable():
 def test_pending_measures_are_listed_with_reasons_not_invented():
     result, _ = analyze(make_raw_pose(), "v", FREESTYLE, VIDEO)
     keys = {u.key for u in result.unavailable}
-    assert {"head_position", "body_alignment", "kick_rhythm", "body_rotation"} <= keys
+    assert {"left_right_balance", "kick_rhythm", "body_rotation", "propulsion"} <= keys
     assert all(u.reason for u in result.unavailable)
-    assert {m.key for m in result.measurements} == {"stroke_rate", "cycle_duration", "stroke_count"}
+    assert {m.key for m in result.measurements} == {"stroke_rate", "cycle_duration"}
 
 
 def test_stroke_count_is_withheld_when_some_cycles_were_unclear():
@@ -186,7 +187,13 @@ def test_stroke_count_is_withheld_when_some_cycles_were_unclear():
     assert any(not c.trusted for c in result.stroke.cycles)
     assert "stroke_count" not in {m.key for m in result.measurements}
     assert {m.key for m in result.measurements} == {"stroke_rate", "cycle_duration"}
-    assert result.unavailable[0].key == "stroke_count" and "too low" in result.unavailable[0].reason
+    count = next(m for m in result.metrics if m.key == "cycle_count")
+    assert count.status is MetricStatus.UNAVAILABLE and count.value is None
+    assert "could not be followed clearly" in count.reason
+    assert result.stroke.counted_cycles is None
+    assert result.coverage.cycles.status == "partial" and result.coverage.cycles.ambiguous >= 1
+    # Tracking is still good: the grade does not vouch for the stroke cycles.
+    assert result.quality.grade is QualityGrade.GOOD
 
 
 def test_processed_pose_round_trip_and_separate_from_raw(tmp_path):

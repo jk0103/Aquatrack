@@ -1,11 +1,20 @@
 """Arm stroke cycles, stroke rate and swim sections from a cleaned whole-body sequence.
 
 Each arm's cycle comes from its angle around the shoulder, measured from the body line
-(hip to shoulder): 0 when the arm points straight ahead, pi when it points back along the
-body. The angle turns once per stroke for freestyle, backstroke and butterfly, so cycles
-are counted from its unwrapped phase rather than from raw wrist height. A cycle starts
-and ends when the arm points straight back (end of the push), and its reach is the frame
-where the hand is furthest forward.
+(hip to shoulder): 0 when the arm points straight ahead, 90 degrees when it points straight
+down under the shoulder (mid-pull), 180 when it points back along the body.
+
+A cycle runs from one mid-pull to the next: the moment the arm passes straight down. That
+moment is used because it is the one part of the stroke an underwater side camera sees for
+both arms. The end of the push is hidden behind the body for the far arm, and the recovery
+is above the water, where the pose model still draws an arm (often swinging backward under
+the body) that nobody can check. Counting from the unwrapped angle, as before, let those
+drawn-in recoveries cancel real pulls (two cycles merged) or add false ones (a cycle split).
+
+Each mid-pull event belongs to a `Pull`: reach (hand furthest forward) -> start (the arm
+leaves the front) -> mid-pull -> exit (the last frame the arm was followed moving back). Arm
+geometry is only read from start to exit: while the arm is still stretched in front there is
+no movement to back the model's points up, however long it stays there.
 
 Breaststroke arms sweep instead of turning all the way around; they need another method.
 """
@@ -27,10 +36,14 @@ from aquatrack.analysis.pose.cleanup import (
 
 ARMS = {"left": (L_SHOULDER, L_WRIST), "right": (R_SHOULDER, R_WRIST)}
 
-# Backward steps up to this are allowed (the pull moves ~15 degrees per frame at 25 fps).
-# A bigger jump is read as forward motion: the arm recovering out of view, above the water.
-MAX_BACKWARD = np.pi / 2
-MIN_TRUSTED_FRACTION = 0.6  # of a cycle's frames with reliable shoulder and wrist
+FRONT_MAX = np.radians(45)  # the arm counts as "in front" within this of straight ahead
+MID_PULL = np.radians(90)  # the event: the arm passes straight down
+CONFIRM = np.radians(120)  # one frame this far back confirms a pull (or two frames past 90)
+MAX_EVENT_GAP_S = 0.25  # the crossing must be seen between frames no further apart
+MAX_PULL_SPEED = np.radians(900)  # per second; a sprint pull turns about 500
+REVERSED_MIN_SHARE = 0.3  # net backward share of all small angle changes
+MAX_WOBBLE = np.radians(15)  # backward wobble allowed while a pull is still followed
+MIN_TRUSTED_FRACTION = 0.6  # of a cycle's underwater frames with reliable shoulder and wrist
 MIN_RELIABLE_CONFIDENCE = 0.3
 CYCLE_SECONDS = (0.6, 4.0)  # plausible duration of one arm cycle
 # A cycle much shorter or longer than the clip's typical one is a fragment or two merged.
@@ -41,8 +54,24 @@ SECTION_MAX_GAP_S = 1.0  # longer gaps split the clip; sections cover the longes
 
 
 @dataclass
+class Pull:
+    """One underwater pull of one arm. Frames are indices into the CleanPose sequence."""
+
+    arm: str
+    reach: int  # hand furthest forward before the pull
+    start: int  # last frame in front (within FRONT_MAX): from here on the arm is pulling
+    mid: float  # fractional frame where the arm passes straight down
+    exit: int  # last frame the arm was followed moving back
+    exit_angle_deg: float  # how far back it was followed (180 = straight back)
+
+
+@dataclass
 class StrokeCycle:
-    """One arm cycle. Frames are indices into the CleanPose sequence."""
+    """One arm cycle, mid-pull to mid-pull. Frames are indices into the CleanPose sequence.
+
+    `reach` is the reach of the pull that ends the cycle, and `pull_end` that pull's exit
+    (after `end`): together they bound one whole underwater pull for arm measures.
+    """
 
     arm: str
     start: int
@@ -52,6 +81,19 @@ class StrokeCycle:
     trusted: bool
     reason: str = ""
     section: str = ""
+    pull_start: int | None = None  # where that pull leaves the front (after `reach`)
+    pull_end: int | None = None
+    # "merged" (looks like two cycles with a pull not seen), "fragment", "hidden", "" (fine)
+    kind: str = ""
+
+
+@dataclass
+class PartialCycle:
+    """Arm movement at the edge of the clip that is not a whole cycle."""
+
+    arm: str
+    start: int
+    end: int
 
 
 @dataclass
@@ -65,6 +107,8 @@ class Section:
 class StrokeAnalysis:
     cycles: list[StrokeCycle]
     sections: list[Section]
+    pulls: dict[str, list[Pull]] = field(default_factory=dict)
+    partial: list[PartialCycle] = field(default_factory=list)
     # Cycles per minute for each arm, from trusted cycles; NaN when there are none.
     rate_per_min: dict[str, float] = field(default_factory=dict)
 
@@ -139,77 +183,112 @@ def arm_angle(pose: CleanPose, arm: str) -> tuple[np.ndarray, np.ndarray]:
     return angle, reliable
 
 
-def unwrap_phase(angle: np.ndarray) -> np.ndarray:
-    """Unwrapped arm phase that grows by 2*pi per stroke, NaN where the angle is unknown.
+def pull_angle(angle: np.ndarray) -> np.ndarray:
+    """The arm angle with the pull direction positive (0 ahead -> 90 down -> 180 back).
 
-    The rotation direction depends on which side the camera films from, so it is taken
-    from the data: the sign of the summed small frame-to-frame changes.
+    In the oriented frame an upright camera sees the pull pass below the body, which is
+    already the positive direction. Only a clip that clearly turns the other way (filmed
+    from overhead, or upside down) is reversed: when most of the small frame-to-frame
+    changes run backward.
     """
-    phase = np.full_like(angle, np.nan)
     valid = np.nonzero(~np.isnan(angle))[0]
     if len(valid) < 2:
-        return phase
+        return angle
     steps = np.angle(np.exp(1j * np.diff(angle[valid])))
-    small = np.abs(steps) < np.pi / 2
-    sign = 1.0 if steps[small].sum() >= 0 else -1.0
-    a = sign * angle[valid]
-    deltas = np.mod(np.diff(a) + MAX_BACKWARD, 2 * np.pi) - MAX_BACKWARD
-    phase[valid] = a[0] + np.concatenate([[0.0], np.cumsum(deltas)])
-    return phase
+    small = steps[np.abs(steps) < np.pi / 2]
+    reversed_ = small.sum() < -REVERSED_MIN_SHARE * np.abs(small).sum()
+    return -angle if reversed_ else angle
 
 
-def _boundaries(phase: np.ndarray) -> list[float]:
-    """Fractional frames where the arm passes straight back (phase = pi + 2*pi*k)."""
-    valid = np.nonzero(~np.isnan(phase))[0]
-    if len(valid) < 2:
-        return []
-    # Never count a boundary twice when the arm wobbles back across it.
-    peak = np.maximum.accumulate(phase[valid])
-    turns = np.floor((peak - np.pi) / (2 * np.pi))
-    found = []
-    for k in range(1, len(valid)):
-        for turn in range(int(turns[k - 1]) + 1, int(turns[k]) + 1):
-            target = np.pi + 2 * np.pi * turn
-            i, j = valid[k - 1], valid[k]
-            t = (target - peak[k - 1]) / (peak[k] - peak[k - 1])
-            found.append(i + t * (j - i))
-    return found
+def find_pulls(pose: CleanPose, arm: str) -> list[Pull]:
+    """Underwater pulls of one arm, from observed points only.
 
-
-def find_cycles(pose: CleanPose, arm: str) -> list[StrokeCycle]:
+    A pull is counted when the arm has been in front and then passes straight down, seen on
+    both sides of that moment, and is then followed further back. The arm has to return to
+    the front before the next pull can count, so a recovery the model draws backward under
+    the body, or a wobble, never adds or removes one.
+    """
     angle, reliable = arm_angle(pose, arm)
-    # Only observed points: a gap filled in a straight line from hip to reach runs through
-    # the body, which would read as the arm turning backward.
-    phase = unwrap_phase(np.where(reliable > 0, angle, np.nan))
-    bounds = _boundaries(phase)
+    a = pull_angle(np.where(reliable > 0, angle, np.nan))
+    seen = np.nonzero(~np.isnan(a))[0]
     shoulder, wrist = ARMS[arm]
-    axis = pose.body_axis()
-    forward = np.einsum("fd,fd->f", pose.xy[:, wrist] - pose.xy[:, shoulder], axis)
+    forward = np.einsum("fd,fd->f", pose.xy[:, wrist] - pose.xy[:, shoulder], pose.body_axis())
+    max_gap = max(1, round(MAX_EVENT_GAP_S * pose.fps))
 
+    pulls: list[Pull] = []
+    armed, front_from = False, None
+    for n in range(len(seen)):
+        k = seen[n]
+        if abs(a[k]) <= FRONT_MAX:
+            if not armed:
+                armed, front_from = True, int(k)
+            continue
+        if not armed or n == 0 or a[k] < MID_PULL:
+            continue
+        armed = False  # past straight down: nothing more counts until the arm is in front again
+        # The last frame before the crossing, skipping a stray point or two.
+        before = [q for q in seen[max(0, n - 3) : n] if -FRONT_MAX <= a[q] < MID_PULL]
+        if not before or k - before[-1] > max_gap:
+            continue  # the crossing itself was not seen
+        p = before[-1]
+        if (a[k] - a[p]) / ((k - p) / pose.fps) > MAX_PULL_SPEED:
+            continue  # no arm turns that fast: one of the two points is not this arm
+        # Follow the arm back for as long as it keeps going.
+        exit_frame, m = int(k), n
+        while (
+            m + 1 < len(seen)
+            and seen[m + 1] - seen[m] <= max_gap
+            and a[seen[m + 1]] >= a[exit_frame] - MAX_WOBBLE
+            and a[seen[m + 1]] >= MID_PULL
+        ):
+            m += 1
+            if a[seen[m]] > a[exit_frame]:
+                exit_frame = int(seen[m])
+        if a[exit_frame] < CONFIRM and m == n:
+            continue  # one stray frame past straight down
+        mid = p + (MID_PULL - a[p]) / (a[k] - a[p]) * (k - p)
+        front = seen[(seen >= front_from) & (seen < k) & (np.abs(a[seen]) <= FRONT_MAX)]
+        ok = front[reliable[front] >= MIN_RELIABLE_CONFIDENCE]
+        reach = int((ok if len(ok) else front)[np.nanargmax(forward[ok if len(ok) else front])])
+        start = int(front[front >= reach][-1]) if (front >= reach).any() else reach
+        pulls.append(
+            Pull(arm, reach, start, float(mid), exit_frame, float(np.degrees(a[exit_frame])))
+        )
+    return pulls
+
+
+def find_cycles(pose: CleanPose, arm: str, pulls: list[Pull] | None = None) -> list[StrokeCycle]:
+    pulls = find_pulls(pose, arm) if pulls is None else pulls
+    _, reliable = arm_angle(pose, arm)
     cycles = []
-    for a, b in zip(bounds[:-1], bounds[1:], strict=True):
-        start, end = round(a), round(b)
-        duration = float((b - a) / pose.fps)
-        frames = np.arange(start, end + 1)
+    for first, second in zip(pulls[:-1], pulls[1:], strict=True):
+        start, end = round(first.mid), round(second.mid)
+        duration = float((second.mid - first.mid) / pose.fps)
+        # Only the parts an underwater camera can see: the rest of the first pull, and the
+        # second one from its reach. Between them the arm is above the water.
+        frames = np.concatenate(
+            [np.arange(start, first.exit + 1), np.arange(second.start, end + 1)]
+        )
         ok = reliable[frames] >= MIN_RELIABLE_CONFIDENCE
-        reach = None
-        if ok.any():
-            candidates = frames[ok]
-            reach = int(candidates[np.nanargmax(forward[candidates])])
-        reason = ""
+        reason = kind = ""
         if ok.mean() < MIN_TRUSTED_FRACTION:
             reason = f"only {ok.mean():.0%} of frames have a reliable shoulder and wrist"
+            kind = "hidden"
         elif not CYCLE_SECONDS[0] <= duration <= CYCLE_SECONDS[1]:
             reason = f"{duration:.2f} s is outside {CYCLE_SECONDS[0]}-{CYCLE_SECONDS[1]} s"
+            kind = "fragment" if duration < CYCLE_SECONDS[0] else "merged"
         cycles.append(
             StrokeCycle(
                 arm=arm,
                 start=start,
                 end=end,
-                reach=reach,
+                reach=second.reach,
                 duration_s=duration,
                 trusted=not reason,
                 reason=reason,
+                pull_start=second.start,
+                pull_end=second.exit,
+                kind=kind,
             )
         )
     return cycles
@@ -254,19 +333,46 @@ def flag_odd_durations(cycles: list[StrokeCycle]) -> None:
         if c.trusted and not TYPICAL_RATIO[0] <= ratio <= TYPICAL_RATIO[1]:
             c.trusted = False
             c.reason = f"{c.duration_s:.2f} s is far from this clip's typical {typical:.2f} s"
+            c.kind = "merged" if ratio > 1 else "fragment"
+
+
+def _partial_cycles(pose: CleanPose, pulls: dict[str, list[Pull]]) -> list[PartialCycle]:
+    """The stretch before an arm's first mid-pull and after its last: part of a cycle that
+    started before the clip or ends after it. Never counted."""
+    stretch = main_stretch(pose)
+    if stretch is None:
+        return []
+    out = []
+    min_frames = max(2, round(0.2 * pose.fps))
+    for arm, items in pulls.items():
+        if not items:
+            continue
+        first, last = round(items[0].mid), round(items[-1].mid)
+        if first - stretch[0] >= min_frames:
+            out.append(PartialCycle(arm, stretch[0], first))
+        if stretch[1] - last >= min_frames:
+            out.append(PartialCycle(arm, last, stretch[1]))
+    return out
 
 
 def analyze_strokes(pose: CleanPose) -> StrokeAnalysis:
     sections = find_sections(pose)
     cycles, rates = [], {}
+    pulls = {arm: find_pulls(pose, arm) for arm in ARMS}
     for arm in ARMS:
-        cycles += find_cycles(pose, arm)
+        cycles += find_cycles(pose, arm, pulls[arm])
     flag_odd_durations(cycles)
     for arm in ARMS:
         durations = [c.duration_s for c in cycles if c.arm == arm and c.trusted]
         rates[arm] = 60.0 / float(np.median(durations)) if durations else float("nan")
     for c in cycles:
-        middle = c.reach if c.reach is not None else (c.start + c.end) // 2
+        middle = (c.start + c.end) // 2
         c.section = next((s.name for s in sections if s.start <= middle <= s.end), "")
     cycles.sort(key=lambda c: c.start)
-    return StrokeAnalysis(cycles=cycles, sections=sections, rate_per_min=rates)
+    return StrokeAnalysis(
+        cycles=cycles,
+        sections=sections,
+        rate_per_min=rates,
+        pulls=pulls,
+        partial=_partial_cycles(pose, pulls),
+    )

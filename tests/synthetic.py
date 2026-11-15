@@ -96,6 +96,19 @@ def swimmer_xy(
     return xy
 
 
+def set_arm(xy: np.ndarray, side: str, angles_deg: np.ndarray) -> None:
+    """Redraw one straight arm at the given angle from the body line per frame
+    (0 = straight ahead, 90 = straight down, 180 = straight back)."""
+    elbow, wrist, hand = (7, 9, LEFT_HAND) if side == "left" else (8, 10, RIGHT_HAND)
+    shoulder = 5 if side == "left" else 6
+    a = np.radians(angles_deg)
+    upper = np.stack([np.cos(a), np.sin(a)], axis=1)
+    xy[:, elbow] = xy[:, shoulder] + 0.65 * TRUNK * upper
+    xy[:, wrist] = xy[:, elbow] + 0.65 * TRUNK * upper
+    for k, p in enumerate(hand):
+        xy[:, p] = xy[:, wrist] + 0.25 * TRUNK * upper * (k / 20)
+
+
 def to_sequence(xy: np.ndarray, score: float = 6.0) -> WholeBodySequence:
     keypoints = np.concatenate([xy / (W, H), np.full((*xy.shape[:2], 1), score)], axis=-1)
     return WholeBodySequence(

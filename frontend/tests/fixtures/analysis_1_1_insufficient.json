@@ -1,0 +1,659 @@
+{
+ "schema_version": "1.1",
+ "engine_version": "0.1.0",
+ "video_id": "fixture",
+ "video": {
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "frame_count": 250,
+  "fps": 25.0,
+  "width": 640,
+  "height": 400
+ },
+ "session": {
+  "stroke": "Freestyle",
+  "camera": "Underwater",
+  "distance": "",
+  "pool_length": ""
+ },
+ "config": {
+  "detector_weights": "yolo11m.pt",
+  "detector_imgsz": 640,
+  "detector_confidence": 0.15,
+  "target_selection": "tracking",
+  "max_box_carry_s": 0.5,
+  "pose_model": "rtmw-x",
+  "pose_weights": "rtmw_x_stock.onnx",
+  "pose_input_width": 288,
+  "pose_input_height": 384,
+  "frame_step": 1
+ },
+ "detector": {
+  "name": "yolo11m.pt",
+  "version": "",
+  "sha256": null
+ },
+ "pose": {
+  "name": "rtmw_x_stock.onnx",
+  "version": "",
+  "sha256": null
+ },
+ "pose_source": "precomputed",
+ "stroke": {
+  "measurable": false,
+  "reason": "The swimmer could not be followed reliably enough in this clip.",
+  "cycle_count": {
+   "left": 2,
+   "right": 1
+  },
+  "stroke_count": null,
+  "cycles_per_min": {},
+  "cycles": [
+   {
+    "arm": "left",
+    "start_s": 0.32,
+    "end_s": 1.52,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "start",
+    "kind": ""
+   },
+   {
+    "arm": "right",
+    "start_s": 0.84,
+    "end_s": 2.04,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "middle",
+    "kind": ""
+   },
+   {
+    "arm": "left",
+    "start_s": 1.52,
+    "end_s": 2.72,
+    "duration_s": 1.2,
+    "trusted": true,
+    "reason": "",
+    "section": "end",
+    "kind": ""
+   }
+  ],
+  "partial": [
+   {
+    "arm": "left",
+    "start_s": 0.0,
+    "end_s": 0.32
+   },
+   {
+    "arm": "left",
+    "start_s": 2.72,
+    "end_s": 3.16
+   },
+   {
+    "arm": "right",
+    "start_s": 0.0,
+    "end_s": 0.84
+   },
+   {
+    "arm": "right",
+    "start_s": 2.04,
+    "end_s": 3.16
+   }
+  ],
+  "counted_arm": null,
+  "counted_cycles": null
+ },
+ "timing": {
+  "clip_duration_s": 10.0,
+  "swim_start_s": 0.0,
+  "swim_end_s": 3.16,
+  "sections": [
+   {
+    "name": "start",
+    "start_s": 0.0,
+    "end_s": 1.04
+   },
+   {
+    "name": "middle",
+    "start_s": 1.08,
+    "end_s": 2.08
+   },
+   {
+    "name": "end",
+    "start_s": 2.12,
+    "end_s": 3.16
+   }
+  ],
+  "median_cycle_s": null
+ },
+ "quality": {
+  "total_frames": 250,
+  "analyzed_frames": 250,
+  "frames_with_swimmer": 80,
+  "valid_pose_frames": 80,
+  "valid_pose_pct": 32.0,
+  "observed_pct": 32.0,
+  "interpolated_pct": 0.0,
+  "rejected_pct": 0.0,
+  "missing_pct": 68.0,
+  "per_joint_coverage": {
+   "nose": 32.0,
+   "left_eye": 32.0,
+   "right_eye": 32.0,
+   "left_ear": 32.0,
+   "right_ear": 32.0,
+   "left_shoulder": 32.0,
+   "right_shoulder": 32.0,
+   "left_elbow": 32.0,
+   "right_elbow": 32.0,
+   "left_wrist": 32.0,
+   "right_wrist": 32.0,
+   "left_hip": 32.0,
+   "right_hip": 32.0,
+   "left_knee": 32.0,
+   "right_knee": 32.0,
+   "left_ankle": 32.0,
+   "right_ankle": 32.0
+  },
+  "body_part_coverage": {
+   "head": 32.0,
+   "trunk": 32.0,
+   "arms": 32.0,
+   "legs": 32.0,
+   "hands": 32.0,
+   "feet": 32.0
+  },
+  "longest_missing_s": 6.8,
+  "tracking": {
+   "recorded": true,
+   "detected_pct": 100.0,
+   "carried_pct": 0.0,
+   "no_box_pct": 0.0,
+   "multiple_people_pct": 0.0,
+   "identity_breaks": 0,
+   "other_swimmer_pct": 0.0
+  },
+  "reliable_stroke_cycles": 0,
+  "grade": "insufficient",
+  "grade_reasons": [
+   "Only 32% of frames have a usable pose (under 40%)."
+  ],
+  "filming_limitations": [
+   "Side view: the arm and leg farther from the camera are often hidden behind the body.",
+   "Body rotation cannot be measured from a side view."
+  ],
+  "unavailable": [
+   {
+    "key": "stroke_rate",
+    "label": "Stroke rate",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "cycle_duration",
+    "label": "Time per stroke cycle",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "cycle_count",
+    "label": "Stroke cycles counted",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "rhythm_variation",
+    "label": "Rhythm variation",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "body_line_angle",
+    "label": "Body line angle",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "leg_line_angle",
+    "label": "Legs against the trunk line",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "head_height",
+    "label": "Head against the trunk line",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "pull_depth",
+    "label": "Pull depth",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "elbow_angle_min",
+    "label": "Elbow bend in the pull (2D)",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "pull_path_variation",
+    "label": "Pull path variation",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "cycle_time_change",
+    "label": "Cycle time, start to end",
+    "reason": "The swimmer could not be followed reliably enough in this clip."
+   },
+   {
+    "key": "left_right_balance",
+    "label": "Left-right balance",
+    "reason": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull."
+   },
+   {
+    "key": "arm_coordination",
+    "label": "Arm coordination",
+    "reason": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view."
+   },
+   {
+    "key": "kick_rhythm",
+    "label": "Kick rhythm",
+    "reason": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden."
+   },
+   {
+    "key": "breathing_timing",
+    "label": "Breathing timing",
+    "reason": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video."
+   },
+   {
+    "key": "body_rotation",
+    "label": "Body rotation",
+    "reason": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view."
+   },
+   {
+    "key": "propulsion",
+    "label": "Propulsion and efficiency",
+    "reason": "Force and efficiency cannot be measured from video of joint positions alone."
+   }
+  ]
+ },
+ "measurements": [],
+ "unavailable": [
+  {
+   "key": "stroke_rate",
+   "label": "Stroke rate",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "cycle_duration",
+   "label": "Time per stroke cycle",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "cycle_count",
+   "label": "Stroke cycles counted",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "rhythm_variation",
+   "label": "Rhythm variation",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "body_line_angle",
+   "label": "Body line angle",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "leg_line_angle",
+   "label": "Legs against the trunk line",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "head_height",
+   "label": "Head against the trunk line",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "pull_depth",
+   "label": "Pull depth",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "elbow_angle_min",
+   "label": "Elbow bend in the pull (2D)",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "pull_path_variation",
+   "label": "Pull path variation",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "cycle_time_change",
+   "label": "Cycle time, start to end",
+   "reason": "The swimmer could not be followed reliably enough in this clip."
+  },
+  {
+   "key": "left_right_balance",
+   "label": "Left-right balance",
+   "reason": "Needs both arms followed through whole pulls. From the side the far arm is hidden behind the body for part of every pull."
+  },
+  {
+   "key": "arm_coordination",
+   "label": "Arm coordination",
+   "reason": "Needs the start and end of both arms' pulls. The far arm's are hidden from a side view."
+  },
+  {
+   "key": "kick_rhythm",
+   "label": "Kick rhythm",
+   "reason": "Kick beats are computed but have not been checked against video yet, and the far leg is often hidden."
+  },
+  {
+   "key": "breathing_timing",
+   "label": "Breathing timing",
+   "reason": "The head turn is not seen reliably from an underwater side view; the experimental detector has not been checked against video."
+  },
+  {
+   "key": "body_rotation",
+   "label": "Body rotation",
+   "reason": "Rotation around the body's long axis cannot be measured from one side camera. It needs a front or overhead view."
+  },
+  {
+   "key": "propulsion",
+   "label": "Propulsion and efficiency",
+   "reason": "Force and efficiency cannot be measured from video of joint positions alone."
+  }
+ ],
+ "metrics": [
+  {
+   "key": "stroke_rate",
+   "label": "Stroke rate",
+   "group": "timing",
+   "kind": "temporal",
+   "unit": "cycles/min",
+   "description": "Full arm cycles per minute. One cycle is one full turn of one arm, so both arms together make two strokes per cycle.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "From the cycles that could be followed; a short clip covers only a few."
+   ]
+  },
+  {
+   "key": "cycle_duration",
+   "label": "Time per stroke cycle",
+   "group": "timing",
+   "kind": "temporal",
+   "unit": "s",
+   "description": "Median time from one mid-pull of an arm to its next.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Timed to the nearest video frame."
+   ]
+  },
+  {
+   "key": "cycle_count",
+   "label": "Stroke cycles counted",
+   "group": "timing",
+   "kind": "temporal",
+   "unit": "cycles",
+   "description": "Whole cycles of one arm between its first and last mid-pull in the clip. Each cycle is two arm strokes (one per arm).",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Not the number of strokes in a length: the clip's first and last part-cycles are left out."
+   ]
+  },
+  {
+   "key": "rhythm_variation",
+   "label": "Rhythm variation",
+   "group": "consistency",
+   "kind": "temporal",
+   "unit": "%",
+   "description": "How much the cycle time changes from cycle to cycle (standard deviation as a share of the mean). Lower means a steadier rhythm.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "With few cycles one odd cycle moves this a lot.",
+    "It does not say why the rhythm changed (a breath, a turn, the camera)."
+   ]
+  },
+  {
+   "key": "body_line_angle",
+   "label": "Body line angle",
+   "group": "body",
+   "kind": "geometric",
+   "unit": "deg",
+   "description": "Angle of the shoulder-hip-ankle line against the direction of travel. 0 is level; positive means the feet are lower than the shoulders.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Measured in the picture, from one side camera: movement toward or away from the camera is not seen.",
+    "Depends on knowing which way is level in the picture.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "leg_line_angle",
+   "label": "Legs against the trunk line",
+   "group": "body",
+   "kind": "geometric",
+   "unit": "deg",
+   "description": "Angle of the hip-to-ankle line against the trunk line carried on past the hips. 0 is one straight line; positive means the legs sit below it.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Measured in the picture, from one side camera: movement toward or away from the camera is not seen.",
+    "The kick moves the ankles; the median over each cycle is used.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "head_height",
+   "label": "Head against the trunk line",
+   "group": "body",
+   "kind": "geometric",
+   "unit": "trunk lengths",
+   "description": "How far the middle of the face sits above (positive) or below the trunk line carried forward past the shoulders. 0 is in line with the trunk.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Measured in the picture, from one side camera: movement toward or away from the camera is not seen.",
+    "The face points stand in for the head; the trunk line shifts a little as the shoulders roll.",
+    "Includes the moments of breathing.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "pull_depth",
+   "label": "Pull depth",
+   "group": "arm",
+   "kind": "geometric",
+   "unit": "trunk lengths",
+   "description": "Deepest point of the wrist below the shoulder during the underwater pull, for the arm nearer the camera.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Measured in the picture, from one side camera: movement toward or away from the camera is not seen.",
+    "Only the arm nearer the camera; the other arm is not measured.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "elbow_angle_min",
+   "label": "Elbow bend in the pull (2D)",
+   "group": "arm",
+   "kind": "proxy",
+   "unit": "deg",
+   "description": "Smallest elbow angle seen in the picture during the underwater pull, for the arm nearer the camera (180 is a straight arm).",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "A picture angle, not the true joint angle: an arm bent toward or away from the camera looks straighter or more bent than it is.",
+    "Only the arm nearer the camera.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "pull_path_variation",
+   "label": "Pull path variation",
+   "group": "consistency",
+   "kind": "geometric",
+   "unit": "trunk lengths",
+   "description": "How far each pull's wrist path (relative to the shoulder) is from the average path of the same arm. Lower means the pulls repeat more closely.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "Measured in the picture, from one side camera: movement toward or away from the camera is not seen.",
+    "Pose noise adds to it, so it never reaches 0.",
+    "Only the arm nearer the camera.",
+    "Checked on two real clips of one swimmer; not scientifically validated."
+   ]
+  },
+  {
+   "key": "cycle_time_change",
+   "label": "Cycle time, start to end",
+   "group": "consistency",
+   "kind": "temporal",
+   "unit": "s",
+   "description": "Median cycle time in the last third of the swim minus the first third.",
+   "status": "unavailable",
+   "value": null,
+   "low": null,
+   "high": null,
+   "n_cycles": 0,
+   "coverage_pct": null,
+   "side": null,
+   "samples": [],
+   "basis": "",
+   "reason": "The swimmer could not be followed reliably enough in this clip.",
+   "limitations": [
+    "A change in a short clip is not evidence of fatigue."
+   ]
+  }
+ ],
+ "coverage": {
+  "tracking_grade": "insufficient",
+  "camera_side": {
+   "arm": "right",
+   "evidence": [
+    "Swimming toward the right of the picture, face down: the right side faces the camera.",
+    "The right arm's pulls are followed further back (54 degrees more)."
+   ],
+   "reason": ""
+  },
+  "arms": [
+   {
+    "arm": "left",
+    "camera_side": false,
+    "pulls": 3,
+    "pulls_followed_back": 0,
+    "followed_pct": 48.8,
+    "in_front_pct": 12.5,
+    "unverified_pct": 38.8,
+    "not_observed_pct": 0.0
+   },
+   {
+    "arm": "right",
+    "camera_side": true,
+    "pulls": 2,
+    "pulls_followed_back": 2,
+    "followed_pct": 40.0,
+    "in_front_pct": 20.0,
+    "unverified_pct": 40.0,
+    "not_observed_pct": 0.0
+   }
+  ],
+  "cycles": {
+   "arm": null,
+   "detected": 0,
+   "reliable": 0,
+   "ambiguous": 0,
+   "partial": 0,
+   "count_measurable": false,
+   "status": "none",
+   "note": "No whole stroke cycle could be followed."
+  },
+  "metrics_reliable": 0,
+  "metrics_limited": 0,
+  "metrics_unavailable": 11,
+  "summary": "0 of 11 measurements could be made from this clip: 0 met their reliability criteria, 0 are limited."
+ },
+ "artifacts": [],
+ "created_at": "2026-11-15T12:00:00+00:00"
+}

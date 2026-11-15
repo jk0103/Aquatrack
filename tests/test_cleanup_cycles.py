@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
-from synthetic import FPS, HIP, TRUNK, H, W, swimmer_xy, times, to_sequence
+from synthetic import FPS, HIP, TRUNK, H, W, set_arm, swimmer_xy, times, to_sequence
 
 from aquatrack.analysis.metrics.cycles import StrokeCycle, analyze_strokes, flag_odd_durations
 from aquatrack.analysis.pose import cli
@@ -120,27 +120,33 @@ def test_known_number_of_cycles_and_stroke_rate():
 
     left = [c for c in strokes.cycles if c.arm == "left"]
     right = [c for c in strokes.cycles if c.arm == "right"]
-    assert len(left) == 4  # arm straight back at 0.6, 1.8, 3.0, 4.2, 5.4 s
-    assert len(right) == 4  # at 1.14, 2.34, 3.54, 4.74, 5.94 s
+    assert len(left) == 4  # arm straight down at 0.3, 1.5, 2.7, 3.9, 5.1 s
+    assert len(right) == 4  # at 0.9, 2.1, 3.3, 4.5, 5.7 s
     assert all(c.trusted for c in strokes.cycles)
     assert strokes.rate_per_min["left"] == pytest.approx(50, abs=1)
     assert strokes.stroke_rate_per_min == pytest.approx(50, abs=1)
     for c in left:
         assert c.duration_s == pytest.approx(1.2, abs=0.05)
-        assert abs(c.reach - (c.start + c.end) / 2) <= 1  # hand furthest forward mid-cycle
+        # the cycle ends mid-pull: its pull starts at the reach and is followed past the end
+        assert c.start < c.reach < c.end < c.pull_end
+        assert (c.end - c.reach) / FPS == pytest.approx(0.3, abs=0.05)
+    assert [len(p) for p in strokes.pulls.values()] == [5, 5]
+    assert all(p.exit_angle_deg > 150 for p in strokes.pulls["left"])
     assert [s.name for s in strokes.sections] == ["start", "middle", "end"]
     assert {c.section for c in strokes.cycles} == {"start", "middle", "end"}
 
 
 def test_cycle_with_hidden_arm_is_not_trusted():
     seq = to_sequence(swimmer_xy(times(150), period=1.2))
-    seq.keypoints[50:70, L_WRIST, 2] = 1.0  # left wrist lost for most of a cycle
+    seq.keypoints[50:70, L_WRIST, 2] = 1.0  # left wrist lost through one whole pull
 
     strokes = analyze_strokes(clean(seq))
 
     left = [c for c in strokes.cycles if c.arm == "left"]
     unsure = [c for c in left if not c.trusted]
-    assert len(unsure) == 1 and "reliable" in unsure[0].reason
+    # The pull at 2.7 s was not seen, so its two cycles come out as one of double length.
+    assert len(unsure) == 1 and unsure[0].kind == "merged"
+    assert len(strokes.pulls["left"]) == 4
     assert strokes.rate_per_min["left"] == pytest.approx(50, abs=1)  # from trusted ones
 
 
@@ -198,3 +204,53 @@ def test_cli_reuse_writes_everything(tmp_path: Path):
     assert result["cycles"][0]["start_frame"] == result["cycles"][0]["start"]
     assert (tmp_path / "swim.clean.npz").exists()
     assert (tmp_path / "swim.overlay.mp4").exists()
+
+
+def test_recovery_drawn_backward_under_the_body_does_not_merge_cycles():
+    # What the pose model does on real underwater clips: after the hand leaves the water it
+    # draws the arm swinging back to the front *under* the body, with confident scores.
+    t = times(150)
+    xy = swimmer_xy(t, period=1.2)
+    phase = (t % 1.2) / 1.2
+    drawn = np.where(phase < 0.6, phase / 0.6 * 178, 178 * (1 - (phase - 0.6) / 0.4))
+    set_arm(xy, "right", drawn)
+
+    strokes = analyze_strokes(clean(to_sequence(xy)))
+
+    right = [c for c in strokes.cycles if c.arm == "right"]
+    assert len(strokes.pulls["right"]) == 5
+    assert len(right) == 4 and all(c.trusted for c in right)
+    assert all(c.duration_s == pytest.approx(1.2, abs=0.05) for c in right)
+
+
+def test_wobble_in_front_does_not_split_a_cycle():
+    t = times(150)
+    xy = swimmer_xy(t, period=1.2)
+    phase = (t % 1.2) / 1.2
+    angle = np.where(phase < 0.5, 10 + 50 * np.sin(np.pi * phase / 0.5), (phase - 0.5) / 0.5 * 175)
+    set_arm(xy, "right", angle)  # a bump to 60 degrees in the glide, then the real pull
+
+    strokes = analyze_strokes(clean(to_sequence(xy)))
+
+    assert len(strokes.pulls["right"]) == 5
+    assert all(c.trusted for c in strokes.cycles if c.arm == "right")
+
+
+def test_arm_jumping_from_front_to_back_is_not_a_pull():
+    t = times(150)
+    xy = swimmer_xy(t, period=1.2)
+    angle = np.full(len(t), 10.0)
+    angle[60:64] = 170.0  # four confident frames far back with no pull in between
+    set_arm(xy, "right", angle)
+
+    strokes = analyze_strokes(clean(to_sequence(xy)))
+
+    assert strokes.pulls["right"] == []
+
+
+def test_partial_cycles_at_the_clip_edges_are_listed_not_counted():
+    strokes = analyze_strokes(clean(to_sequence(swimmer_xy(times(150), period=1.2))))
+
+    left = [p for p in strokes.partial if p.arm == "left"]
+    assert [(p.start, p.end) for p in left] == [(0, 8), (128, 149)]
+    assert len([c for c in strokes.cycles if c.arm == "left"]) == 4

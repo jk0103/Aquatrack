@@ -27,15 +27,20 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 
 - `frontend/`: Next.js (App Router) + Tailwind. Read `frontend/AGENTS.md` before editing.
 - `src/aquatrack/contracts.py`: versioned Pydantic contracts (ModelConfig, RawPose,
-  ProcessedPose, QualityReport, AnalysisResult v1, AnalysisJobStatus). Change them with care
-  and bump `SCHEMA_VERSION` on breaking changes; `frontend/app/lib/analysisV1.ts` mirrors them.
+  ProcessedPose, QualityReport, AnalysisResult, Metric, AnalysisCoverage, AnalysisJobStatus).
+  Pose files use `SCHEMA_VERSION`, analysis results `ANALYSIS_SCHEMA_VERSION` (1.2). Only add
+  fields within a major version, never rewrite stored results, and keep older documents
+  readable; `frontend/app/lib/analysisV1.ts` mirrors them (pure parser, tested with `npm test`).
 - `src/aquatrack/api/`: FastAPI. `main.py` (routes), `jobs.py` (job states, in-process
   runner: not a durable queue), `store.py` (Firestore/Storage; refuses to run without the
   emulators unless explicitly allowed).
 - `src/aquatrack/analysis/`: `pose/sources.py` (precomputed / local / remote pose sources),
-  `pose/rtmw_backend.py`, `pose/cleanup.py`, `processing.py`, `quality.py`, `pipeline.py`,
-  `metrics/cycles.py`, `metrics/technique.py`. Processing rules and thresholds are documented
-  in `docs/POSE_PROCESSING.md`.
+  `pose/rtmw_backend.py`, `pose/cleanup.py`, `processing.py`, `quality.py` (tracking grade
+  only), `metrics/cycles.py` (pulls and cycles from mid-pull events), `usability.py` (camera
+  side, usable arm points), `biomechanics.py` (metrics with per-metric reliability),
+  `metrics/technique.py` (geometry reused by `biomechanics`), `pipeline.py`. Docs:
+  `docs/POSE_PROCESSING.md`, `docs/BIOMECHANICS_METRICS.md` (metric specification; update it
+  with any metric or threshold change), `docs/PHASE2_VALIDATION.md`.
 - Firebase: Auth, Firestore, Storage; rules in `firebase/`. Videos are uploaded by the web
   app straight to Storage; the API never receives files. Results: Firestore
   `videos/{id}/analyses/{analysisId}`, arrays in Storage `analysis/{uid}/...` (backend-only
@@ -59,6 +64,11 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 - Raw model output is stored separately from cleaned data, with frame, timestamp, box,
   confidences and model versions. Estimated points stay flagged with reduced confidence.
   Interpolate short gaps only; never across long occlusions or a change of swimmer.
+- A model score is not visibility. Arm geometry is read only from the camera-side arm inside
+  an underwater pull that was followed; points the model draws during the recovery or behind
+  the body are reported as not verified and never measured. Every metric carries its own
+  status (reliable / limited / unavailable), evidence and limits; the tracking grade never
+  vouches for a metric.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
 - The LLM only rewords validated findings. Send it structured metrics, never videos, names
@@ -115,9 +125,11 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 
 0. Repository integration and preparation (done locally 2026-11-15, not pushed).
 1. Models, pose quality pipeline, and the minimum upload → job → result flow using
-   precomputed pose data (implemented and validated on real video locally 2026-11-15,
-   uncommitted). Pose files for the public test clips: `data/precomputed_pose/` (ignored).
-2. Biomechanics metrics (freestyle, underwater side view first), shown through that flow.
+   precomputed pose data (done, local commit `6aa3852`, not pushed). Pose files for the
+   public test clips: `data/precomputed_pose/` (ignored).
+2. Biomechanics metrics (freestyle, underwater side view first), shown through that flow
+   (implemented, then refined after a side-by-side visual check, on two real clips locally
+   2026-11-15; uncommitted, awaiting the owner's review). Manual annotations and check scripts: `experiments/phase2_validation/`.
 3. Personalized issue detection. 4. Feedback, checkpoints, verified evidence, LLM layer.
 5. History and optimization. 6. Training and calendar. 7. Hardening, full scenario tests,
    production inference and deployment evaluation.
@@ -128,7 +140,8 @@ the owner's approval. After each phase, stop and report.
 ## Testing and status claims
 
 - Before reporting: `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,
-  and in `frontend/`: `npm run lint`, `npm run build`. If something could not be run, say why.
+  and in `frontend/`: `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`. If
+  something could not be run, say why.
   `tests/test_emulator_rules.py` only runs when the emulators are up
   (`npm --prefix frontend run emulators`); say whether it ran or was skipped.
 - Synthetic or mocked tests never count as real-video validation. Report the two separately.

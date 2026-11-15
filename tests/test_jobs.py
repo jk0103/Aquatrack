@@ -52,13 +52,17 @@ def test_request_queues_then_run_reaches_ready_with_real_results(store, source):
     assert video["job"]["errorCode"] is None and video["job"]["finishedAt"] is not None
     summary = video["analysisSummary"]
     assert summary == {
-        "schemaVersion": "1.0",
+        "schemaVersion": "1.2",
         "grade": "good",
         "validPosePct": 100.0,
         "strokeMeasurable": True,
         "cyclesPerMin": 50.0,
-        "strokeCount": 14,
+        "strokeCount": None,  # the two-arm total of schema 1.0 is no longer produced
+        "cycleCount": 8,
+        "metricsReliable": summary["metricsReliable"],
+        "metricsLimited": summary["metricsLimited"],
     }
+    assert summary["metricsReliable"] >= 5
     doc = store.analyses[("vid1", video["latestAnalysisId"])]
     assert doc["uid"] == UID
     result = AnalysisResult.model_validate({k: v for k, v in doc.items() if k != "uid"})

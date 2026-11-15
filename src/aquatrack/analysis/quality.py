@@ -2,6 +2,10 @@
 
 The grade comes only from the measured data below, never from the kind of video. Known
 limits of a filming angle or stroke are reported separately as `filming_limitations`.
+
+The grade is about tracking only: was one swimmer followed, and were the joints placed. It
+says nothing about whether the stroke cycles were all found or whether a given metric can be
+trusted; those are separate levels in `AnalysisCoverage` (see `pipeline`).
 """
 
 import numpy as np
@@ -44,7 +48,6 @@ GOOD_MIN_VALID_PCT = 80.0
 GOOD_MIN_TRUNK_PCT = 80.0
 GOOD_MIN_ARMS_PCT = 60.0
 GOOD_MAX_OTHER_SWIMMER_PCT = 5.0
-GOOD_MIN_CYCLES = 4
 # Any of these makes the grade INSUFFICIENT.
 INSUFFICIENT_MAX_VALID_PCT = 40.0
 INSUFFICIENT_MIN_VALID_S = 2.0
@@ -129,14 +132,13 @@ def build_quality_report(
             (valid_pct >= GOOD_MIN_VALID_PCT, f"{valid_pct:.0f}% of frames have a usable pose"),
             (
                 parts["trunk"] >= GOOD_MIN_TRUNK_PCT,
-                f"shoulders and hips seen {parts['trunk']:.0f}%",
+                f"shoulders and hips placed {parts['trunk']:.0f}%",
             ),
-            (parts["arms"] >= GOOD_MIN_ARMS_PCT, f"elbows and wrists seen {parts['arms']:.0f}%"),
+            (parts["arms"] >= GOOD_MIN_ARMS_PCT, f"elbows and wrists placed {parts['arms']:.0f}%"),
             (
                 tracking.other_swimmer_pct <= GOOD_MAX_OTHER_SWIMMER_PCT,
                 f"{tracking.other_swimmer_pct:.0f}% of frames followed someone else",
             ),
-            (reliable_cycles >= GOOD_MIN_CYCLES, f"{reliable_cycles} reliable stroke cycles"),
         ]
         failed = [text for ok, text in checks if not ok]
         grade = QualityGrade.LIMITED if failed else QualityGrade.GOOD
