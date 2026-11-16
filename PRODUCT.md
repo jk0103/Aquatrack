@@ -24,6 +24,12 @@ with pose estimation, measures stroke mechanics (stroke rate, left-right balance
 rhythm), and interprets those numbers alongside the swimmer's goals, records and video history.
 Success is a swimmer who knows what to work on next and can see it improve over time.
 
+## Project nature
+
+A permanently free, noncommercial student research and educational project (owner's
+decision, 2026-11-16). No paid plan, subscription, advertising or commercial launch is
+planned at any time.
+
 ## Positioning
 
 Feedback is measured from the swimmer's own footage and read against their own history and

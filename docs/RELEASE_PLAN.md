@@ -1,5 +1,9 @@
 # GitHub and release preparation (plan only; nothing has been pushed)
 
+AquaTrack is permanently a free, noncommercial student project (owner's decision,
+2026-11-16). "Release" here means publishing the source and, separately, opening a free
+application to users. There is no commercial release.
+
 ## 1. Where things are
 
 - `main` and `origin/main`: `4ce80ca`, unchanged.
@@ -49,12 +53,12 @@ The full review of the two models, the strategies and the open questions is in
 
 | Component | Licence | Consequence |
 | --- | --- | --- |
-| Ultralytics YOLO11 (`ultralytics`, `yolo11m.pt`) | AGPL-3.0 or paid Enterprise (ultralytics.com/license; the repository's licence file) | **Blocker for a hosted service.** Ultralytics states that SaaS use needs either AGPL compliance (publishing the whole service's source under AGPL-3.0) or an Enterprise licence. Pretrained weights fall under the same licence |
+| Ultralytics YOLO11 (`ultralytics`, `yolo11m.pt`) | AGPL-3.0, or a paid licence (ultralytics.com/license; the repository's licence file) | **Blocker for any hosted use, free or not.** By Ultralytics' pages the test is open source or not. For this free student project the fitting route is publishing the whole project under AGPL-3.0; a paid licence is not an objective. Pretrained weights fall under the same licence |
 | MMPose / RTMW code, rtmlib | Apache-2.0 | fine; keep notices |
-| RTMW-x pretrained weights | trained on 14 datasets including COCO-WholeBody, whose repository says research and non-commercial use only | **Unclear for commercial use**; acceptable for a non-commercial project; needs permission or legal advice otherwise. The other datasets' terms were not checked |
+| RTMW-x pretrained weights | no stated terms; trained on 14 datasets, at least six of them research-only or noncommercial | **Unconfirmed even for free use.** A noncommercial project is within the wording of the restrictions found; the publisher has said nothing about the checkpoint. Ask before a public release |
 | ONNX Runtime | MIT | fine. CUDA and cuDNN in a GPU image have NVIDIA's own terms (not checked) |
 | FastAPI, Pydantic, NumPy, OpenCV, Firebase SDKs, Next.js, React, Tailwind, Playwright, OpenAI SDK | permissive (MIT, BSD, Apache-2.0) | fine; an automated licence report should confirm the whole tree |
-| This repository | **no LICENSE file** | must be decided; if YOLO11 stays and the service is hosted without an Enterprise licence, AGPL-3.0 is the only compliant choice |
+| This repository | **no LICENSE file** | AGPL-3.0 is the fitting choice if YOLO11 stays. Not to be added until contributor rights are confirmed and the owner explicitly approves (`docs/MODEL_LICENSING_DECISION.md`, section 4) |
 | `frontend/public/images/hero-butterfly.jpg` | source and licence not recorded in the repository | find the source or replace the image before publishing |
 | Public test clips | sources and licences are in the local, untracked `test_videos/public/SOURCES.md`; the clips are not in the repository | keep them out, or add only with their attribution |
 | Evidence and training sources | cited, not copied | fine |
@@ -76,6 +80,8 @@ a dependency audit (`npm audit`, `pip-audit`), a licence report, and secret scan
   interpretation 1.0, rules 2026.11-2, evidence 2026.11-1, feedback 1.0, comparison 1.0,
   training 1.0, activity library 2026.11-1.
 - Gates, each needing the owner's explicit approval: (1) push, (2) merge to `main`,
-  (3) staging deployment, (4) first real inference run, (5) any paid service, (6) production
-  Firebase, (7) public launch, which additionally needs every blocker in
+  (3) staging deployment, (4) first real inference run, (5) any cost at all (infrastructure
+  only: no commercial licence is planned), (6) production Firebase, (7) adding a licence file
+  or making the repository public, (8) opening the free application to the public, which
+  additionally needs every blocker in
   `docs/IMPLEMENTATION_STATUS.md` section 3 closed or consciously accepted.

@@ -10,6 +10,7 @@ import {
 import type { UploadTask } from "firebase/storage";
 
 import { useUser } from "@/app/components/AppShell";
+import { DemoUploadNotice } from "@/app/components/DemoNotice";
 import { FormError } from "@/app/components/fields";
 import { UploadIcon } from "@/app/components/icons";
 import {
@@ -19,6 +20,7 @@ import {
   LaneProgress,
   PageHeader,
 } from "@/app/components/ui";
+import { DEMO } from "@/app/lib/access";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { parseSwimTime } from "@/app/lib/profile";
 import {
@@ -217,6 +219,12 @@ export default function AnalyzePage() {
   return (
     <>
       <PageHeader title="Analyze a swim" />
+
+      {DEMO && (
+        <div className="mb-6">
+          <DemoUploadNotice />
+        </div>
+      )}
 
       <form
         onSubmit={onSubmit}

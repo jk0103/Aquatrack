@@ -14,9 +14,8 @@ from fastapi import Body, Depends, FastAPI, HTTPException
 
 from aquatrack import __version__
 from aquatrack.analysis.explain import explainer_from_env
-from aquatrack.analysis.pose.sources import pose_source_from_env
-from aquatrack.api import account, config, limits, training
-from aquatrack.api.firebase import CurrentUser, delete_auth_user
+from aquatrack.api import account, config, demo, limits, training
+from aquatrack.api.firebase import CurrentUser, delete_auth_user, sync_access_claims
 from aquatrack.api.jobs import (
     JobRequestError,
     JobRunner,
@@ -39,6 +38,13 @@ async def lifespan(_: FastAPI):
     jobs that were queued or running before a restart are picked up again."""
     for problem in config.validate("api"):
         log.error("configuration: %s", problem)
+    if config.restricted():
+        # The restricted security rules read a custom claim; keep it in step with the list
+        # of allowed accounts. A failure leaves the door closed, never open.
+        try:
+            log.info("access claims: %s", sync_access_claims(config.allowed_uids()))
+        except Exception as e:
+            log.error("access claims not synchronised: %s", type(e).__name__)
     try:
         get_runner()
     except Exception as e:  # the API still answers /health and says why it is not ready
@@ -55,9 +61,10 @@ app = FastAPI(title="Aquatrack", version=__version__, lifespan=lifespan)
 def get_runner() -> JobRunner:
     """The process-wide handle on the job queue (store + pose source), created on first
     use. In development it also runs the embedded worker thread."""
+    store = FirebaseStore()
     return JobRunner(
-        FirebaseStore(),
-        pose_source_from_env(ModelConfig.from_env()),
+        store,
+        demo.build_pose_source(store, ModelConfig.from_env()),
         embedded=config.worker_mode() == "embedded",
     )
 
@@ -100,6 +107,8 @@ def ready() -> dict:
     return {
         "status": "ready",
         "environment": config.environment(),
+        "access": config.access_mode(),
+        "demo": config.demo_mode(),
         "worker": config.worker_mode(),
         "queue": queue,
     }
@@ -120,6 +129,13 @@ def delete_my_account(body: Annotated[dict, Body()], user: CurrentUser, runner: 
 def me(user: CurrentUser) -> dict:
     """Who the Firebase ID token belongs to."""
     return {"uid": user.uid, "email": user.email, "name": user.name}
+
+
+@app.get("/access")
+def access(user: CurrentUser) -> dict:
+    """What this deployment is, for a signed-in account that may use it (others get 403
+    from the login check itself). The web app shows the demonstration notice from this."""
+    return {"access": config.access_mode(), "demo": config.demo_mode()}
 
 
 @app.post("/videos/{video_id}/analyze", status_code=202)

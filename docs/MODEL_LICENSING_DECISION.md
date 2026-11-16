@@ -16,11 +16,101 @@ Sources were read on 2026-11-16 (pages fetched and read as text; GitHub issues t
 public API), in two passes; the second (Phase 9A) re-read Ultralytics' pages and closed
 some gaps. Quotations are short; re-open the page before relying on exact wording.
 
-**Short version.** Keeping AquaTrack free does not by itself settle anything: Ultralytics'
-test is open source or not, not paid or not. Keeping the repository private does not by
-itself forbid every experiment either: the AGPL text permits running the program privately.
-Those two readings disagree about a private test, and only Ultralytics (or a lawyer) can
-close that gap. For RTMW-x, nobody has published terms for the checkpoint at all.
+## 0. Project direction (decided by the owner, 2026-11-16)
+
+**AquaTrack is, permanently, a completely free, noncommercial student research and
+educational project.** There is no plan for a paid service, a commercial SaaS or a
+subscription, now or in the future. Commercial licensing is therefore not an objective of
+this document any more; the commercial facts found are kept in sections 2 and 3 only
+because they explain what the rights holders restrict.
+
+What this decision does and does not do:
+
+- It removes the hardest question (commercial use of a model trained on noncommercial
+  data) from the project's path.
+- **It does not by itself resolve the licensing.** Ultralytics' test is open source or not,
+  not paid or not: a free service with closed source still needs its licence, by its own
+  pages. And the RTMW-x checkpoint still has no stated terms at all.
+- Keeping the repository private does not by itself forbid every experiment either: the
+  AGPL text permits running the program privately. Text and licensor's policy disagree
+  about a private test, and only Ultralytics (or a lawyer) can close that gap.
+- The models stay: YOLO11m and RTMW-x are kept unless their terms force an alternative.
+- Three uses are checked separately, because their requirements differ (section 5):
+  private research, open-source publication, and a free publicly accessible application.
+- Nothing is published, licensed, purchased or sent on the strength of this decision.
+
+## 0.1 Permission status
+
+Two kinds of record are kept apart here and must never be merged:
+
+- **Owner's report**: what the owner has told the project.
+- **Reviewed written evidence**: the rights holder's own words, read by whoever maintains
+  this record, with who wrote them, when, and through which channel.
+
+### Owner's report (2026-11-16)
+
+The owner reports having received confirmation from Ultralytics and from "the relevant
+RTMW-x parties" that their models may be used for this noncommercial student project.
+
+**Reviewed written evidence: none yet.** The confirmations themselves have not been seen by
+the maintainer of this record. Until they have been read, the licensing blockers are
+recorded as **"permission reported by the owner; scope not verified"**, not as resolved.
+This is not doubt about the report; it is that a one-line summary cannot show which uses a
+confirmation covers, and the uses differ.
+
+### What each confirmation has to show
+
+To be filled in from the written text, per rights holder. "Not stated" is a valid entry and
+means that use is still open for that party.
+
+| Scope item | Ultralytics (YOLO11m) | MMPose / RTMW authors (checkpoint) | COCO-WholeBody rights holders |
+| --- | --- | --- | --- |
+| Who confirmed, in what role, when, by what channel | to verify | to verify | to verify |
+| Which model exactly (package version, `yolo11m.pt`; the cocktail14 384x288 checkpoint) | to verify | to verify | to verify |
+| Private development with the repository still closed | to verify | to verify | to verify |
+| Cloud GPU inference (a hosted worker, not only a local machine) | to verify | to verify | to verify |
+| Model weights: downloading and holding them in a container image | to verify | to verify | not applicable |
+| ONNX conversion | to verify (we do not convert YOLO11m today) | to verify | to verify |
+| Free public deployment (anyone can sign up; no charge) | to verify, **and whether the source must be published under AGPL-3.0 for it** | to verify | to verify |
+| Open-source publication of our code | to verify (which parts) | to verify | to verify |
+| Attribution or notices required | to verify | to verify | to verify |
+| Redistribution of weights or converted models | to verify | to verify | to verify |
+| Conditions, limits, expiry, "this is not a licence" wording | to verify | to verify | to verify |
+
+Open points that a general "you may use it for a noncommercial student project" would not
+settle by itself:
+
+1. **Ultralytics and source publication.** Its published position is that the alternative
+   to a paid licence is open-sourcing the whole project. A confirmation may mean "yes, under
+   AGPL-3.0" (which implies publishing before a public deployment) or "yes, even closed".
+   These lead to different next steps.
+2. **Who "the relevant RTMW-x parties" are.** The checkpoint's publisher (OpenMMLab / the
+   RTMW authors) and the COCO-WholeBody rights holders are different parties, and the
+   checkpoint was trained on fourteen datasets. A confirmation from one does not speak for
+   the others. The other thirteen dataset owners were not asked; six of the fourteen carry
+   research-only or noncommercial wording, which a noncommercial project is within.
+3. **Private test against public deployment.** A reply to a question about a one-off private
+   evaluation does not necessarily cover an application open to the public.
+4. **Form.** A support reply, a forum post and a signed licence differ in weight. Record what
+   it is; do not upgrade it.
+
+### What the report changes now, and what it does not
+
+- For the **private GPU evaluation (Phase 9B)**: the model-use decision is the owner's to
+  make, and the owner reports permission. That item of the decision gate is recorded as
+  "owner reports permission; written scope not yet reviewed". The other gate items
+  (provider, billing exposure, resources, execution) are unchanged and still need the
+  owner's separate explicit authorisation.
+- For **open-source publication and a free public application**: nothing changes until the
+  written scope is reviewed. No licence file, no change of repository visibility, no
+  deployment.
+- For the **models**: unchanged. YOLO11m and RTMW-x, as prepared.
+
+### Where the written confirmations go
+
+In `docs/private/licensing/` (ignored by git; never committed): the messages as received,
+with sender, date and channel. Personal contact details stay there and are not copied into
+tracked files; this document records only the party, the date, the channel and the scope.
 
 ## 1. The models
 
@@ -192,94 +282,111 @@ policy pages, and no official page reconciles the two.
 3. Whether converting the checkpoint to ONNX, or running it server side without distributing
    it, changes anything. No source addresses it.
 4. The terms of seven of the fourteen datasets.
-5. What a commercial licence from the COCO-WholeBody rights holder would cost or require.
+5. Whether a free, public application counts as noncommercial use in each dataset owner's
+   sense.
 
-What can be said: a research or non-commercial project is within the wording of every
-dataset restriction found. A paid hosted service is exactly the case those restrictions
-are about, and is **not cleared**.
+What can be said: a research or noncommercial project, which AquaTrack permanently is, is
+within the wording of every dataset restriction found. That is not the same as the
+checkpoint's publisher or the dataset owners having confirmed it. (Paid use is exactly what
+those restrictions are about; it is out of scope by the owner's decision.)
 
-## 4. The strategies
+## 4. The options that fit a free student project
 
-| | A. Open-source AquaTrack under AGPL-3.0 | B. Ultralytics Enterprise licence | C. Replace the detector |
+### Detector (YOLO11m)
+
+| | A. Open-source AquaTrack under AGPL-3.0 | C. Replace the detector | B. Ultralytics paid licence |
 | --- | --- | --- | --- |
-| What it requires | Publish the service's source under AGPL-3.0 and offer it to users. By Ultralytics' policy: the whole project, publicly | Request a quote, sign, pay yearly; stop using on non-renewal | Choose a permissively licensed person detector, validate it, re-run the reference clips |
-| Solves YOLO11 | Yes, by the licensor's own policy | Yes | Yes (YOLO11 is no longer used) |
+| Fit with the project's direction | **The natural fit**: Ultralytics' free column is written for open, academic and personal projects | A contingency only | **Not an objective.** A commercial licence for a noncommercial project; no purchase without the owner's separate approval |
+| What it requires | Publish the whole project publicly under AGPL-3.0 (by Ultralytics' guide: backend, frontend, scripts, configuration, Dockerfiles), with a LICENSE file, notices and the credit line | Choose a permissively licensed person detector, validate it, re-run the reference clips | A quote, a signature, a yearly fee (price not published); R&D variant for closed evaluation only |
+| Solves YOLO11 | Yes, by the licensor's own policy | Yes (YOLO11 is no longer used) | Yes |
 | Solves RTMW-x | **No** | **No** | **No** |
-| GitHub repository | Becomes public, with an AGPL `LICENSE`; history stays as it is | May stay private; no licence file needed for that reason | No change for this reason |
-| Frontend and backend | Published too if "entire project" is followed; the safe reading is everything | No change | Backend: the detector class and model manifest; frontend: none |
-| Cost | No fee. Anyone may reuse the code under AGPL | Annual fee, not published | Engineering time; no licence fee |
-| Maintenance | Source must stay available for every deployed version | Renewal every year; lapse means removal | A new model to maintain; the Phase 1 comparison must be repeated for it |
-| Student ownership and attribution | The student's authorship stays in the history and copyright notices; every contributor must agree to the licence; the student's research code becomes public | Licensee would be an individual or an entity: to be decided who | None |
-| Extra technical work | Licence file, notices, a source link in the app, a check that nothing private is in the history | None | Significant: selection, validation, new thresholds; needs the owner's agreement (model research is closed) |
-| Controlled development testing now | See section 5 | See section 5 | Not needed for testing |
+| GitHub repository | Becomes public, with an AGPL `LICENSE`; history stays as it is | No change for this reason | May stay private |
+| Cost | No fee. Anyone may reuse the code under AGPL | Engineering time | A fee |
+| Before it can be done | **Contributor rights confirmed** (below); nothing private in the history; the owner's explicit approval | The owner's agreement (model research is closed) and new validation | The owner's approval and a decision on who the licensee is |
+| Extra technical work | Licence file, per-file notices, README section, a source link in the app | Significant | None |
 
 Switching the Python library while keeping the YOLO weights does not resolve anything:
 Ultralytics states that its weights stay AGPL in any runtime.
 
-None of the three settles RTMW-x. For the pose model the options are separate:
+**Contributor rights, before any publication under AGPL-3.0.** A licence can only be applied
+by those who hold the rights. To confirm first: (1) the student, as author of the original
+project and holder of the commits made in their name, agrees to publish under AGPL-3.0;
+(2) the teacher's contributions and the AI-assisted work committed under the student's
+identity are covered by that agreement; (3) the three early commits authored as "Claude" are
+accounted for; (4) third-party material is cleared or removed, in particular the hero photo
+whose source is not recorded; (5) the full history holds nothing private (it is published
+with the code); (6) if the work was done within a school, whether the school has any claim
+or policy. None of this has been checked with the people concerned.
 
-- **P1. Stay non-commercial.** A free student or research project is within the wording of
-  the dataset restrictions found. Still unconfirmed for the checkpoint itself.
-- **P2. Ask.** Put the questions in section 7 to the MMPose maintainers and the
-  COCO-WholeBody contact, and act on written answers.
-- **P3. Legal review** before any paid service.
-- **P4. A different pose model** whose training data allows commercial use: a larger change
-  than replacing the detector, with the whole metric validation to redo. A contingency only,
-  to be proposed separately if P1 to P3 fail.
+### Pose model (RTMW-x)
 
-### What this means in combination
+- **P1. Rely on the project being noncommercial.** A free student and research project is
+  within the wording of every dataset restriction found. Unconfirmed for the checkpoint
+  itself, which has no stated terms.
+- **P2. Ask.** Put the questions in section 8 to the MMPose maintainers and the
+  COCO-WholeBody contact, and act on written answers. Answers may be slow or never come.
+- **P3. A different pose model**, only if the terms turn out to forbid even free use: a
+  large change with the whole metric validation to redo; to be proposed separately.
 
-| Goal | Detector | Pose model |
+### In combination
+
+| Use | Detector | Pose model |
 | --- | --- | --- |
-| Free, open, non-commercial student project | A is sufficient by Ultralytics' policy | P1, ideally confirmed by P2 |
-| Private repository, free service | B, or C | P1/P2 |
-| Paid service | B (or A, if an open-source paid service is acceptable), or C | **Blocked** until P2/P3 give a clear answer, or P4 |
+| Private research and evaluation | disputed while the project is closed (section 6) | P1; nothing found against it |
+| Open-source publication | A, after contributor rights are confirmed | code references only; no weights are published |
+| Free public application | A is the fitting route; closed source would need a paid licence | P1, ideally confirmed by P2 |
 
-## 5. Decision table by kind of use
+## 5. Requirements by kind of use
 
+Checked separately, because being free and noncommercial does not make them the same.
 "Expressly permitted" means a rights holder's own page says so. "Disputed" means the licence
 text and the licensor's policy point different ways. "Unresolved" means nobody has said.
 
-### A. Free, non-commercial academic research (private repository, no public service)
+### 5.1 Private research and evaluation (private repository, no users, no service)
 
 | | YOLO11m | RTMW-x |
 | --- | --- | --- |
-| Expressly permitted | Academic research and coursework, "comfortable open-sourcing your entire project" (Ultralytics' free column). Running the unmodified program (AGPL section 2) | Research and non-commercial use, by every dataset restriction found |
-| Disputed | Doing it **without** publishing the project: the licence text permits private use; Ultralytics lists non-open R&D under paid licences | nothing found |
-| Unresolved | Whether Ultralytics would require its R&D licence for a one-off private test | Any terms for the checkpoint itself; seven datasets' terms |
-| What would settle it | A written answer from Ultralytics, or publishing under AGPL-3.0, or the R&D licence | A written answer from the MMPose maintainers |
+| Expressly permitted | Running the unmodified program (AGPL-3.0 section 2; private use is not conveying). Academic research and coursework, in Ultralytics' free column, framed by open-sourcing the project | Research and noncommercial use, by every dataset restriction found |
+| Disputed | Doing it **while the project is closed**: the licence text permits it; Ultralytics' pages list closed R&D and evaluation under paid licences | nothing found |
+| Unresolved | Whether Ultralytics would ask a student for its R&D licence for a one-off private test | Any terms for the checkpoint itself; seven datasets' terms |
+| What would settle it | A written answer from Ultralytics, or publishing under AGPL-3.0 first | A written answer from the MMPose maintainers |
 
-### B. Free, publicly accessible swimming application
-
-| | YOLO11m | RTMW-x |
-| --- | --- | --- |
-| Expressly permitted | Open-source applications with the full source public under AGPL-3.0, web applications included (backend and frontend), per Ultralytics' compliance guide | nothing: no page addresses a public service |
-| Not permitted without a licence, per the licensor | A free public service whose source is closed: "SaaS platforms, APIs, or cloud systems" need Enterprise. Being free of charge is not the test | — |
-| Disputed | Whether section 13 is even triggered by an unmodified dependency behind a separate web frontend | Whether "non-commercial" dataset terms reach a free public service using a model trained on them |
-| Unresolved | A literal statement that open-sourcing is sufficient for a hosted free service | Checkpoint terms; whether a free public service counts as non-commercial for each dataset owner |
-| What would settle it | Strategy A (publish under AGPL-3.0) plus Ultralytics' written confirmation; or Enterprise | Written answers from MMPose and the COCO-WholeBody contact |
-
-### C. Closed-source commercial application
+### 5.2 Open-source publication (the code made public; no service offered)
 
 | | YOLO11m | RTMW-x |
 | --- | --- | --- |
-| Expressly permitted | With an Enterprise licence (annual fee, price on request) | nothing |
-| Not permitted without a licence, per the licensor | Any closed commercial product | COCO-WholeBody, MPII, 300W, InterHand2.6M, Human-Art and LaPa's README restrict commercial use of the data |
-| Unresolved | Price and terms for a small project or an individual | Whether those data terms bind the trained weights; what a commercial licence from the COCO-WholeBody rights holder costs; six other datasets |
-| What would settle it | A quote and a signed Enterprise licence, or replacing the detector | Written permission or licences from the rights holders, legal advice, or a different pose model |
+| Expressly permitted | Publishing a project that uses the package under AGPL-3.0: this is what Ultralytics asks for | Publishing code that uses MMPose-derived tooling: Apache-2.0, keep notices |
+| Required | The whole project under AGPL-3.0, publicly: LICENSE file, notice in each source file, README with licence, build and run instructions and the Ultralytics credit line; scripts, configuration and Dockerfiles included; backend and frontend | Apache-2.0 notices for any MMPose or rtmlib code that is copied (we copy none today; we depend on rtmlib) |
+| Weights | Not in the repository; users fetch `yolo11m.pt` from Ultralytics. If weights were ever published they would be AGPL by Ultralytics' statement | Not in the repository; users fetch the checkpoint from OpenMMLab and export it. **Do not publish our ONNX export**: redistribution rights for the checkpoint are unknown |
+| Unresolved | Whether every part of the repository (web frontend, non-inference backend) must be AGPL; the safe reading is all of it | Whether naming and scripting the download of a checkpoint without terms needs anything |
+| Preconditions on our side | Contributor rights (section 4); nothing private in the history; the owner's explicit approval. **Not done, not started** | the same |
 
-### D. Paid swimming analysis SaaS
+Publication also affects other things than the models: the public test clips are CC BY-SA
+and are not in the repository; the evidence and training sources are cited, not copied.
+
+### 5.3 Free, publicly accessible application (anyone can sign up and upload; no charge)
 
 | | YOLO11m | RTMW-x |
 | --- | --- | --- |
-| Expressly permitted | Enterprise licence; or (by the AGPL's own terms) an open-source paid service with the whole source public | nothing |
-| Not permitted without a licence, per the licensor | Closed SaaS using YOLO "behind the scenes" | the same data restrictions as C; this is the case they are written for |
-| Unresolved | the same as C | the same as C. **This is the hardest blocker in the whole project** |
-| What would settle it | the same as C | the same as C |
+| Expressly permitted | Open-source applications with the full source public under AGPL-3.0, web applications included, per Ultralytics' compliance guide | nothing: no page addresses a public service |
+| Not permitted without a licence, per the licensor | A free public service whose source is closed: "SaaS platforms, APIs, or cloud systems" need its licence. **Free of charge is not the test** | — |
+| Disputed | Whether AGPL section 13 is even triggered by an unmodified dependency behind a separate web frontend. Complying anyway (offering the source) removes the question | Whether a free public service counts as "noncommercial" in each dataset owner's sense when a model trained on the data is used. For CC BY-NC material Creative Commons says it depends on whether the use is primarily for commercial advantage; the other datasets use their own wording |
+| Unresolved | A literal statement from Ultralytics that open-sourcing is sufficient for a hosted free service | Checkpoint terms; the same seven datasets |
+| What would settle it | Strategy A plus Ultralytics' written confirmation | Written answers from MMPose and the COCO-WholeBody contact |
+| Other duties a public service brings | Under AGPL: a visible way for users to get the source of the running version | Privacy and data-protection duties for users' videos, which no licence covers (`docs/DATA_LIFECYCLE.md`) |
 
-**No row above is legal clearance.** A is the only use for which nothing found speaks
-against it, provided either the project is open or Ultralytics agrees; D is not cleared for
-either model.
+**None of these is legal clearance.** In short: private research is permitted by the licence
+texts and not confirmed by Ultralytics; open-source publication is the route Ultralytics
+itself offers and waits on contributor rights and the owner's approval; a free public
+application is, for the detector, the same route plus source access for users, and for the
+pose model rests on its being noncommercial, which nobody has confirmed for the checkpoint.
+
+### Out of scope by decision
+
+Closed-source commercial use and paid services are not pursued. For the record only: they
+would need an Ultralytics Enterprise licence and, for RTMW-x, clearance that does not exist
+today (sections 2 and 3). If the project's direction ever changed, this would have to be
+done from the beginning; nothing here prepares for it.
 
 ## 6. A private technical evaluation (the proposed GPU test)
 
@@ -296,12 +403,16 @@ So the test is **permitted on the licence text and not confirmed, arguably exclu
 licensor's own policy**. There is no documented permission from Ultralytics. The ways to run
 it with the licensor's position respected, in order of effort:
 
-1. **Ask first** (draft below) and run it after a written yes.
+1. **Ask first** (draft below) and run it after a written yes. No cost; fits a student
+   project; the answer also settles the questions for publication and a free public service.
 2. **Publish the project under AGPL-3.0 first** (strategy A): then the test is an evaluation
-   in an open-source environment, which the free column lists.
-3. **Buy the single-project R&D licence** (price not published).
-4. **Run it on the licence text alone**, accepting that Ultralytics' pages do not agree.
+   in an open-source environment, which the free column lists. Needs contributor rights
+   confirmed and the owner's explicit approval (section 4); not automatic.
+3. **Run it on the licence text alone**, accepting that Ultralytics' pages do not agree.
    This is a risk the owner would be taking knowingly, not a cleared path.
+4. Buy Ultralytics' single-project R&D licence. Listed for completeness: a commercial
+   licence is not an objective of this project, and nothing is purchased without the
+   owner's separate approval.
 
 This document does not choose. Conditions in any case: one-off, no users, no payment, public
 test video only, image and weights deleted afterwards, weights never redistributed, the test
@@ -327,8 +438,11 @@ None of this has been added to the app or the repository; it follows the licensi
 
 ## 8. Inquiry drafts (**not sent; nobody has been contacted; no permission has been given**)
 
-Fill in the bracketed parts. Send from the person who will hold the licence or run the
-project. The drafts state facts about AquaTrack as they are today.
+Fill in the bracketed parts. Send from the person who runs the project (the owner, or the
+student as author). Each draft describes AquaTrack as it is: a permanently free,
+noncommercial student research and educational project. They ask about private research,
+open-source publication and a free public application, and say plainly that there are no
+commercial plans.
 
 ### 8.1 Ultralytics
 
@@ -336,18 +450,20 @@ project. The drafts state facts about AquaTrack as they are today.
 reply within 24 hours). The form asks for: first and last name, **business email**, company
 size, **company website**, industry (the list includes Education), and a free-text use case
 (up to 5,000 characters). There is no field for an individual or a student project, so say
-so in the text. The page's fallback address is license@ultralytics.com; staff name the
-Contact form (topic "Licensing") as the alternative.
+so in the text; a school email and the school's website are the accurate answers. The
+page's fallback address is license@ultralytics.com; staff name the Contact form (topic
+"Licensing") as the alternative.
 
 **Use-case text / email:**
 
-> Subject: Licensing question for a student project using YOLO11m (AGPL-3.0 / Enterprise / R&D)
+> Subject: Licensing question from a free, noncommercial student project using YOLO11m
 >
 > Hello,
 >
-> I am writing about AquaTrack, a swimming-technique analysis web application developed as
-> a student project [by NAME, with TEACHER/INSTITUTION]. It is not a company and has no
-> revenue. The repository is currently private.
+> I am writing about AquaTrack, a swimming-technique analysis web application. It is a
+> permanently free, noncommercial student research and educational project [by NAME, with
+> TEACHER/INSTITUTION]. It is not a company, has no revenue, and will never charge users,
+> sell subscriptions or carry advertising. The repository is currently private.
 >
 > How we use your software: the unmodified `ultralytics` Python package (version 8.4.210)
 > and the pretrained `yolo11m.pt` weights from your v8.3.0 release, for person detection
@@ -358,28 +474,25 @@ Contact form (topic "Licensing") as the alternative.
 > We would like to follow your licensing terms and would be grateful for written answers to
 > the following:
 >
-> 1. Private evaluation. May we run a one-off, private, non-commercial technical test of the
->    unmodified package and weights on a cloud GPU (one public test video, no users, no
->    service offered) under AGPL-3.0, or does this require your R&D licence?
+> 1. Private research. May we run a one-off, private, noncommercial technical evaluation of
+>    the unmodified package and weights on a cloud GPU (one public test video, no users, no
+>    service offered) under AGPL-3.0 while the repository is still private?
 > 2. Privately hosted proof of concept. May a student-developed application use the
->    pretrained model in a privately hosted proof of concept with no public access, and
->    under which licence?
-> 3. Open source. If we publish the project under AGPL-3.0, which parts must be published:
->    the inference worker only, the whole backend, the separate web frontend? Is publishing
->    the complete project sufficient to operate it as a free public web service?
-> 4. Free public service. What applies to a free, public web service (no payment, no
->    advertising) if the source is published under AGPL-3.0, and if it is not?
-> 5. Commercial SaaS. What licence would a paid subscription service need, and is there an
->    indicative price or minimum fee for a single small project run by an individual or a
->    very small team?
-> 6. ONNX. If we exported `yolo11m.pt` to ONNX and ran it with ONNX Runtime, without your
+>    pretrained model in a privately hosted proof of concept with no public access, under
+>    AGPL-3.0?
+> 3. Open-source publication. If we publish the project under AGPL-3.0, which parts must be
+>    published: the inference worker only, the whole backend, the separate web frontend?
+> 4. Free public application. If the complete project is published under AGPL-3.0, is that
+>    sufficient to operate it as a free, public, noncommercial web application? Is anything
+>    further required, for example how users are offered the source?
+> 5. ONNX. If we exported `yolo11m.pt` to ONNX and ran it with ONNX Runtime, without your
 >    package at run time, would any of the answers above change?
-> 7. Academic terms. Is there an academic, educational, student or evaluation licence or
->    discount for the Enterprise or R&D licences?
-> 8. Notices. Which copyright, licence and attribution notices must we retain or display
->    under AGPL-3.0, and under an Enterprise licence?
+> 6. Academic terms. Is there an academic, educational, student or evaluation arrangement
+>    that would apply to a project like this?
+> 7. Notices. Which copyright, licence and attribution notices must we retain or display?
 >
-> We have not deployed the application and will not use the model beyond what you confirm.
+> We have no commercial plans and are not seeking a commercial licence. We have not
+> deployed the application and will not use the model beyond what you confirm.
 > Thank you for your help.
 >
 > [NAME, ROLE, CONTACT]
@@ -387,19 +500,20 @@ Contact form (topic "Licensing") as the alternative.
 ### 8.2 OpenMMLab / MMPose maintainers and the RTMW authors
 
 **Routes:** no licensing or business contact is published. What is published: GitHub
-issues on https://github.com/open-mmlab/mmpose (an existing open issue, #3278, asks the same
-question about RTMW cocktail14 weights and is unanswered; adding to it may be more useful
-than a new issue); the authors' addresses printed on the RTMW paper (arXiv 2407.08634:
-Tao Jiang, Xinchen Xie, Yining Li, Shanghai AI Laboratory); the package contact
-openmmlab@gmail.com in MMPose's `setup.py`. A GitHub issue is public: write nothing private
-in it.
+issues on https://github.com/open-mmlab/mmpose (an existing open issue, #3278, asks about
+RTMW cocktail14 weights and is unanswered; adding to it may be more useful than a new
+issue); the authors' addresses printed on the RTMW paper (arXiv 2407.08634: Tao Jiang,
+Xinchen Xie, Yining Li, Shanghai AI Laboratory); the package contact openmmlab@gmail.com in
+MMPose's `setup.py`. A GitHub issue is public: leave out the name and contact line there.
 
-> Subject: Usage terms of the RTMW-x cocktail14 checkpoint (rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122.pth)
+> Subject: Usage terms of the RTMW-x cocktail14 checkpoint for a free, noncommercial student project
 >
 > Hello,
 >
 > Thank you for MMPose and RTMW. I am writing about AquaTrack, a swimming-technique analysis
-> application developed as a student project. We use exactly one of your released models:
+> application. It is a permanently free, noncommercial student research and educational
+> project; it will never charge users or be offered commercially. We use exactly one of
+> your released models:
 >
 >   rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122.pth
 >   (RTMW-x, 384x288, 133 keypoints, from projects/rtmpose)
@@ -410,22 +524,24 @@ in it.
 >
 > The repository states Apache-2.0 for the code, but we could not find terms for the
 > pretrained checkpoint itself, and the model card lists fourteen training datasets, some of
-> which restrict commercial use. Could you tell us:
+> which are for research or noncommercial use only. Could you tell us:
 >
 > 1. Under what licence or terms is this checkpoint released? Is it covered by the
 >    repository's Apache-2.0 licence?
-> 2. Is private, non-commercial, research-only evaluation of it on a GPU permitted?
+> 2. Private research. Is private, noncommercial, research-only evaluation of it on a GPU
+>    permitted?
 > 3. May a student-developed application use it in a privately hosted proof of concept?
-> 4. If the project is published as open source, what must we do regarding the checkpoint
->    (we would not include the weights; users would download them from your host)?
-> 5. May it be used in a free, public web service?
-> 6. What would be required for a paid commercial service? Is there a written commercial
->    licensing process, or a checkpoint trained only on data that permits commercial use?
-> 7. Does converting it to ONNX change any of these conditions?
-> 8. Which copyright, licence or citation notices should we retain or display?
+> 4. Open-source publication. If we publish our project's source, what must we do regarding
+>    the checkpoint? We would not include the weights or our ONNX file; users would download
+>    the checkpoint from your host and convert it themselves.
+> 5. Free public application. May it be used in a free, public, noncommercial web
+>    application run by a student project?
+> 6. Does converting it to ONNX change any of these conditions?
+> 7. Which copyright, licence or citation notices should we retain or display?
 >
-> We understand you may not be able to speak for the dataset owners; your own position as
-> the publisher of the checkpoint would already help us a great deal.
+> We have no commercial plans. We understand you may not be able to speak for the dataset
+> owners; your own position as the publisher of the checkpoint would already help us a
+> great deal.
 >
 > Thank you.
 >
@@ -434,38 +550,42 @@ in it.
 ### 8.3 COCO-WholeBody rights holders
 
 **Route:** the dataset's README (https://github.com/jin-s13/COCO-WholeBody, "Terms of Use",
-item 2) names a contact for commercial use, with a second person in copy. Use the addresses
-exactly as printed there. Note for the owner: the README's text names CC BY 4.0 while its
-link points to CC BY-NC 4.0; question 1 asks about that.
+item 2) names a contact, with a second person in copy. It is given there for commercial
+usage; it is the only contact published, so it is also where to ask whether a noncommercial
+use is within the terms. Use the addresses exactly as printed there. Note for the owner: the
+README's text names CC BY 4.0 while its link points to CC BY-NC 4.0; question 1 asks about
+that.
 
-> Subject: Use of a third-party model trained partly on COCO-WholeBody (RTMW-x from MMPose)
+> Subject: Noncommercial student project using a third-party model trained partly on COCO-WholeBody
 >
 > Dear Mr. Malon, dear Dr. Jin,
 >
-> I am writing about AquaTrack, a swimming-technique analysis application developed as a
-> student project. We do not use, hold or redistribute the COCO-WholeBody dataset or its
-> annotations. We use a pretrained model published by OpenMMLab MMPose,
+> I am writing about AquaTrack, a swimming-technique analysis application. It is a
+> permanently free, noncommercial student research and educational project; it will never
+> charge users or be offered commercially. We do not use, hold or redistribute the
+> COCO-WholeBody dataset or its annotations. We use a pretrained model published by
+> OpenMMLab MMPose,
 > `rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122.pth`, whose model card
 > lists COCO-WholeBody as one of fourteen training datasets. We run it for inference only,
-> server side, converted to ONNX.
+> server side, converted to ONNX, and we do not redistribute it.
 >
-> Your Terms of Use state that the dataset is only for research and non-commercial use and
-> ask that you be contacted for commercial usage. We would like to respect them and ask:
+> Your Terms of Use state that the dataset is only for research and noncommercial use. We
+> would like to be sure our use is within them and ask:
 >
 > 1. Which licence applies to the annotations: CC BY 4.0, as the README text says, or
 >    CC BY-NC 4.0, as its link indicates?
 > 2. Do your terms apply to the use of a third-party model that was trained partly on
 >    COCO-WholeBody, when the user has no access to the dataset?
-> 3. Is private, non-commercial, research-only evaluation of such a model permitted?
-> 4. Is use in a student-developed, privately hosted proof of concept permitted?
-> 5. Is use in a free, public web service permitted?
-> 6. For a paid commercial service, is a licence from you required, and if so is there a
->    written licensing process and an indicative price?
-> 7. Does converting the model to ONNX change anything?
-> 8. Which notices or citations should we retain or display?
+> 3. Private research. Is private, noncommercial, research-only evaluation of such a model
+>    within your terms?
+> 4. Open-source publication. If we publish our own source code (without the model weights
+>    and without any COCO-WholeBody data), does anything in your terms apply?
+> 5. Free public application. Is use of such a model in a free, public, noncommercial web
+>    application run by a student project within your terms?
+> 6. Does converting the model to ONNX change anything?
+> 7. Which notices or citations should we retain or display?
 >
-> We have not deployed the application and will not use the model commercially without
-> your answer.
+> We have no commercial plans and are not asking for a commercial licence.
 >
 > Thank you for your time.
 >
@@ -473,12 +593,19 @@ link points to CC BY-NC 4.0; question 1 asks about that.
 
 ## 9. Decisions for the owner
 
-1. Which of A to D is AquaTrack meant to be, now and later? (Section 5.)
-2. Detector strategy: open-source under AGPL-3.0, an Ultralytics licence (R&D or
-   Enterprise), or a replacement.
-3. The private GPU test: which of the four ways in section 6.
-4. May the drafts in section 8 be sent, and by whom (the owner, or the student as author)?
-5. Is legal review wanted before any hosted, public use?
+Decided (2026-11-16): AquaTrack is permanently free and noncommercial. Reported by the
+owner (2026-11-16): permission from Ultralytics and the relevant RTMW-x parties; its written
+scope is not yet reviewed (section 0.1). Still open:
 
-Until these are answered: no licence file, no publication, no public deployment, no
-inquiry sent, and commercial use stays blocked.
+0. Provide the written confirmations so the table in section 0.1 can be filled in.
+
+1. Detector route: open-source under AGPL-3.0 (the fitting one), or a replacement if the
+   terms force it. A paid licence is not an objective.
+2. If AGPL-3.0: confirm contributor rights (section 4) and give explicit approval before
+   any licence file is added or the repository is made public. Neither happens automatically.
+3. The private GPU test: which of the ways in section 6.
+4. May the drafts in section 8 be sent, and by whom (the owner, or the student as author)?
+5. Is legal review wanted before a free public application is opened to users?
+
+Until these are answered: no licence file, no publication, no change of visibility, no
+public deployment, no inquiry sent, no purchase.

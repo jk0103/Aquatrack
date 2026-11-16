@@ -1,0 +1,75 @@
+# Render blueprint for the account-restricted school demonstration.
+# NOT applied automatically: nothing is created until the owner approves it and opens this
+# blueprint in their own Render account. See docs/SCHOOL_DEMO_DEPLOYMENT.md.
+#
+# Two web services, no GPU, no models:
+#   aquatrack-demo-api  FastAPI + the analysis worker as a thread in the same process
+#                       (saved pose data for the approved test video; CPU only)
+#   aquatrack-demo-web  Next.js; the browser only ever talks to this one, which forwards
+#                       /api/* to the API (so there is no CORS setup)
+# Values marked `sync: false` are typed into Render by the owner and never stored in git.
+
+services:
+  - type: web
+    name: aquatrack-demo-api
+    runtime: python
+    plan: starter # always on. `free` sleeps after 15 idle minutes and wakes slowly.
+    region: oregon
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --no-dev uvicorn aquatrack.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: AQUATRACK_ENV
+        value: staging
+      - key: AQUATRACK_ALLOW_PRODUCTION_FIREBASE
+        value: "1" # required by the code for any real project; here: the demo's project
+      - key: AQUATRACK_DEMO
+        value: "1"
+      - key: AQUATRACK_ACCESS
+        value: restricted
+      - key: AQUATRACK_POSE_SOURCE
+        value: precomputed
+      - key: AQUATRACK_PRECOMPUTED_POSE_DIR
+        value: /tmp/aquatrack-pose
+      - key: AQUATRACK_WORKER
+        value: embedded
+      - key: AQUATRACK_ALLOWED_UIDS # Firebase uids of the demo accounts, comma separated
+        sync: false
+      - key: FIREBASE_PROJECT_ID # the Firebase project approved for the demo
+        sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS # path of the Secret File holding the key
+        value: /etc/secrets/firebase-demo.json
+
+  - type: web
+    name: aquatrack-demo-web
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start
+    autoDeploy: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: API_URL # https URL of aquatrack-demo-api; read when the site is built
+        sync: false
+      - key: NEXT_PUBLIC_AQUATRACK_ACCESS
+        value: restricted
+      - key: NEXT_PUBLIC_AQUATRACK_DEMO
+        value: "1"
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false

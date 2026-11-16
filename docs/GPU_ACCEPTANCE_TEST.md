@@ -124,5 +124,8 @@ instant nor cover the build and storage, so no figure can be guaranteed.
 
 ## 4. What the test does not show
 
+(AquaTrack is permanently a free, noncommercial student project; the cost comparison above
+is about what its owner would pay to run it, not about a commercial service.)
+
 Accuracy on new swimmers, behaviour under load, cost at volume, licence clearance, or
 anything about a production deployment. One clip processed correctly is one clip.

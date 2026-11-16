@@ -18,6 +18,7 @@ import {
 } from "@/app/components/icons";
 import { Logo } from "@/app/components/Logo";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { checkAccess } from "@/app/lib/access";
 import { auth } from "@/app/lib/firebase";
 
 const nav = [
@@ -57,9 +58,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(
     () =>
-      onAuthStateChanged(auth, (firebaseUser) => {
+      onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) {
           router.replace("/login");
+          return;
+        }
+        // Restricted deployments: an account the backend doesn't allow is signed out
+        // again (which brings this back round to the login page). The backend and the
+        // security rules refuse it either way.
+        if ((await checkAccess()) === "denied") {
+          await signOut(auth);
           return;
         }
         setUser({

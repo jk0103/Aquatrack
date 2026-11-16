@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
+import { RESTRICTED } from "@/app/lib/access";
 import { FormError, PasswordField, SubmitButton, TextField } from "@/app/components/fields";
 import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import { useFormSubmit } from "@/app/lib/useFormSubmit";
@@ -11,6 +12,27 @@ import { useFormSubmit } from "@/app/lib/useFormSubmit";
 const MIN_PASSWORD = 8;
 
 export default function SignupPage() {
+  return RESTRICTED ? <SignupClosed /> : <SignupForm />;
+}
+
+function SignupClosed() {
+  return (
+    <>
+      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Sign-up is closed</h1>
+      <p className="mt-4 text-sm text-slate-600">
+        This demonstration is open to invited accounts only. New accounts can&apos;t be
+        created here.
+      </p>
+      <p className="mt-8 text-center text-sm text-slate-600">
+        <Link href="/login" className="font-semibold text-sky-700 hover:text-sky-900">
+          Go to log in
+        </Link>
+      </p>
+    </>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
   const { error, pending, onSubmit } = useFormSubmit(async (form) => {
     const name = String(form.get("name") ?? "").trim();

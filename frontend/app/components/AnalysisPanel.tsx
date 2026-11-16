@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { SavedPoseNotice } from "@/app/components/DemoNotice";
 import { Badge, Button, Card, LoadingState } from "@/app/components/ui";
 import {
   formatMetric,
@@ -64,14 +65,24 @@ export function AnalysisPanel({
         </Card>
       );
     // Results from before metrics existed (schema 1.0) keep their original layout.
-    return analysis.metrics.length > 0 && analysis.coverage ? (
-      <MetricResults
-        analysis={analysis}
-        coverage={analysis.coverage}
-        onSeek={onSeek}
-      />
+    const results =
+      analysis.metrics.length > 0 && analysis.coverage ? (
+        <MetricResults
+          analysis={analysis}
+          coverage={analysis.coverage}
+          onSeek={onSeek}
+        />
+      ) : (
+        <Results analysis={analysis} onSeek={onSeek} />
+      );
+    // Say so whenever the pose data was saved earlier instead of produced for this upload.
+    return analysis.poseSource === "precomputed" ? (
+      <div className="space-y-4">
+        <SavedPoseNotice />
+        {results}
+      </div>
     ) : (
-      <Results analysis={analysis} onSeek={onSeek} />
+      results
     );
   }
   return <JobStatus video={video} />;

@@ -1,5 +1,11 @@
 # Deployment plan (for approval; nothing is deployed)
 
+**Scope (owner's decision, 2026-11-16):** AquaTrack is permanently a free, noncommercial
+student research and educational project. This plan is about what it would cost and take to
+test and, if approved, run that free project. There is no commercial launch, no paid tier
+and no revenue in it. Small infrastructure costs are possible only when the owner approves
+each one.
+
 Prepared 2026-11-16. Nothing here has been created, bought or configured. Prices were read
 on the providers' own pages on that date; many were read through an automated page fetch, so
 **re-open the linked page before putting a number in a budget**. Three kinds of figure are
@@ -86,7 +92,9 @@ because one is easier to host would throw away the validation done so far.
 
 The first controlled run, its tolerances and its budget: `docs/GPU_ACCEPTANCE_TEST.md`.
 
-## 4. Budget for a small pilot (estimate)
+## 4. Monthly cost of running the free project at small scale (estimate)
+
+Paid by the project's owner; nothing is recovered from users.
 
 | Item | Monthly | Basis |
 | --- | --- | --- |
@@ -96,7 +104,7 @@ The first controlled run, its tolerances and its budget: `docs/GPU_ACCEPTANCE_TE
 | Firebase Blaze | about $0 to $5 | Firestore free quota 50,000 reads, 20,000 writes a day and 1 GiB (confirmed); Storage about $0.02 to $0.026 per GB-month (confirmed for us-central1 / legacy buckets); 20 GB of video is about $0.50 (derived). Storage now requires the Blaze plan (confirmed) |
 | Inference, 100 to 1,000 videos | $3 to $45 | section 3, assumed speed |
 | OpenAI rewording, if enabled | under $1 | at most about $0.003 a call (derived from list price and the output bound) |
-| **Total** | **about $20 to $100** | excludes licences (section 5), domain, monitoring, legal review |
+| **Total** | **about $20 to $100** | excludes a domain and monitoring. No licence fee is planned |
 
 Not verified: Cloud Storage internet egress for the new bucket type, prices outside US
 regions, Ultralytics Enterprise price, RunPod per-second and compliance details, Render's
@@ -104,15 +112,17 @@ plan-level compliance offerings.
 
 ## 5. Costs and blockers that are not hosting
 
-- **Ultralytics YOLO11 licence.** AGPL-3.0, or a paid Enterprise licence. Ultralytics states
-  that using YOLO behind a hosted service needs one or the other. Decide before any public
-  deployment: publish the whole service under AGPL-3.0, buy the licence (price not
-  published), or replace the detector with a permissively licensed one (which is model work
-  and would need the owner's agreement and new validation).
-- **RTMW weights.** Code is Apache-2.0; the stock checkpoint was trained on a mix that
-  includes COCO-WholeBody, which its authors restrict to research and non-commercial use.
-  Fine for a non-commercial project; needs permission or legal advice before charging users.
-- Details and sources: `docs/RELEASE_PLAN.md`.
+- **Ultralytics YOLO11 licence.** AGPL-3.0, or a paid licence. Ultralytics states that
+  using YOLO behind a hosted service needs one or the other, **whether or not the service
+  is free**. For a free student project the fitting route is publishing the whole project
+  under AGPL-3.0, which needs contributor rights confirmed and the owner's explicit
+  approval; replacing the detector is the contingency; a paid licence is not an objective.
+- **RTMW weights.** Code is Apache-2.0; the checkpoint has no stated terms and was trained
+  on a mix that includes research-only and noncommercial datasets. A noncommercial project
+  is within the wording of those restrictions, but nobody has confirmed that for the
+  checkpoint, and a free public application should ideally have a written answer first.
+- Details, the three uses checked separately, and the inquiry drafts:
+  `docs/MODEL_LICENSING_DECISION.md`.
 
 ## 6. Environments
 

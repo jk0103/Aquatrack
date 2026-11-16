@@ -304,6 +304,8 @@ def test_health_says_alive_and_readiness_reports_counts_only(client, store, monk
     assert body == {
         "status": "ready",
         "environment": "emulator",
+        "access": "open",
+        "demo": False,
         "worker": "embedded",
         "queue": {"queued": 1, "analyzing": 0},
     }

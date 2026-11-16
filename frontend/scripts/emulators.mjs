@@ -35,9 +35,14 @@ if (current < 21) {
   console.log(`Using the JDK at ${home} (default java is ${current || "missing"}).`);
 }
 
+// `--restricted` loads the restricted rules (firebase/restricted/), to rehearse the
+// account-restricted demonstration locally. Still the emulators, still the demo- project.
+const config = process.argv.includes("--restricted")
+  ? "../firebase.restricted.json"
+  : "../firebase.json";
 const child = spawn(
   "firebase",
-  ["emulators:start", "--project", "demo-aquatrack", "--config", "../firebase.json"],
+  ["emulators:start", "--project", "demo-aquatrack", "--config", config],
   { stdio: "inherit", env },
 );
 child.on("exit", (code) => process.exit(code ?? 0));

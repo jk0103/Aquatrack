@@ -396,6 +396,20 @@ class FirebaseStore:
     def download_video(self, storage_path: str, dest: Path) -> None:
         self._bucket.blob(storage_path).download_to_filename(str(dest))
 
+    def fetch_pose_fixture(self, sha256: str, dest: Path) -> bool:
+        """Copy the demonstration's saved pose file for this exact video hash from the
+        bucket, if there is one. Used only by the restricted demonstration (api/demo.py)."""
+        if not (len(sha256) == 64 and all(c in "0123456789abcdef" for c in sha256)):
+            return False
+        blob = self._bucket.blob(f"demo_fixtures/pose/{sha256}.rawpose.npz")
+        if not blob.exists():
+            return False
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        partial = dest.with_name(dest.name + ".part")
+        blob.download_to_filename(str(partial))
+        partial.replace(dest)
+        return True
+
     def save_analysis(self, video, analysis_id, result, files):
         saved = {}
         for name, path in files.items():

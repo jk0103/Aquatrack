@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 
+import { ACCESS_DENIED, checkAccess, RESTRICTED } from "@/app/lib/access";
 import { FormError, PasswordField, SubmitButton, TextField } from "@/app/components/fields";
 import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import { useFormSubmit } from "@/app/lib/useFormSubmit";
@@ -18,6 +19,14 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       return describeFirebaseError(err);
+    }
+    // A restricted deployment admits only the accounts the backend allows.
+    const access = await checkAccess();
+    if (access !== "ok") {
+      await signOut(auth);
+      return access === "denied"
+        ? ACCESS_DENIED
+        : "Couldn't confirm this account's access. Wait a moment and try again.";
     }
     router.replace("/");
     return null;
@@ -41,12 +50,18 @@ export default function LoginPage() {
         <SubmitButton pending={pending}>Log in</SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-600">
-        New to Aquatrack?{" "}
-        <Link href="/signup" className="font-semibold text-sky-700 hover:text-sky-900">
-          Create an account
-        </Link>
-      </p>
+      {RESTRICTED ? (
+        <p className="mt-8 text-center text-sm text-slate-600">
+          This demonstration is open to invited accounts only. Sign-up is closed.
+        </p>
+      ) : (
+        <p className="mt-8 text-center text-sm text-slate-600">
+          New to Aquatrack?{" "}
+          <Link href="/signup" className="font-semibold text-sky-700 hover:text-sky-900">
+            Create an account
+          </Link>
+        </p>
+      )}
     </>
   );
 }

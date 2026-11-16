@@ -12,6 +12,7 @@ Nothing here ever substitutes example or mock data for missing pose data.
 """
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
@@ -82,25 +83,57 @@ def validate_raw_pose(raw: RawPose, video: VideoIdentity) -> None:
         )
 
 
+MISSING_POSE = (
+    "No pose data has been prepared for this video yet. During development, pose "
+    "data is produced separately for each test video."
+)
+# The restricted demonstration: only the approved test video has pose data, the models do
+# not run there, and trying again cannot change that.
+DEMO_UNSUPPORTED = (
+    "This video can't be analysed in the demonstration environment. The demonstration "
+    "analyses only the approved test video, using pose data that was extracted from that "
+    "exact file in advance. The pose models do not run here, and data from another video "
+    "is never used in its place."
+)
+
+
 class PrecomputedPoseSource:
-    """Pose files named `<video sha256>.rawpose.npz` in one folder."""
+    """Pose files named `<video sha256>.rawpose.npz` in one folder. `fetch(sha256, path)`
+    may bring a missing file into the folder (the demonstration keeps its one file in the
+    project's own bucket); it returns whether it did. A file is only ever looked up by the
+    SHA-256 of the uploaded video, and validate_raw_pose still checks it against the video."""
 
     name = "precomputed"
 
-    def __init__(self, directory: str | Path):
+    def __init__(
+        self,
+        directory: str | Path,
+        fetch: Callable[[str, Path], bool] | None = None,
+        missing_message: str = MISSING_POSE,
+        missing_retryable: bool = True,
+    ):
         self.directory = Path(directory)
+        self.fetch = fetch
+        self.missing_message = missing_message
+        self.missing_retryable = missing_retryable
 
     def path_for(self, sha256: str) -> Path:
         return self.directory / f"{sha256}{PRECOMPUTED_SUFFIX}"
 
     def get_raw_pose(self, video_path: Path, video: VideoIdentity, video_id: str) -> RawPose:
         path = self.path_for(video.sha256)
+        if not path.is_file() and self.fetch is not None:
+            try:
+                self.fetch(video.sha256, path)
+            except Exception as e:
+                raise PoseSourceError(
+                    "pose_data_unavailable",
+                    "The prepared pose data could not be loaded just now.",
+                    retryable=True,
+                ) from e
         if not path.is_file():
             raise PoseSourceError(
-                "pose_data_missing",
-                "No pose data has been prepared for this video yet. During development, pose "
-                "data is produced separately for each test video.",
-                retryable=True,
+                "pose_data_missing", self.missing_message, retryable=self.missing_retryable
             )
         try:
             raw = RawPose.load(path)

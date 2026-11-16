@@ -32,6 +32,19 @@ def _emulators_running() -> bool:
 pytestmark = pytest.mark.skipif(not _emulators_running(), reason="Firebase emulators not running")
 
 
+@pytest.fixture(scope="module", autouse=True)
+def normal_rules():
+    """These tests are about the normal rules. Load them whichever set the emulators were
+    started with (`--restricted` for a demo rehearsal), and put that set back afterwards."""
+    from test_emulator_restricted_rules import load_rules, rules_in_force
+
+    before = rules_in_force()
+    load_rules("firebase")
+    assert rules_in_force() == "firebase"
+    yield
+    load_rules(before)
+
+
 class User:
     def __init__(self):
         res = httpx.post(

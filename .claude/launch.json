@@ -71,6 +71,44 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "firebase-emulators-restricted",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "emulators",
+        "--",
+        "--restricted"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "backend-demo-rehearsal",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "python",
+        "scripts/demo_rehearsal_api.py"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "frontend-demo-rehearsal",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_FIREBASE_EMULATORS=true",
+        "NEXT_PUBLIC_AQUATRACK_ACCESS=restricted",
+        "NEXT_PUBLIC_AQUATRACK_DEMO=1",
+        "npm",
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
+      "port": 3000
     }
   ]
 }

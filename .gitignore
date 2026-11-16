@@ -66,3 +66,6 @@ frontend/e2e-results/
 frontend/playwright-report/
 frontend/test-results/
 *.webm
+
+# Local rehearsal of the restricted demonstration (emulator uids)
+.demo-rehearsal-uids

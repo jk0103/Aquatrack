@@ -61,14 +61,18 @@ touches Firebase; it is not repeated in each line.
 | Fake inference adapters | Worker orchestration | Model speed, memory, failure modes |
 | Mocked OpenAI answers | Validation and fallback | What the real model writes |
 
-## 3. Launch blockers
+## 3. Blockers before the free application can be opened to users
+
+AquaTrack is permanently a free, noncommercial student project (owner's decision,
+2026-11-16); there is no commercial launch. "Launch" below means opening the free
+application to the public. Being noncommercial removes none of these by itself.
 
 | # | Blocker | Kind |
 | --- | --- | --- |
 | B1 | The inference worker is prepared but has never run the models. The first run is packaged and waits for five approvals (`docs/PHASE_9B_EXECUTION.md`); the end-to-end stage then needs a Firebase project | Infrastructure, approval |
-| B2 | Ultralytics YOLO11: AGPL-3.0 or Enterprise. Strategy not chosen (`docs/MODEL_LICENSING_DECISION.md`) | Licensing, decision |
-| B3 | RTMW-x checkpoint: no stated terms; at least six of its fourteen training datasets are non-commercial or research-only. Commercial use not cleared; unresolved, needs the rights holders or legal review | Licensing, unresolved |
-| B4 | No licence file in the repository; the hero photo's source is not recorded | Licensing |
+| B2 | Ultralytics YOLO11: by its publisher's pages a hosted service needs the whole project open-sourced under AGPL-3.0 or a paid licence, free or not. Fitting route for this project: AGPL-3.0, after contributor rights are confirmed and the owner approves. Not done (`docs/MODEL_LICENSING_DECISION.md`) | Licensing, decision |
+| B3 | RTMW-x checkpoint: no stated terms; at least six of its fourteen training datasets are non-commercial or research-only. A noncommercial project is within the wording of those restrictions, but the publisher has confirmed nothing; ask before a public release | Licensing, unresolved |
+| B4 | No licence file in the repository (none is added without contributor rights confirmed and explicit approval); the hero photo's source is not recorded | Licensing |
 | B5 | No production Firebase project, backups, retention policy or deletion of backups and logs | Infrastructure, privacy |
 | B6 | No legal review: privacy policy, terms, consent for videos of minors, data processing agreements | Privacy |
 | B7 | Account deletion depends on the user's request finishing; no background reconciliation | Privacy |
@@ -78,4 +82,19 @@ touches Firebase; it is not repeated in each line.
 | B11 | OpenAI integration never run against the real API | External service |
 | B12 | No monitoring, alerting, error tracking or on-call path | Operations |
 
+B2 and B3, update 2026-11-16: the owner reports permission from Ultralytics and the relevant
+RTMW-x parties for this noncommercial student project. The written confirmations have not
+been reviewed, so both stay open as "permission reported; scope not verified"
+(`docs/MODEL_LICENSING_DECISION.md`, section 0.1). They close, use by use, when the written
+scope has been read: private development and cloud GPU inference first, free public
+deployment separately.
+
 None of B1 to B7 can be closed by more code on this machine.
+
+## School demonstration (2026-11-16)
+
+Account-restricted demonstration on saved pose data for the approved public video:
+implemented; unit-tested; emulator-tested (restricted rules, backend gate); browser-tested
+locally (`frontend/e2e/demo.spec.ts`). **Not deployed and not tested in any cloud.** It is
+not real inference on a new upload and does not change the status of Phase 9B or of the
+licensing blockers. Plan, costs, blockers and approvals: `docs/SCHOOL_DEMO_DEPLOYMENT.md`.

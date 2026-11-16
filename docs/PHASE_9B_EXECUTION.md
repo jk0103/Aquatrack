@@ -24,17 +24,31 @@ Full detail: `docs/MODEL_LICENSING_DECISION.md`.
 | --- | --- |
 | May the unmodified `ultralytics` package and `yolo11m.pt` be run once, privately, on public video, for no users? | **Disputed.** The AGPL-3.0 text permits running the unmodified program privately and nothing is conveyed. Ultralytics' published policy says closed R&D and evaluation need a paid licence (it sells an "R&D License" for exactly that) and offers free evaluation only "in a fully open-source environment". **No permission from the licensor exists.** |
 | May the RTMW-x cocktail14 checkpoint be converted to ONNX and run once, privately, for research? | No terms are published for the checkpoint. Every dataset restriction found permits research and non-commercial use. **Not confirmed by the publisher.** |
-| Is a commercial or paid use cleared? | **No.** Out of scope for this test. |
+| Is a commercial or paid use involved? | **No, and none is planned.** AquaTrack is permanently a free, noncommercial student project (owner's decision, 2026-11-16). That removes the commercial questions; it does not by itself settle the two rows above. |
 | Is the test video usable? | "Front Crawl Underwater", Wikimedia Commons, CC BY-SA 4.0: use and adaptation allowed with attribution; nothing derived from it is redistributed. |
+
+**Update, 2026-11-16: the owner reports permission.** The owner reports having received
+confirmation from Ultralytics and the relevant RTMW-x parties that the models may be used
+for this noncommercial student project. The written confirmations have not yet been
+reviewed for scope (`docs/MODEL_LICENSING_DECISION.md`, section 0.1). For this test the
+points to check in them are: private development with the repository closed, inference on a
+cloud GPU, holding the weights in a container image, and ONNX conversion of the RTMW-x
+checkpoint. Gate item 1 (model use) is therefore recorded as **"owner reports permission;
+written scope not yet reviewed"**. Gate items 2 to 5 are unchanged and each still needs the
+owner's separate explicit authorisation.
+
+The assessment from before that report, kept for the record:
 
 **Is there sufficient documented authorisation for a controlled private research test? No,
 not from the rights holders.** What exists is: the AGPL-3.0 text and the FSF's reading of
 it, which permit private use, and dataset terms that permit research. What is missing is
 anything from Ultralytics (whose own pages point the other way while the project is closed)
-and any terms at all for the RTMW-x checkpoint. The owner chooses one of four ways before
-approving the test (`docs/MODEL_LICENSING_DECISION.md`, section 6): ask first; publish under
-AGPL-3.0 first; buy Ultralytics' R&D licence; or proceed on the licence text alone as a
-known risk. The test changes nothing about what a public or commercial use needs.
+and any terms at all for the RTMW-x checkpoint. The owner chooses a way before approving
+the test (`docs/MODEL_LICENSING_DECISION.md`, section 6): ask first; publish under AGPL-3.0
+first (which needs contributor rights confirmed and its own approval); or proceed on the
+licence text alone as a known risk. A paid licence is not an objective of this project.
+The test changes nothing about what open-source publication or a free public application
+needs; those are checked separately in that document's section 5.
 
 ## 2. Provider and GPU
 

@@ -13,6 +13,7 @@ import firebase_admin
 from fastapi import Depends, Header, HTTPException, status
 from firebase_admin import auth, credentials
 
+from aquatrack.api import config
 from aquatrack.api.config import FIREBASE_CREDENTIALS, FIREBASE_PROJECT_ID
 
 
@@ -58,7 +59,35 @@ def current_user(authorization: Annotated[str | None, Header()] = None) -> Fireb
         claims = verify_token(token)
     except (ValueError, auth.InvalidIdTokenError, auth.ExpiredIdTokenError):
         raise not_logged_in from None
+    if not config.is_allowed(claims["uid"]):
+        # Signed in, but not one of the accounts this deployment was opened to. Checked
+        # here, on every route that needs a user, never only in the web app.
+        raise HTTPException(status.HTTP_403_FORBIDDEN, config.ACCESS_DENIED)
     return FirebaseUser(uid=claims["uid"], email=claims.get("email"), name=claims.get("name"))
+
+
+def sync_access_claims(allowed: frozenset[str]) -> dict[str, int]:
+    """Make the custom claim the restricted security rules look for match the allowed
+    accounts: set on every listed account that exists, removed from every other account
+    (whose sessions are then ended). Creates no account. Returns counts only."""
+    counts = {"granted": 0, "revoked": 0, "missing": 0}
+    seen: set[str] = set()
+    for user in auth.list_users(app=_app()).iterate_all():
+        claims = dict(user.custom_claims or {})
+        has = claims.get(config.ACCESS_CLAIM) is True
+        if user.uid in allowed:
+            seen.add(user.uid)
+            if not has:
+                claims[config.ACCESS_CLAIM] = True
+                auth.set_custom_user_claims(user.uid, claims, app=_app())
+                counts["granted"] += 1
+        elif has:
+            claims.pop(config.ACCESS_CLAIM)
+            auth.set_custom_user_claims(user.uid, claims or None, app=_app())
+            auth.revoke_refresh_tokens(user.uid, app=_app())
+            counts["revoked"] += 1
+    counts["missing"] = len(allowed - seen)
+    return counts
 
 
 CurrentUser = Annotated[FirebaseUser, Depends(current_user)]

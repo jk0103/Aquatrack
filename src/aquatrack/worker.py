@@ -32,7 +32,7 @@ import signal
 import sys
 
 from aquatrack.analysis.pose.sources import pose_source_from_env
-from aquatrack.api import config, jobs
+from aquatrack.api import config, demo, jobs
 from aquatrack.api.jobs import Worker
 from aquatrack.contracts import ModelConfig
 
@@ -83,7 +83,8 @@ def main(argv: list[str] | None = None, store_factory=None) -> int:
         from aquatrack.api.store import FirebaseStore
 
         store_factory = FirebaseStore
-    worker = Worker(store_factory(), source)
+    store = store_factory()
+    worker = Worker(store, demo.configure(source, store))
     if args.once:
         print("handled one job" if worker.run_once() else "no job waiting")
         return 0
