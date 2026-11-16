@@ -366,7 +366,7 @@ def test_a_mocked_model_rewording_is_stored_only_when_it_passes_validation(store
     class Liar:
         model = "mock"
 
-        def explain(self, payload):
+        def complete(self, name, system, schema, payload):
             item = payload["items"][0]
             return {
                 "items": [

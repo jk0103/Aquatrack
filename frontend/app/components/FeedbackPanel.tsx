@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Badge, Card } from "@/app/components/ui";
 import { formatMetric, unitLabel } from "@/app/lib/analysisV1";
 import type { Feedback, FeedbackItem } from "@/app/lib/feedback";
@@ -62,6 +64,15 @@ export function FeedbackPanel({
           </p>
         )}
       </Card>
+
+      <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        {priorities.length + focus.length > 0
+          ? "Practice linked to what is listed above is on your Training page, marked Analysis-based where this analysis supports it."
+          : "This video gives no reason to correct anything. Your Training page can still plan practice from your goals, and labels it Goal-based."}{" "}
+        <Link href="/training" className="font-medium text-sky-700 hover:text-sky-900">
+          Open Training
+        </Link>
+      </p>
 
       <Card title="Measured in your video">
         {observations.length > 0 ? (

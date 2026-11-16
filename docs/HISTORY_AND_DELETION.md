@@ -105,6 +105,10 @@ Comparisons and progress are computed from what exists, so a deleted video simpl
 from them. Stored interpretations and feedback of *other* videos may still mention the deleted
 video's id (as an earlier session or a checkpoint source); those are opaque ids, not content.
 
+Training data (Phase 6): before the video's data is removed, every pointer to it in the
+swimmer's training sessions and plans is cleared, together with finding text copied from its
+analysis. Sessions, notes and completion history stay (`docs/TRAINING.md`, section 6).
+
 **Before production** (not done): a durable deletion queue with retries and reconciliation for
 records left in `deleting`; account-level deletion; backups and their retention; logs that may
 hold ids; a written retention policy and the legal review that goes with it; consent handling

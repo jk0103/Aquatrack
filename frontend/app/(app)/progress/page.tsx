@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ProgressPanel } from "@/app/components/ProgressPanel";
+import { TrainingProgress } from "@/app/components/training/TrainingSummary";
 import { TimeChart } from "@/app/components/TimeChart";
 import { Card, ExampleNote, PageHeader, Stat } from "@/app/components/ui";
 import { formatDate, formatTime, progression } from "@/app/lib/mock";
@@ -25,8 +26,11 @@ export default function ProgressPage() {
   return (
     <>
       <PageHeader title="Progress" />
-      <div className="mb-10">
+      <div className="mb-6">
         <ProgressPanel />
+      </div>
+      <div className="mb-10">
+        <TrainingProgress />
       </div>
 
       <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-500">

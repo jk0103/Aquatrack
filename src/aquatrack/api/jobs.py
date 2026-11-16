@@ -471,6 +471,11 @@ def delete_video(store: Store, video_id: str, uid: str) -> dict:
     video = store.get_video(video_id)
     if video is not None:
         try:
+            # Training sessions and plans are the swimmer's own and stay; only their
+            # pointers to this video (and finding text copied from it) are removed.
+            from aquatrack.api.training import clear_video_references
+
+            clear_video_references(store, uid, video_id)
             store.delete_video_data(video)
         except Exception:
             log.exception("deletion incomplete video=%s", video_id)

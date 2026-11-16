@@ -35,6 +35,9 @@ found by title search and are the ones in the library.
 
 No full text is stored in the repository. Abstracts are not copied; claims are in our own words.
 
+Sources for training activities (warm-up, cool-down, pacing reviews and coaching pages) are
+kept with the activity library, not here: `docs/TRAINING.md`, section 3.
+
 ## Left out, and why
 
 | Candidate | Why it is not in the library |

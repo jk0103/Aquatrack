@@ -69,7 +69,8 @@ when they stop.
 | History | Uploads list and `/history/[id]`, including real analysis status and results | "Example analyses" list |
 | Feedback | — (real results show on `/history/[id]`) | All of it |
 | Profile | Survey answers and personal bests | Headline stats |
-| Training, Calendar, Progress | — | All of it |
+| Training, Calendar | Everything: preferences, plans, sessions, completion (through the backend) | — |
+| Progress | Measured progress and recorded training | The race-time chart at the bottom |
 
 ### Video records
 
@@ -117,11 +118,12 @@ The contracts are defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet
 
-The project overview centres on technique feedback, performance history and next-video
-checkpoints. Training plans, the training calendar and "Add event" / "Mark session done"
-are generic training-management features with no backend. They are kept as labelled
-examples and their buttons are disabled ("soon") rather than removed. Whether to build them
-out or drop them is still to be decided.
+Training and Calendar are real since Phase 6 (`docs/TRAINING.md`). `app/lib/training.ts` holds
+the pure parts (parsing, local dates, month grid, editing a session's activity list; tested
+with `npm test`), `app/lib/trainingApi.ts` calls the backend, and `app/components/training/`
+has the session card, the session editor, the preferences form and the Home / Progress
+summaries. Dates are local calendar dates and are never converted through UTC. Meets and
+race-time logging are not built; the example time chart stays labelled.
 
 ## Checks
 

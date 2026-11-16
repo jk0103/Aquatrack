@@ -49,9 +49,26 @@ feedback documents are never modified.
 
 ## Language-model rewording (optional, off by default)
 
-- Switched on only with `AQUATRACK_LLM=claude`, the `llm` extra installed and credentials in the
-  environment. Each feedback then makes one billed Messages API call (`claude-opus-5-5`, JSON
-  schema output). **No call has been made in development or tests.**
+- Provider: OpenAI, through the official Python SDK and the Responses API with a strict JSON
+  schema (`text.format`), `store=False`, a timeout (20 s), one retry and a bounded output
+  (4,000 tokens, which includes the model's own reasoning). The earlier Anthropic adapter and
+  dependency were removed in Phase 6; the validation and fallback below are unchanged.
+- Switched on only when all three hold: `AQUATRACK_LLM_PROVIDER=openai`, the `llm` extra
+  installed (`uv sync --extra llm`), and `OPENAI_API_KEY` in the backend's environment. A key
+  alone switches nothing on. The key is read by the SDK from the environment: it is never in
+  git, never sent to the web app, never logged. Each feedback and each saved plan then makes
+  one billed call. **No real call has been made in development or tests.**
+- Model: `gpt-6-luna` by default (`AQUATRACK_LLM_MODEL` to change it). OpenAI's model page
+  (read 2026-11-16) lists it as the most efficient option for focused, high-volume tasks, with
+  structured outputs and the Responses API, at $0.10 per million input tokens and $0.50 per
+  million output tokens. Rewording a few short, already written items needs nothing larger.
+  At the 4,000-token output bound one call costs at most about $0.003. Other settings:
+  `AQUATRACK_LLM_TIMEOUT_S`, `AQUATRACK_LLM_MAX_OUTPUT_TOKENS`, `AQUATRACK_LLM_REASONING`
+  (default `low`; empty to omit).
+- Tests drive the real SDK against a fake HTTP transport, so the request body is the one the
+  SDK would send; every answer is mocked, and any attempt to open a real connection fails
+  the test.
+- Training plans are reworded the same way with their own checks: `docs/TRAINING.md`, section 7.
 - Sent: item ids, categories, the deterministic text, limitations, attached claim ids and
   statements, swim level and goal keys. Not sent: video, pose data, names, email, account or
   video ids, the swimmer's own note.

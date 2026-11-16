@@ -17,8 +17,28 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'age', 'height_cm', 'weight_kg', 'swim_level',
           'sessions_per_week', 'minutes_per_day', 'pbs', 'updatedAt',
-          'goals', 'primary_goal', 'target', 'weak_note'
+          'goals', 'primary_goal', 'target', 'weak_note', 'training'
         ])
+        // Training preferences are optional. Values match frontend/app/lib/profile.ts.
+        && (request.resource.data.get('training', null) == null
+          || (request.resource.data.training.keys().hasOnly([
+                'days', 'time_of_day', 'typical_distance_m', 'strokes', 'equipment', 'difficulty'
+              ])
+            && request.resource.data.training.get('days', []) is list
+            && request.resource.data.training.get('days', []).hasOnly(
+                 ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
+            && request.resource.data.training.get('time_of_day', '') in
+                 ['', 'morning', 'midday', 'evening']
+            && request.resource.data.training.get('difficulty', '') in
+                 ['', 'easy', 'moderate', 'challenging']
+            && request.resource.data.training.get('strokes', []) is list
+            && request.resource.data.training.get('strokes', []).hasOnly(
+                 ['Freestyle', 'Backstroke', 'Breaststroke', 'Butterfly'])
+            && request.resource.data.training.get('equipment', []) is list
+            && request.resource.data.training.get('equipment', []).hasOnly(
+                 ['kickboard', 'pull_buoy', 'fins', 'snorkel'])
+            && (request.resource.data.training.get('typical_distance_m', null) == null
+              || inRange(request.resource.data.training.typical_distance_m, 100, 10000))))
         // Goals are optional. Values match frontend/app/lib/profile.ts (GOALS).
         && request.resource.data.get('goals', []) is list
         && request.resource.data.get('goals', []).size() <= 7
@@ -77,6 +97,17 @@ service cloud.firestore {
         allow read: if signedIn() && resource.data.uid == request.auth.uid;
         allow write: if false;
       }
+    }
+
+    // Training plans and sessions. Written only by the backend, which checks the owner and
+    // validates every edit; the swimmer can read their own and nobody else's.
+    match /training_plans/{planId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /training_sessions/{sessionId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
     }
   }
 }

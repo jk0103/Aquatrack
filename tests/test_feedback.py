@@ -213,7 +213,7 @@ class Mock:
     def __init__(self, answer=None, error=None):
         self.answer, self.error, self.payloads = answer, error, []
 
-    def explain(self, payload):
+    def complete(self, name, system, schema, payload):
         self.payloads.append(payload)
         if self.error:
             raise self.error
@@ -409,8 +409,9 @@ def test_api_failure_falls_back_to_the_deterministic_text(error):
 
 
 def test_no_explainer_is_configured_by_default_and_none_means_no_call(monkeypatch):
-    monkeypatch.delenv("AQUATRACK_LLM", raising=False)
-    assert explain.explainer_from_env() is None
+    monkeypatch.delenv("AQUATRACK_LLM_PROVIDER", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-never-used")
+    assert explain.explainer_from_env() is None  # a key alone switches nothing on
     f = feedback(EVEN)
     assert explain_feedback(f, None).explanation.source == "template"
 

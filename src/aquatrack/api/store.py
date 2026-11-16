@@ -13,6 +13,8 @@ Firestore layout:
   videos/{id}/feedback/{feedbackId}  feedback built from one interpretation; the id is a
                                    hash of its inputs, and an existing document is kept
   profiles/{uid}                   the swimmer's own survey answers (read only here)
+  training_plans/{id}              one version of a training plan (see docs/TRAINING.md)
+  training_sessions/{id}           one planned or manually created swimming session
 Storage layout:
   videos/{uid}/{id}.{ext}          the uploaded video (written by the web app)
   analysis/{uid}/{id}/{analysisId}/raw_pose.npz, processed_pose.npz   per-frame arrays
@@ -106,6 +108,22 @@ class Store(Protocol):
         after a failure. Raises if a step fails; the video record then still exists."""
         ...
 
+    def get_doc(self, collection: str, doc_id: str) -> dict[str, Any] | None:
+        """One training document (with its owner's `uid`), or None."""
+        ...
+
+    def set_doc(self, collection: str, doc_id: str, document: dict[str, Any]) -> None: ...
+
+    def delete_doc(self, collection: str, doc_id: str) -> None: ...
+
+    def list_docs(self, collection: str, uid: str) -> list[dict[str, Any]]:
+        """All of one swimmer's documents in a training collection (never anyone else's)."""
+        ...
+
+
+# Collections the training code may use through the generic document methods below.
+TRAINING_COLLECTIONS = ("training_plans", "training_sessions")
+
 
 def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
     return VideoRecord(
@@ -150,6 +168,12 @@ def _document(video: VideoRecord, result: dict, saved: dict[str, tuple[str, int]
     return {**result, "uid": video.uid, "artifacts": artifacts}
 
 
+def _training(collection: str) -> str:
+    if collection not in TRAINING_COLLECTIONS:
+        raise ValueError(f"not a training collection: {collection}")
+    return collection
+
+
 class MemoryStore:
     """In-memory Store for tests. `videos` maps id -> Firestore-style document dict."""
 
@@ -160,6 +184,7 @@ class MemoryStore:
         self.interpretations: dict[tuple[str, str], dict[str, Any]] = {}
         self.profiles: dict[str, dict[str, Any]] = {}
         self.feedback: dict[tuple[str, str], dict[str, Any]] = {}
+        self.docs: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in TRAINING_COLLECTIONS}
         self._lock = threading.Lock()
 
     def get_video(self, video_id: str) -> VideoRecord | None:
@@ -238,6 +263,19 @@ class MemoryStore:
         step("record")
         with self._lock:
             self.videos.pop(video.id, None)
+
+    def get_doc(self, collection, doc_id):
+        doc = self.docs[_training(collection)].get(doc_id)
+        return None if doc is None else dict(doc)
+
+    def set_doc(self, collection, doc_id, document):
+        self.docs[_training(collection)][doc_id] = dict(document)
+
+    def delete_doc(self, collection, doc_id):
+        self.docs[_training(collection)].pop(doc_id, None)
+
+    def list_docs(self, collection, uid):
+        return [dict(d) for d in self.docs[_training(collection)].values() if d.get("uid") == uid]
 
 
 class FirebaseStore:
@@ -367,3 +405,17 @@ class FirebaseStore:
             for snap in ref.collection(name).stream():
                 snap.reference.delete()
         ref.delete()
+
+    def get_doc(self, collection, doc_id):
+        snap = self._db.collection(_training(collection)).document(doc_id).get()
+        return snap.to_dict() if snap.exists else None
+
+    def set_doc(self, collection, doc_id, document):
+        self._db.collection(_training(collection)).document(doc_id).set(document)
+
+    def delete_doc(self, collection, doc_id):
+        self._db.collection(_training(collection)).document(doc_id).delete()
+
+    def list_docs(self, collection, uid):
+        query = self._db.collection(_training(collection)).where("uid", "==", uid)
+        return [snap.to_dict() for snap in query.stream()]

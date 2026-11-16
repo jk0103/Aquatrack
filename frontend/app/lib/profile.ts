@@ -22,7 +22,56 @@ export type Profile = {
   primary_goal: GoalKey | null;
   target: PersonalBest | null; // a time the swimmer is aiming for
   weak_note: string; // the swimmer's own words; shown back to them, never analysed
+  // Optional training preferences. The planner also reads swim_level, sessions_per_week,
+  // minutes_per_day and the goals above, so none of those is asked twice.
+  training: TrainingPrefs;
 };
+
+// Keep in sync with firestore.rules and src/aquatrack/training/models.py.
+export type TrainingPrefs = {
+  days: string[]; // "mon" .. "sun"; empty means no preference
+  time_of_day: string; // "", "morning", "midday", "evening"
+  typical_distance_m: number | null;
+  strokes: string[];
+  equipment: string[];
+  difficulty: string; // "", "easy", "moderate", "challenging"
+};
+
+export const emptyTrainingPrefs: TrainingPrefs = {
+  days: [],
+  time_of_day: "",
+  typical_distance_m: null,
+  strokes: [],
+  equipment: [],
+  difficulty: "",
+};
+
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const EQUIPMENT = ["kickboard", "pull_buoy", "fins", "snorkel"];
+const STROKES = ["Freestyle", "Backstroke", "Breaststroke", "Butterfly"];
+
+// Whatever is stored, only known values come back.
+export function readTrainingPrefs(raw: unknown): TrainingPrefs {
+  const t = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const pick = (v: unknown, allowed: string[]) =>
+    Array.isArray(v) ? allowed.filter((x) => v.includes(x)) : [];
+  const distance = t.typical_distance_m;
+  return {
+    days: pick(t.days, DAYS),
+    time_of_day: ["morning", "midday", "evening"].includes(t.time_of_day as string)
+      ? (t.time_of_day as string)
+      : "",
+    typical_distance_m:
+      typeof distance === "number" && distance >= 100 && distance <= 10000
+        ? Math.round(distance)
+        : null,
+    strokes: pick(t.strokes, STROKES),
+    equipment: pick(t.equipment, EQUIPMENT),
+    difficulty: ["easy", "moderate", "challenging"].includes(t.difficulty as string)
+      ? (t.difficulty as string)
+      : "",
+  };
+}
 
 export type GoalKey =
   | "stroke_consistency"
@@ -149,6 +198,7 @@ export type ProfileDraft = { [K in NumberKey]: string } & {
   primary_goal: GoalKey | "";
   target: PbDraft;
   weak_note: string;
+  training: TrainingPrefs; // edited on the Training page; carried through here unchanged
 };
 
 export const emptyDraft: ProfileDraft = {
@@ -163,6 +213,7 @@ export const emptyDraft: ProfileDraft = {
   primary_goal: "",
   target: { event: "", pool: PB_POOLS[0], time: "" },
   weak_note: "",
+  training: emptyTrainingPrefs,
 };
 
 export function toDraft(p: Profile): ProfileDraft {
@@ -188,6 +239,7 @@ export function toDraft(p: Profile): ProfileDraft {
         }
       : emptyDraft.target,
     weak_note: p.weak_note,
+    training: p.training,
   };
 }
 
@@ -308,6 +360,7 @@ export function fromDraft(draft: ProfileDraft): Profile {
           }
         : null,
     weak_note: draft.weak_note.trim(),
+    training: draft.training,
   };
 }
 
@@ -342,6 +395,7 @@ export async function loadProfile(uid: string): Promise<Profile | null> {
       : null,
     target: d.target && typeof d.target.seconds === "number" ? d.target : null,
     weak_note: typeof d.weak_note === "string" ? d.weak_note : "",
+    training: readTrainingPrefs(d.training),
   };
 }
 

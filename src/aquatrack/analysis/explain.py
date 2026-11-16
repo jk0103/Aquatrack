@@ -1,13 +1,16 @@
-"""Optional rewording of feedback by a language model, and the checks that guard it.
+"""Optional rewording by a language model, and the checks that guard it.
 
 The model is given only structured, already-validated text (no video, no name, no email, no
-account id) and asked to reword each item for a swimmer. Its answer is never trusted:
-`validate` checks it against a whitelist built from the feedback itself, and one failed
-check throws the whole answer away. The deterministic text (`FeedbackItem.body`) is always
-kept, so the page works the same with no model, a failed call or a rejected answer.
+account id, none of the swimmer's own notes) and asked to reword it. Its answer is never
+trusted: `validate` checks it against a whitelist built from the feedback itself, and one
+failed check throws the whole answer away. The deterministic text (`FeedbackItem.body`) is
+always kept, so the page works the same with no model, a failed call or a rejected answer.
+Training plans are reworded the same way in `aquatrack.training.explain`.
 
-Off by default. Set AQUATRACK_LLM=claude (and install the `llm` extra, with credentials in
-the environment) to switch it on. Nothing in the tests calls the API.
+The provider is OpenAI (Responses API with a strict JSON schema), behind the small
+`Explainer` interface. Off by default: set AQUATRACK_LLM_PROVIDER=openai, install the `llm`
+extra and put OPENAI_API_KEY in the backend's environment (never in git, never in the web
+app). Nothing in the tests calls the API. See docs/FEEDBACK.md.
 """
 # ruff: noqa: E501
 
@@ -22,7 +25,14 @@ from aquatrack.contracts import ExplanationInfo, Feedback, FeedbackItem
 
 log = logging.getLogger("aquatrack.explain")
 
-DEFAULT_MODEL = "claude-opus-5-5"
+# OpenAI's lowest-cost current model, described for "focused, high-volume tasks"; it supports
+# structured outputs and the Responses API (checked in OpenAI's model documentation on
+# 2026-11-16). Short rewording of text that is already written needs nothing larger. Override
+# with AQUATRACK_LLM_MODEL.
+DEFAULT_MODEL = "gpt-6-luna"
+DEFAULT_TIMEOUT_S = 20.0
+DEFAULT_MAX_OUTPUT_TOKENS = 4000  # includes the model's own reasoning tokens
+DEFAULT_REASONING = "low"
 MAX_CHARS = 900
 
 SYSTEM = """You reword swimming feedback for an individual swimmer. You are given a list of items. Each item already contains everything that may be said: its text, its numbers, and the research claims it may mention.
@@ -89,7 +99,10 @@ class ExplainError(RuntimeError):
 class Explainer(Protocol):
     model: str
 
-    def explain(self, payload: dict) -> dict: ...
+    def complete(self, name: str, system: str, schema: dict, payload: dict) -> dict:
+        """One request: instructions, a JSON schema the answer must follow, and the
+        structured payload. Returns the parsed answer or raises `ExplainError`."""
+        ...
 
 
 def build_payload(feedback: Feedback) -> dict:
@@ -198,7 +211,10 @@ def explain_feedback(feedback: Feedback, explainer: Explainer | None) -> Feedbac
     if explainer is None:
         return feedback
     try:
-        texts = validate(feedback, explainer.explain(build_payload(feedback)))
+        texts = validate(
+            feedback,
+            explainer.complete("feedback_rewording", SYSTEM, SCHEMA, build_payload(feedback)),
+        )
     except Rejected as e:
         log.warning("model rewording rejected: %s", e)
         feedback.explanation = ExplanationInfo(
@@ -219,49 +235,88 @@ def explain_feedback(feedback: Feedback, explainer: Explainer | None) -> Feedbac
     return feedback
 
 
-class ClaudeExplainer:
-    """Calls the Claude Messages API once per feedback with a JSON schema for the answer.
-    Needs the `anthropic` package (`uv sync --extra llm`) and credentials in the
-    environment. Every call costs money: it is only made when AQUATRACK_LLM=claude."""
+def _setting(name: str, default: float, lo: float, hi: float) -> float:
+    try:
+        return min(max(float(os.environ.get(name, default)), lo), hi)
+    except ValueError:
+        return default
 
-    def __init__(self, model: str | None = None):
-        import anthropic  # imported here so the app runs without the package
 
-        self._anthropic = anthropic
-        self._client = anthropic.Anthropic()
-        self.model = model or os.environ.get("AQUATRACK_LLM_MODEL", DEFAULT_MODEL)
+class OpenAIExplainer:
+    """Calls the OpenAI Responses API once per request, with a strict JSON schema for the
+    answer, a timeout, one retry and a bounded output. Needs the `openai` package
+    (`uv sync --extra llm`) and OPENAI_API_KEY in the backend's environment. Every call
+    costs money: one is only made when AQUATRACK_LLM_PROVIDER=openai. Requests are sent with
+    `store=False`, so OpenAI is asked not to keep them. The key is read by the SDK from the
+    environment; it is never logged, stored or returned by this code."""
 
-    def explain(self, payload: dict) -> dict:
-        anthropic = self._anthropic
-        try:
-            response = self._client.messages.create(
-                model=self.model,
-                max_tokens=16000,
-                system=SYSTEM,
-                output_config={
-                    "effort": "low",
-                    "format": {"type": "json_schema", "schema": SCHEMA},
-                },
-                messages=[{"role": "user", "content": json.dumps(payload, sort_keys=True)}],
+    def __init__(self, model: str | None = None, client=None):
+        import openai  # imported here so the app runs without the package
+
+        self._openai = openai
+        if client is None:
+            if not os.environ.get("OPENAI_API_KEY"):
+                raise ExplainError("OPENAI_API_KEY is not set")
+            client = openai.OpenAI(
+                timeout=_setting("AQUATRACK_LLM_TIMEOUT_S", DEFAULT_TIMEOUT_S, 1, 120),
+                max_retries=1,
             )
-        except anthropic.RateLimitError as e:
+        self._client = client
+        self.model = model or os.environ.get("AQUATRACK_LLM_MODEL") or DEFAULT_MODEL
+        self.max_output_tokens = int(
+            _setting("AQUATRACK_LLM_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS, 200, 16000)
+        )
+        self.reasoning = os.environ.get("AQUATRACK_LLM_REASONING", DEFAULT_REASONING)
+
+    def complete(self, name: str, system: str, schema: dict, payload: dict) -> dict:
+        openai = self._openai
+        request = {
+            "model": self.model,
+            "instructions": system,
+            "input": json.dumps(payload, sort_keys=True),
+            "text": {
+                "format": {"type": "json_schema", "name": name, "schema": schema, "strict": True}
+            },
+            "max_output_tokens": self.max_output_tokens,
+            "store": False,
+        }
+        if self.reasoning:
+            request["reasoning"] = {"effort": self.reasoning}
+        try:
+            response = self._client.responses.create(**request)
+        except openai.APITimeoutError as e:
+            raise ExplainError("timed out") from e
+        except openai.RateLimitError as e:
             raise ExplainError("rate limited") from e
-        except anthropic.APIStatusError as e:
+        except openai.APIStatusError as e:
             raise ExplainError(f"API error {e.status_code}") from e
-        except anthropic.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             raise ExplainError("network error") from e
-        if response.stop_reason != "end_turn":
-            raise ExplainError(f"stopped: {response.stop_reason}")  # refusal, max_tokens, ...
-        text = next((b.text for b in response.content if b.type == "text"), "")
-        return json.loads(text)
+        if response.status != "completed":  # e.g. cut off at max_output_tokens
+            reason = getattr(response.incomplete_details, "reason", None) or response.status
+            raise ExplainError(f"incomplete: {reason}")
+        for item in response.output or []:
+            parts = [item, *(getattr(item, "content", None) or [])]
+            if any(getattr(part, "type", "") == "refusal" for part in parts):
+                raise ExplainError("refused")  # a refusal does not follow the schema
+        try:
+            return json.loads(response.output_text)
+        except ValueError as e:
+            raise ExplainError("answer was not JSON") from e
 
 
 def explainer_from_env() -> Explainer | None:
     """The configured explainer, or None (the default): no key, no call, no cost."""
-    if os.environ.get("AQUATRACK_LLM", "").lower() != "claude":
+    provider = os.environ.get("AQUATRACK_LLM_PROVIDER", "").strip().lower()
+    if provider in ("", "none", "off"):
+        if os.environ.get("AQUATRACK_LLM"):
+            log.warning("AQUATRACK_LLM is no longer used; set AQUATRACK_LLM_PROVIDER=openai")
+        return None
+    if provider != "openai":
+        log.warning("unknown AQUATRACK_LLM_PROVIDER; rewording stays off")
         return None
     try:
-        return ClaudeExplainer()
-    except Exception as e:
+        return OpenAIExplainer()
+    except Exception as e:  # missing package or key: the app carries on with its own text
         log.warning("language model not available: %s", type(e).__name__)
         return None

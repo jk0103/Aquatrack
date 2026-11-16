@@ -76,5 +76,5 @@ fails with a clear reason; nothing is made up. See `docs/POSE_PROCESSING.md`.
 1. Run pose estimation on 5 to 10 sample clips (underwater side view and overhead) and see where tracking breaks.
 2. Stroke rate and left-right symmetry working end to end on real clips.
 3. Accounts, swimmer profiles and videos in Firebase (Auth, Firestore, Storage).
-4. Personalized feedback text using the Claude API.
+4. Personalized feedback text, optionally reworded by an OpenAI model (off by default).
 5. Web frontend with upload, results and progress history.

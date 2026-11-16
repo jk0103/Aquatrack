@@ -276,6 +276,48 @@ def test_clients_cannot_delete_videos_or_their_results_directly(alice, bob, vide
     assert httpx.get(doc, headers=alice.firestore).status_code == 200
 
 
+def _map(**values):
+    return {"mapValue": {"fields": values}}
+
+
+def test_training_preferences_are_optional_and_validated(alice):
+    good = _map(
+        days=_strings("mon", "wed"),
+        time_of_day={"stringValue": "evening"},
+        difficulty={"stringValue": "moderate"},
+        strokes=_strings("Freestyle"),
+        equipment=_strings("kickboard"),
+        typical_distance_m={"integerValue": "1200"},
+    )
+    assert _profile_write(alice, training=good) == 200
+    assert _profile_write(alice, training=_map()) == 200  # every preference is optional
+    assert _profile_write(alice, training=_map(days=_strings("someday"))) == 403
+    assert _profile_write(alice, training=_map(difficulty={"stringValue": "brutal"})) == 403
+    assert _profile_write(alice, training=_map(equipment=_strings("jetpack"))) == 403
+    assert _profile_write(alice, training=_map(typical_distance_m={"integerValue": "99999"})) == 403
+    # nothing medical or otherwise unexpected can be stored there
+    assert _profile_write(alice, training=_map(injuries={"stringValue": "shoulder"})) == 403
+
+
+def test_training_plans_and_sessions_are_owner_read_only(alice, bob):
+    """The backend writes training data after checking the owner and validating the edit.
+    A browser can read its own documents and can never write, forge or delete one."""
+    for collection in ("training_plans", "training_sessions"):
+        doc = f"{DOCS}/{collection}/rules-{secrets.token_hex(4)}"
+        body = {"fields": fields(uid=alice.uid, title="SYNTHETIC rules test", status="planned")}
+        assert httpx.patch(doc, json=body, headers=ADMIN).status_code == 200
+        assert httpx.get(doc, headers=alice.firestore).status_code == 200
+        assert httpx.get(doc, headers=bob.firestore).status_code == 403
+        assert httpx.get(doc).status_code == 403
+        for user in (alice, bob):
+            forged = {"fields": fields(uid=user.uid, title="forged", status="completed")}
+            assert httpx.patch(doc, json=forged, headers=user.firestore).status_code == 403
+            assert httpx.delete(doc, headers=user.firestore).status_code == 403
+            new = f"{DOCS}/{collection}/forged-{secrets.token_hex(4)}"
+            assert httpx.patch(new, json=forged, headers=user.firestore).status_code == 403
+        assert httpx.delete(doc, headers=ADMIN).status_code == 200
+
+
 # ---------- analysis artifacts in storage ----------
 
 

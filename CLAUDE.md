@@ -50,10 +50,19 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   `docs/INTERPRETATION_RULES.md` (update it with any rule change and bump `RULES_VERSION`).
 - `src/aquatrack/analysis/feedback.py` + `explain.py` + `src/aquatrack/evidence.py`: feedback,
   next-video checkpoints, references and the optional, validated LLM rewording
-  (`videos/{id}/feedback/{id}`; off unless `AQUATRACK_LLM=claude`; never call the paid API
-  without the owner's approval). Docs: `docs/FEEDBACK.md`, `docs/EVIDENCE_LIBRARY.md`.
+  (`videos/{id}/feedback/{id}`). The LLM provider is OpenAI (official SDK, Responses API,
+  strict JSON schema, default model `gpt-6-luna`), behind `explain.Explainer`; off unless
+  `AQUATRACK_LLM_PROVIDER=openai` and `OPENAI_API_KEY` are both set in the backend
+  environment. Never call the paid API without the owner's approval, never ask the owner to
+  paste a key, and check OpenAI's documentation before changing SDK calls or model names. Docs: `docs/FEEDBACK.md`, `docs/EVIDENCE_LIBRARY.md`.
 - Profile (`profiles/{uid}`): optional `goals`, `primary_goal`, `target`, `weak_note`; the
   free-text note is never analysed or sent to a model.
+- `src/aquatrack/training/`: `library.py` (curated activities and their checked sources;
+  bump `LIBRARY_VERSION` on any change), `planner.py` (deterministic single-session and
+  7-day plans), `models.py` (contracts, `TRAINING_VERSION`), `explain.py` (checks on optional
+  plan rewording). `src/aquatrack/api/training.py`: plans, sessions, calendar, edit rules,
+  ownership (`training_plans/{id}`, `training_sessions/{id}`: owner read, backend-only
+  writes). Doc: `docs/TRAINING.md` (update it with any activity, rule or threshold change).
 - `src/aquatrack/analysis/comparison.py`: session comparison (per metric, neutral states),
   progress series, checkpoint follow-up. Computed from stored analyses on request, never
   stored. APIs: `GET /videos/{a}/compare/{b}`, `GET /progress`, `DELETE /videos/{id}`
@@ -110,6 +119,16 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   distance, effort, metric definition) on one line, never interpolate, never compare a sprint
   with an easy swim. Times typed in by the swimmer are labelled as theirs and never linked to
   a technique measurement. Synthetic history is for tests and must be labelled as such.
+- Training: a recommendation is analysis-based only when a stored, supported finding (a focus
+  or priority whose rule is mapped in `planner.RULE_ACTIVITIES`) backs it; otherwise it is
+  goal-based or general and must say that no problem was found. Never invent a weakness to
+  personalise a plan. Activities come only from the curated library; an activity is called
+  research-supported or coaching guidance only where its source was actually read, and
+  durations, repeats and paces are labelled as AquaTrack's own conservative choices. Never
+  exceed the swimmer's stated days, frequency or session time, never raise the load
+  automatically, never mark a session completed for the swimmer, never overwrite an edited
+  plan silently, and never read adherence as technique improvement or as the cause of a
+  measured change. What the swimmer typed in (notes, own activities) is never sent to a model.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
 - The LLM only rewords validated findings. Send it structured metrics, never videos, names
@@ -176,10 +195,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
    (Phase 3 done, local commit `c0e482e`, not pushed.)
 4. Feedback, checkpoints, verified evidence, LLM layer (done, local commit `4e46baa`, not
    pushed; the LLM path is tested with mocks only and no interpretation rule was activated).
-5. History, comparison, progress, checkpoint follow-up and video deletion (implemented
-   locally 2026-11-15, uncommitted, awaiting the owner's review; comparison logic exercised on
-   labelled synthetic sessions only, since no real swimmer has two comparable sessions yet).
-6. Training and calendar (planned; the Training and Calendar pages stay as labelled examples). 7. Hardening, full scenario tests,
+5. History, comparison, progress, checkpoint follow-up and video deletion (done, local commit
+   `5beb945`, not pushed; comparison logic exercised on labelled synthetic sessions only,
+   since no real swimmer has two comparable sessions yet).
+6. Training recommendations, plans, calendar and the OpenAI adapter (implemented locally
+   2026-11-16, uncommitted, awaiting the owner's review; analysis-based plans exercised with
+   synthetic findings only; no paid API call made). 7. Hardening, full scenario tests,
    production inference and deployment evaluation.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without
