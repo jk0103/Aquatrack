@@ -15,6 +15,8 @@ Firestore layout:
   profiles/{uid}                   the swimmer's own survey answers (read only here)
   training_plans/{id}              one version of a training plan (see docs/TRAINING.md)
   training_sessions/{id}           one planned or manually created swimming session
+  training_state/{uid}             the revision counter of one swimmer's schedule
+  account_deletions/{uid}          present only while that account is being deleted
 Storage layout:
   videos/{uid}/{id}.{ext}          the uploaded video (written by the web app)
   analysis/{uid}/{id}/{analysisId}/raw_pose.npz, processed_pose.npz   per-frame arrays
@@ -27,7 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from aquatrack.api.config import FIREBASE_PROJECT_ID
+from aquatrack.api.config import FIREBASE_PROJECT_ID, is_real_project
 from aquatrack.contracts import SessionInfo
 
 EMULATOR_PROJECT = "demo-aquatrack"
@@ -83,6 +85,11 @@ class Store(Protocol):
         """All of one swimmer's video records (never anyone else's)."""
         ...
 
+    def list_pending_videos(self) -> list[VideoRecord]:
+        """Every video, of any swimmer, that is queued or being analysed: the job queue.
+        Only workers call this; nothing from it is ever returned to a client."""
+        ...
+
     def get_profile(self, uid: str) -> dict[str, Any] | None: ...
 
     def save_interpretation(
@@ -120,9 +127,24 @@ class Store(Protocol):
         """All of one swimmer's documents in a training collection (never anyone else's)."""
         ...
 
+    def swap_doc(
+        self, collection: str, doc_id: str, expected_revision: int | None, document: dict[str, Any]
+    ) -> bool:
+        """Write the document only if what is stored still has `expected_revision` (None:
+        only if nothing is stored). Atomic. False means someone else changed it first, and
+        nothing was written."""
+        ...
+
+    def delete_profile(self, uid: str) -> None: ...
+
 
 # Collections the training code may use through the generic document methods below.
-TRAINING_COLLECTIONS = ("training_plans", "training_sessions")
+TRAINING_COLLECTIONS = (
+    "training_plans",
+    "training_sessions",
+    "training_state",  # one small document per swimmer: the revision of their schedule
+    "account_deletions",  # a marker while an account is being deleted
+)
 
 
 def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
@@ -221,6 +243,13 @@ class MemoryStore:
     def list_videos(self, uid):
         return [_record(k, v) for k, v in self.videos.items() if v.get("uid") == uid]
 
+    def list_pending_videos(self):
+        return [
+            _record(k, v)
+            for k, v in self.videos.items()
+            if v.get("status") in ("queued", "analyzing")
+        ]
+
     def get_profile(self, uid):
         return self.profiles.get(uid)
 
@@ -277,6 +306,18 @@ class MemoryStore:
     def list_docs(self, collection, uid):
         return [dict(d) for d in self.docs[_training(collection)].values() if d.get("uid") == uid]
 
+    def swap_doc(self, collection, doc_id, expected_revision, document):
+        with self._lock:
+            stored = self.docs[_training(collection)].get(doc_id)
+            current = None if stored is None else int(stored.get("revision", 0) or 0)
+            if current != expected_revision:
+                return False
+            self.docs[collection][doc_id] = dict(document)
+            return True
+
+    def delete_profile(self, uid):
+        self.profiles.pop(uid, None)
+
 
 class FirebaseStore:
     """Firestore + Storage through the Google Cloud clients.
@@ -292,10 +333,13 @@ class FirebaseStore:
         firestore_emulator = os.environ.get("FIRESTORE_EMULATOR_HOST")
         storage_emulator = os.environ.get("STORAGE_EMULATOR_HOST")
         emulated = bool(firestore_emulator and storage_emulator)
-        if not emulated and os.environ.get("AQUATRACK_ALLOW_PRODUCTION_FIREBASE") != "1":
+        if not emulated and not (
+            os.environ.get("AQUATRACK_ALLOW_PRODUCTION_FIREBASE") == "1" and is_real_project()
+        ):
             raise RuntimeError(
                 "Firebase emulators are not configured (FIRESTORE_EMULATOR_HOST and "
-                "STORAGE_EMULATOR_HOST). Production Firebase is not enabled for this project."
+                "STORAGE_EMULATOR_HOST). A real Firebase project needs AQUATRACK_ENV=staging "
+                "or production together with AQUATRACK_ALLOW_PRODUCTION_FIREBASE=1."
             )
         project = FIREBASE_PROJECT_ID or EMULATOR_PROJECT
         bucket = os.environ.get("FIREBASE_STORAGE_BUCKET", f"{project}.appspot.com")
@@ -362,6 +406,10 @@ class FirebaseStore:
         query = self._db.collection("videos").where("uid", "==", uid)
         return [_record(snap.id, snap.to_dict()) for snap in query.stream()]
 
+    def list_pending_videos(self):
+        query = self._db.collection("videos").where("status", "in", ["queued", "analyzing"])
+        return [_record(snap.id, snap.to_dict()) for snap in query.stream()]
+
     def get_profile(self, uid):
         snap = self._db.collection("profiles").document(uid).get()
         return snap.to_dict() if snap.exists else None
@@ -419,3 +467,20 @@ class FirebaseStore:
     def list_docs(self, collection, uid):
         query = self._db.collection(_training(collection)).where("uid", "==", uid)
         return [snap.to_dict() for snap in query.stream()]
+
+    def swap_doc(self, collection, doc_id, expected_revision, document):
+        ref = self._db.collection(_training(collection)).document(doc_id)
+
+        @self._firestore.transactional
+        def run(transaction):
+            snap = ref.get(transaction=transaction)
+            current = int((snap.to_dict() or {}).get("revision", 0) or 0) if snap.exists else None
+            if current != expected_revision:
+                return False
+            transaction.set(ref, document)
+            return True
+
+        return run(self._db.transaction())
+
+    def delete_profile(self, uid):
+        self._db.collection("profiles").document(uid).delete()

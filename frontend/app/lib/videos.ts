@@ -79,7 +79,13 @@ export const POOL_LENGTHS = ["25 m", "50 m", "25 yd"];
 
 // Set by the backend (src/aquatrack/api/jobs.py); clients can't change it.
 export type VideoStatus =
-  "uploaded" | "queued" | "analyzing" | "ready" | "failed" | "deleting";
+  | "uploaded"
+  | "queued"
+  | "analyzing"
+  | "ready"
+  | "failed"
+  | "canceled"
+  | "deleting";
 
 // Where the latest analysis request stands. Messages are written for the swimmer.
 export type AnalysisJob = {
@@ -127,6 +133,7 @@ export const statusLabel: Record<VideoStatus, string> = {
   analyzing: "Analyzing",
   ready: "Analyzed",
   failed: "Analysis failed",
+  canceled: "Analysis cancelled",
   deleting: "Being deleted",
 };
 
@@ -136,6 +143,7 @@ export const statusTone = {
   analyzing: "sky",
   ready: "teal",
   failed: "slate",
+  canceled: "slate",
   deleting: "slate",
 } as const;
 
@@ -224,6 +232,7 @@ const knownStatuses: VideoStatus[] = [
   "analyzing",
   "ready",
   "failed",
+  "canceled",
   "deleting",
 ];
 
@@ -318,6 +327,16 @@ export function requestAnalysis(
   return api<AnalysisRequest>(`/videos/${encodeURIComponent(id)}/analyze`, {
     method: "POST",
   });
+}
+
+// Stops the swimmer's own waiting or running analysis. Nothing it produced is kept.
+export function cancelAnalysis(
+  id: string,
+): Promise<ApiResult<{ id: string; status: VideoStatus }>> {
+  return api<{ id: string; status: VideoStatus }>(
+    `/videos/${encodeURIComponent(id)}/cancel`,
+    { method: "POST" },
+  );
 }
 
 // A short-lived link to play the file; Storage rules only allow the owner.

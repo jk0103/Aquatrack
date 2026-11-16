@@ -4,6 +4,7 @@ The web app signs people in with Firebase Authentication and sends their ID toke
 `Authorization: Bearer <token>`. Routes that need a user depend on `current_user`.
 """
 
+import os
 from dataclasses import dataclass
 from functools import cache
 from typing import Annotated
@@ -28,12 +29,23 @@ def _app() -> firebase_admin.App:
     # Verifying logins only needs the project id. When FIREBASE_AUTH_EMULATOR_HOST is set,
     # tokens from the local emulator are accepted instead.
     cred = credentials.Certificate(FIREBASE_CREDENTIALS) if FIREBASE_CREDENTIALS else None
-    options = {"projectId": FIREBASE_PROJECT_ID} if FIREBASE_PROJECT_ID else None
+    project = FIREBASE_PROJECT_ID
+    if not project and os.environ.get("FIREBASE_AUTH_EMULATOR_HOST"):
+        project = "demo-aquatrack"  # the emulator project; never a real one
+    options = {"projectId": project} if project else None
     return firebase_admin.initialize_app(cred, options)
 
 
 def verify_token(token: str) -> dict:
     return auth.verify_id_token(token, app=_app())
+
+
+def delete_auth_user(uid: str) -> None:
+    """Remove the sign-in itself. A user that is already gone is fine."""
+    try:
+        auth.delete_user(uid, app=_app())
+    except auth.UserNotFoundError:
+        pass
 
 
 def current_user(authorization: Annotated[str | None, Header()] = None) -> FirebaseUser:

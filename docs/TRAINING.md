@@ -113,9 +113,22 @@ Owner-read, no client writes: every change goes through the backend, which check
 | `DELETE /training/sessions/{id}` | deletes one session; never touches a video |
 
 - **Versions.** Replacing a week makes a new plan document (`version` + 1, same `series_id`);
-  the old one is kept with status `replaced`. Completed, skipped and cancelled sessions always
-  stay; sessions the swimmer edited stay unless they choose otherwise; untouched planned
-  sessions are marked `replaced` and kept with the old version.
+  the old one is kept with status `replaced`. Completed and skipped sessions always stay, and
+  sessions the swimmer edited stay unless they choose otherwise. Kept sessions keep their id
+  and move to the new version (`plan_version` still records where they came from).
+  Untouched planned sessions are marked `replaced` and kept with the old version.
+- **Slots (Phase 7).** Every session remembers the day the plan first gave it
+  (`planned_date`), which never changes when the swimmer moves it. A new version does not add
+  a session on a day that a kept session holds, either as its original day or as the day it
+  is on now. So moving Monday's session to Tuesday and regenerating leaves Monday empty
+  instead of creating a duplicate, and the plan says so. A cancelled session frees its day.
+- **Conflicts (Phase 7).** Every session has a `revision` that goes up by one on each stored
+  change. An edit, completion or deletion must name the revision it was made from; a stale
+  one is refused with 409 and nothing is overwritten, and the write itself is a
+  compare-and-set in the store, so two requests arriving together cannot both land. A plan
+  can only be saved with the `token` of the preview it came from: if the schedule changed
+  in between, nothing is saved and the swimmer previews again. Two plan saves at the same
+  moment cannot both land (a per-swimmer counter in `training_state/{uid}`).
 - **Edits.** Each activity is `recommended`, `modified` (the swimmer changed it) or `manual`
   (the swimmer added it, from the library or typed in). A typed-in activity is never shown as
   recommended and never sent to a model. Refused: unknown or inactive activities, activities
@@ -159,5 +172,6 @@ every unsupported sentence, and they have only been run against mocked answers.
   produce none.
 - Level caps, pace assumptions, the session split and the weekly pattern are engineering
   choices. Age handling is general caution, not paediatric guidance.
-- Still open: reminders, recurring plans beyond 7 days, component-level UI tests, a durable
-  store for edits made at the same moment from two devices (last write wins).
+- Still open: reminders, recurring plans beyond 7 days, component-level UI tests. A plan
+  replacement writes several documents one after another, not in one transaction; the
+  preview token and the per-swimmer lock make an interleaving unlikely, not impossible.

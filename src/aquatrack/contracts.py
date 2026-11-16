@@ -666,6 +666,7 @@ class AnalysisJobStatus(StrEnum):
     READY = "ready"
     FAILED = "failed"
     DELETING = "deleting"  # the swimmer asked for it to be deleted; nothing else may start
+    CANCELED = "canceled"  # the swimmer stopped a queued or running analysis
 
 
 class JobError(BaseModel):

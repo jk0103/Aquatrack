@@ -69,6 +69,9 @@ feedback documents are never modified.
   SDK would send; every answer is mocked, and any attempt to open a real connection fails
   the test.
 - Training plans are reworded the same way with their own checks: `docs/TRAINING.md`, section 7.
+- A daily ceiling on billed calls per API process (`AQUATRACK_LLM_MAX_CALLS_PER_DAY`, default
+  200) was added in Phase 7; past it the app shows its own text. Review of the adapter and
+  the exact live-test procedure: `docs/OPENAI_LIVE_TEST.md`.
 - Sent: item ids, categories, the deterministic text, limitations, attached claim ids and
   statements, swim level and goal keys. Not sent: video, pose data, names, email, account or
   video ids, the swimmer's own note.

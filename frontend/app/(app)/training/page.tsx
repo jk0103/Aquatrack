@@ -30,6 +30,7 @@ import {
   DAY_OPTIONS,
   evidenceLabel,
   formatDay,
+  isConflict,
   localIso,
   sessionMeta,
   statusLabel,
@@ -349,9 +350,17 @@ function Generator({ view, onSaved }: { view: TrainingOverview; onSaved: () => v
     if (!preview) return;
     setBusy(true);
     setError(null);
-    const res = await savePlan(preview.kind, preview.start_date, opts);
+    const res = await savePlan(preview.kind, preview.start_date, preview.token, opts);
     setBusy(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) {
+      // The schedule changed since this preview: it no longer shows what would be saved.
+      if (isConflict(res.status)) {
+        setPreview(null);
+        setConflict(null);
+        onSaved();
+      }
+      return setError(res.error);
+    }
     if (!res.data.saved) return setConflict(res.data.conflict);
     setPreview(null);
     setConflict(null);
@@ -466,9 +475,21 @@ function Generator({ view, onSaved }: { view: TrainingOverview; onSaved: () => v
                       </li>
                     ))}
                   </ul>
+                  {conflict.moved.length > 0 && (
+                    <p className="mt-1 text-sm text-amber-900">
+                      You moved{" "}
+                      {conflict.moved
+                        .map(
+                          (m) =>
+                            `${m.title} from ${formatDay(m.planned_date)} to ${formatDay(m.date)}`,
+                        )
+                        .join("; ")}
+                      . Moved sessions are kept and their original day is not filled again.
+                    </p>
+                  )}
                   <p className="mt-1 text-sm text-amber-900">
-                    Completed, skipped and cancelled sessions are always kept. The old version
-                    stays in your records.
+                    Completed and skipped sessions are always kept, with the sessions you
+                    edited. The old version stays in your records.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button onClick={() => save({ confirm: true })} disabled={busy}>

@@ -49,6 +49,8 @@ export type SessionCheckpoint = {
 
 export type TrainingSession = {
   id: string;
+  revision: number; // sent back with every edit; a stale one is refused by the backend
+  planned_date: string; // the day the plan first gave it; stays when the session is moved
   plan_id: string;
   plan_version: number;
   date: string;
@@ -114,6 +116,7 @@ export type TrainingPlan = {
   assumptions: string[];
   limitations: string[];
   notes: string[];
+  token: string; // on a preview: must be sent back when saving
 };
 
 export type Activity = {
@@ -213,6 +216,7 @@ export type SaveResult =
           unedited: number;
           recorded: number;
         }[];
+        moved: { id: string; title: string; planned_date: string; date: string }[];
         sessions: { id: string; title: string; date: string }[];
       };
     };
@@ -271,6 +275,8 @@ export function parseSession(raw: unknown): TrainingSession {
   const done = r.completion ? obj(r.completion) : null;
   return {
     id: str(r.id),
+    revision: num(r.revision),
+    planned_date: isIsoDate(str(r.planned_date)) ? str(r.planned_date) : "",
     plan_id: str(r.plan_id),
     plan_version: num(r.plan_version),
     date: isIsoDate(str(r.date)) ? str(r.date) : "",
@@ -371,6 +377,7 @@ export function parsePlan(raw: unknown): TrainingPlan | null {
     assumptions: strings(r.assumptions),
     limitations: strings(r.limitations),
     notes: strings(r.notes),
+    token: str(r.token),
   };
 }
 
@@ -529,6 +536,12 @@ export function parseSaveResult(raw: unknown): SaveResult | null {
         unedited: num(obj(p).unedited),
         recorded: num(obj(p).recorded),
       })),
+      moved: list(c.moved).map((s) => ({
+        id: str(obj(s).id),
+        title: str(obj(s).title),
+        planned_date: str(obj(s).planned_date),
+        date: str(obj(s).date),
+      })),
       sessions: list(c.sessions).map((s) => ({
         id: str(obj(s).id),
         title: str(obj(s).title),
@@ -536,6 +549,11 @@ export function parseSaveResult(raw: unknown): SaveResult | null {
       })),
     },
   };
+}
+
+// The backend refused a change because the session or schedule was changed elsewhere.
+export function isConflict(status: number): boolean {
+  return status === 409;
 }
 
 // ---- labels. The same words everywhere, and nothing that claims more than it should.

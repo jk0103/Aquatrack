@@ -109,6 +109,9 @@ Training data (Phase 6): before the video's data is removed, every pointer to it
 swimmer's training sessions and plans is cleared, together with finding text copied from its
 analysis. Sessions, notes and completion history stay (`docs/TRAINING.md`, section 6).
 
+Account deletion and the retention checklist: `docs/DATA_LIFECYCLE.md`. A running analysis
+is now stopped by the job lease check when its video is deleted (`docs/ANALYSIS_JOBS.md`).
+
 **Before production** (not done): a durable deletion queue with retries and reconciliation for
 records left in `deleting`; account-level deletion; backups and their retention; logs that may
 hold ids; a written retention policy and the legal review that goes with it; consent handling

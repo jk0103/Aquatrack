@@ -39,12 +39,18 @@ export async function previewPlan(
   return read(await api<unknown>("/training/plans/preview", post({ kind, start })), parsePlan);
 }
 
+// `token` comes from the preview being saved: if the schedule changed since, the backend
+// refuses rather than saving a plan the swimmer has not seen in its current form.
 export async function savePlan(
   kind: "session" | "week",
   start: string,
+  token: string,
   opts: { confirm?: boolean; discard_edits?: boolean } = {},
 ): Promise<ApiResult<SaveResult>> {
-  return read(await api<unknown>("/training/plans", post({ kind, start, ...opts })), parseSaveResult);
+  return read(
+    await api<unknown>("/training/plans", post({ kind, start, token, ...opts })),
+    parseSaveResult,
+  );
 }
 
 export async function fetchCalendar(start: string, end: string): Promise<ApiResult<CalendarFeed>> {
@@ -59,12 +65,18 @@ export type SessionChange = {
   status?: "planned" | "skipped" | "canceled";
 };
 
+// Every change names the revision it was made from. If the session was changed in another
+// tab or on another device since, the backend answers 409 and nothing is overwritten.
 export async function updateSession(
   id: string,
+  revision: number,
   change: SessionChange,
 ): Promise<ApiResult<TrainingSession>> {
   return read(
-    await api<unknown>(`/training/sessions/${encodeURIComponent(id)}`, post(change, "PATCH")),
+    await api<unknown>(
+      `/training/sessions/${encodeURIComponent(id)}`,
+      post({ ...change, revision }, "PATCH"),
+    ),
     parseSession,
   );
 }
@@ -81,7 +93,7 @@ export async function createSession(body: {
 
 export async function completeSession(
   id: string,
-  body: { completed_on: string; done: number[]; note: string; video_id: string },
+  body: { revision: number; completed_on: string; done: number[]; note: string; video_id: string },
 ): Promise<ApiResult<TrainingSession>> {
   return read(
     await api<unknown>(`/training/sessions/${encodeURIComponent(id)}/complete`, post(body)),
@@ -89,8 +101,17 @@ export async function completeSession(
   );
 }
 
-export function deleteSession(id: string): Promise<ApiResult<{ deleted: boolean }>> {
-  return api<{ deleted: boolean }>(`/training/sessions/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+export function deleteSession(
+  id: string,
+  revision: number,
+): Promise<ApiResult<{ deleted: boolean }>> {
+  return api<{ deleted: boolean }>(
+    `/training/sessions/${encodeURIComponent(id)}?revision=${revision}`,
+    { method: "DELETE" },
+  );
+}
+
+// Deletes the swimmer's whole account and everything it owns. Needs the exact phrase.
+export function deleteAccount(confirm: string): Promise<ApiResult<{ deleted: boolean }>> {
+  return api<{ deleted: boolean }>("/me", { method: "DELETE", body: JSON.stringify({ confirm }) });
 }

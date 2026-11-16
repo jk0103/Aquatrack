@@ -33,9 +33,15 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   Pose files use `SCHEMA_VERSION`, analysis results `ANALYSIS_SCHEMA_VERSION` (1.2). Only add
   fields within a major version, never rewrite stored results, and keep older documents
   readable; `frontend/app/lib/analysisV1.ts` mirrors them (pure parser, tested with `npm test`).
-- `src/aquatrack/api/`: FastAPI. `main.py` (routes), `jobs.py` (job states, in-process
-  runner: not a durable queue), `store.py` (Firestore/Storage; refuses to run without the
-  emulators unless explicitly allowed).
+- `src/aquatrack/api/`: FastAPI. `main.py` (routes), `jobs.py` (the job queue: the video
+  documents themselves, claimed in a transaction with a lease, heartbeats, recovery,
+  cancel, timeout; `Worker` loop), `store.py` (Firestore/Storage; refuses a real project
+  unless the environment says so), `config.py` (`AQUATRACK_ENV`, `validate()`), `limits.py`
+  (per-swimmer request limits, in memory), `account.py` (account deletion and the guard that
+  refuses new work during it). `src/aquatrack/worker.py`: the worker as its own process
+  (`python -m aquatrack.worker`). Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
+  `docs/DATA_LIFECYCLE.md`, `docs/DEPLOYMENT_PLAN.md`, `docs/RELEASE_PLAN.md`,
+  `docs/IMPLEMENTATION_STATUS.md` (update the status document when a feature's state changes).
 - `src/aquatrack/analysis/`: `pose/sources.py` (precomputed / local / remote pose sources),
   `pose/rtmw_backend.py`, `pose/cleanup.py`, `processing.py`, `quality.py` (tracking grade
   only), `metrics/cycles.py` (pulls and cycles from mid-pull events), `usability.py` (camera
@@ -62,7 +68,10 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   7-day plans), `models.py` (contracts, `TRAINING_VERSION`), `explain.py` (checks on optional
   plan rewording). `src/aquatrack/api/training.py`: plans, sessions, calendar, edit rules,
   ownership (`training_plans/{id}`, `training_sessions/{id}`: owner read, backend-only
-  writes). Doc: `docs/TRAINING.md` (update it with any activity, rule or threshold change).
+  writes). Every session has a `revision`; edits name the one they were made from and are
+  written with a compare-and-set (`store.swap_doc`), a plan is saved only with its preview's
+  `token`, and a session keeps its original slot (`planned_date`) when moved. Doc:
+  `docs/TRAINING.md` (update it with any activity, rule or threshold change).
 - `src/aquatrack/analysis/comparison.py`: session comparison (per metric, neutral states),
   progress series, checkpoint follow-up. Computed from stored analyses on request, never
   stored. APIs: `GET /videos/{a}/compare/{b}`, `GET /progress`, `DELETE /videos/{id}`
@@ -78,7 +87,10 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   status, errors and retries; never inside a web request.
 - Inference sits behind one interface with three interchangeable sources that all produce
   the same validated data structure: precomputed pose data from Colab, local model
-  inference, and (later) a dedicated worker or GPU service.
+  inference, and (later) a dedicated worker or GPU service. `precomputed` is a development
+  fixture: it is never real inference and must never be described as such. Model inference
+  on a new upload inside the worker has not been run; do not claim it until one real video
+  has gone through `AQUATRACK_POSE_SOURCE=local` on a real worker.
 - Planned production: Render (frontend and API) + Firebase; a GPU service only if measured
   need. Nothing is deployed yet.
 
@@ -173,6 +185,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 - Never commit weights, datasets, videos, pose dumps, private documents, `.env` files,
   credentials or `.DS_Store`. `.gitignore` covers these; check `git status` before commits.
 - Do not purchase or enable paid services without approval.
+- Licensing is unresolved and blocks a hosted launch: Ultralytics YOLO11 is AGPL-3.0 (or a
+  paid Enterprise licence); the RTMW weights were trained partly on a non-commercial dataset;
+  the repository has no LICENSE file. See `docs/RELEASE_PLAN.md`. Do not add a licence file
+  or swap a model without the owner's decision.
+- Environments: `AQUATRACK_ENV` is `emulator` locally. Never set `staging` or `production`,
+  `AQUATRACK_ALLOW_PRODUCTION_FIREBASE`, or service-account credentials on this machine.
 
 ## Git
 
@@ -198,10 +216,15 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 5. History, comparison, progress, checkpoint follow-up and video deletion (done, local commit
    `5beb945`, not pushed; comparison logic exercised on labelled synthetic sessions only,
    since no real swimmer has two comparable sessions yet).
-6. Training recommendations, plans, calendar and the OpenAI adapter (implemented locally
-   2026-11-16, uncommitted, awaiting the owner's review; analysis-based plans exercised with
-   synthetic findings only; no paid API call made). 7. Hardening, full scenario tests,
-   production inference and deployment evaluation.
+6. Training recommendations, plans, calendar and the OpenAI adapter (done, local commit
+   `1a9e02c`, not pushed; analysis-based plans exercised with synthetic findings only; no
+   paid API call made).
+7. Pre-deployment readiness: durable job queue and worker, edit-conflict protection,
+   account deletion, request limits, environment checks, browser journeys, security review,
+   deployment and release plans (implemented locally 2026-11-16, uncommitted, awaiting the
+   owner's review). Not a launch: production inference, licensing, legal review and a real
+   Firebase project are open blockers (`docs/IMPLEMENTATION_STATUS.md`, section 3).
+8. Not defined yet. Nothing is deployed and nothing is pushed.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without
 the owner's approval. After each phase, stop and report.
@@ -211,8 +234,12 @@ the owner's approval. After each phase, stop and report.
 - Before reporting: `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`,
   and in `frontend/`: `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`. If
   something could not be run, say why.
-  `tests/test_emulator_rules.py` only runs when the emulators are up
-  (`npm --prefix frontend run emulators`); say whether it ran or was skipped.
+  `tests/test_emulator_rules.py` and `tests/test_emulator_backend.py` only run when the
+  emulators are up (`npm --prefix frontend run emulators`); say whether they ran or were
+  skipped. Browser journeys: `npm run e2e` in `frontend/` (Playwright with the installed
+  Chrome; needs the emulators, API and dev server, which it starts or reuses).
+- Orchestration tests use fake inference adapters and say so; tests on saved model output
+  are a development fixture. Neither counts as inference on a new video.
 - Synthetic or mocked tests never count as real-video validation. Report the two separately.
 - For every feature say which apply: implemented / tested / verified with real data /
   incomplete / blocked / not yet scientifically validated. Source code or UI existing is not

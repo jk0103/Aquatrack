@@ -60,3 +60,9 @@ test_videos/
 !.env.example
 *service-account*.json
 *serviceAccount*.json
+
+# Browser end-to-end test output (traces may show screens with test data)
+frontend/e2e-results/
+frontend/playwright-report/
+frontend/test-results/
+*.webm

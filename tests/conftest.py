@@ -82,3 +82,12 @@ def make_raw_pose(video_path: Path | None = None, xy: np.ndarray | None = None, 
         selection=np.full(n, int(Selection.OVERLAP), np.uint8),
         candidates=np.ones(n, np.int16),
     )
+
+
+@pytest.fixture(autouse=True)
+def fresh_request_limits():
+    """Request limits are counted per process; each test starts from zero."""
+    from aquatrack.api.limits import limiter
+
+    limiter.reset()
+    yield

@@ -11,6 +11,7 @@ import {
   basisTone,
   evidenceLabel,
   formatDay,
+  isConflict,
   localIso,
   sessionMeta,
   sourceLabel,
@@ -100,7 +101,9 @@ export function SessionCard({
   const [on, setOn] = useState(localIso(new Date()));
   const [video, setVideo] = useState("");
 
-  async function run(call: () => Promise<{ ok: boolean; error?: string }>) {
+  async function run(
+    call: () => Promise<{ ok: boolean; error?: string; status?: number }>,
+  ) {
     setBusy(true);
     setError(null);
     const res = await call();
@@ -108,7 +111,11 @@ export function SessionCard({
     if (res.ok) {
       setMode("view");
       onChanged();
-    } else setError(res.error ?? "That did not work.");
+    } else {
+      setError(res.error ?? "That did not work.");
+      // Changed in another tab or on another device: show what is stored now.
+      if (isConflict(res.status ?? 0)) onChanged();
+    }
   }
 
   const completed = session.status === "completed";
@@ -125,6 +132,12 @@ export function SessionCard({
             {session.title}
           </h3>
           <p className="mt-0.5 text-sm text-slate-600">{sessionMeta(session)}</p>
+          {session.planned_date && session.planned_date !== session.date && (
+            <p className="mt-0.5 text-xs text-slate-500">
+              Moved by you from {formatDay(session.planned_date)}. A new plan will not add
+              another session on that day.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-1.5">
           <Badge tone={statusTone(session.status)}>{statusLabel(session.status)}</Badge>
@@ -156,8 +169,16 @@ export function SessionCard({
             submitLabel="Save changes"
             onCancel={() => setMode("view")}
             onSubmit={async (draft) => {
-              const res = await updateSession(session.id, draft);
-              if (!res.ok) return res.error;
+              const res = await updateSession(session.id, session.revision, draft);
+              if (!res.ok) {
+                if (isConflict(res.status)) {
+                  setMode("view");
+                  setError(res.error);
+                  onChanged();
+                  return null;
+                }
+                return res.error;
+              }
               setMode("view");
               onChanged();
               return null;
@@ -239,7 +260,13 @@ export function SessionCard({
           onSubmit={(e) => {
             e.preventDefault();
             run(() =>
-              completeSession(session.id, { completed_on: on, done, note, video_id: video }),
+              completeSession(session.id, {
+                revision: session.revision,
+                completed_on: on,
+                done,
+                note,
+                video_id: video,
+              }),
             );
           }}
         >
@@ -330,7 +357,9 @@ export function SessionCard({
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => run(() => updateSession(session.id, { status: "skipped" }))}
+              onClick={() =>
+                run(() => updateSession(session.id, session.revision, { status: "skipped" }))
+              }
             >
               Skip
             </Button>
@@ -339,7 +368,9 @@ export function SessionCard({
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => run(() => updateSession(session.id, { status: "canceled" }))}
+              onClick={() =>
+                run(() => updateSession(session.id, session.revision, { status: "canceled" }))
+              }
             >
               Cancel session
             </Button>
@@ -348,7 +379,9 @@ export function SessionCard({
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => run(() => updateSession(session.id, { status: "planned" }))}
+              onClick={() =>
+                run(() => updateSession(session.id, session.revision, { status: "planned" }))
+              }
             >
               {completed ? "Undo completion" : "Plan it again"}
             </Button>
@@ -371,7 +404,7 @@ export function SessionCard({
             <button
               type="button"
               disabled={busy}
-              onClick={() => run(() => deleteSession(session.id))}
+              onClick={() => run(() => deleteSession(session.id, session.revision))}
               className="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
             >
               {busy ? "Deleting…" : "Yes, delete the session"}

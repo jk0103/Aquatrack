@@ -9,6 +9,7 @@ Dates are the swimmer's local calendar dates ("YYYY-MM-DD") and optional local t
 the swimmer's device. A session is completed only when the swimmer says so.
 """
 
+import hashlib
 import logging
 import re
 import uuid
@@ -31,7 +32,15 @@ from aquatrack.training.planner import AnalysisContext, History
 
 log = logging.getLogger("aquatrack.training")
 
-PLANS, SESSIONS = "training_plans", "training_sessions"
+PLANS, SESSIONS, STATE = "training_plans", "training_sessions", "training_state"
+CHANGED_ELSEWHERE = (
+    "This session was changed somewhere else (another tab or device) after you opened it. "
+    "Your change was not saved. Reload to see the current version."
+)
+SCHEDULE_CHANGED = (
+    "Your schedule changed after this preview was made. Nothing was saved. Preview the plan "
+    "again to see how it fits now."
+)
 MAX_ITEMS = 12
 MAX_SESSION_MIN = 180
 MAX_TITLE, MAX_NOTE, MAX_CUSTOM_NAME = 80, 300, 60
@@ -141,12 +150,44 @@ def _plans(store: Store, uid: str) -> list[TrainingPlan]:
     return sorted(out, key=lambda p: (p.start_date, p.version, p.created_at))
 
 
-def _save_session(store: Store, uid: str, session: PlannedSession) -> None:
+def _save_session(store: Store, uid: str, session: PlannedSession, new: bool = False) -> None:
+    """Store a session only if nobody changed it since it was read: the write names the
+    revision it started from and is refused, atomically, if the stored one differs. So two
+    tabs or devices can never silently overwrite each other."""
+    expected = None if new else session.revision
+    session.revision += 1
+    session.planned_date = session.planned_date or session.date
     session.minutes = sum(i.minutes for i in session.items)
     session.distance_m = sum(i.distance_m or 0 for i in session.items) or None
     levels = [i.intensity for i in session.items]
     session.intensity = next((x for x in ("brisk", "moderate", "easy") if x in levels), "")
-    store.set_doc(SESSIONS, session.id, {**session.model_dump(mode="json"), "uid": uid})
+    document = {**session.model_dump(mode="json"), "uid": uid}
+    if not store.swap_doc(SESSIONS, session.id, expected, document):
+        raise TrainingError(409, CHANGED_ELSEWHERE)
+
+
+def _expect(session: PlannedSession, body: dict) -> None:
+    """The edit says which revision it was made from. A stale one is refused here; the
+    stored write is checked again, atomically, when it happens."""
+    seen = body.get("revision")
+    if seen is not None and seen != session.revision:
+        raise TrainingError(409, CHANGED_ELSEWHERE)
+
+
+def schedule_token(store: Store, uid: str, start: date, end: date) -> str:
+    """A fingerprint of the swimmer's schedule around these dates: their active weekly
+    plans and every session in the range with its revision."""
+    lo, hi = start.isoformat(), end.isoformat()
+    parts = sorted(
+        f"{s.id}:{s.revision}:{s.status}:{s.date}"
+        for s in _sessions(store, uid)
+        if s.status != "replaced" and (lo <= s.date <= hi or lo <= s.planned_date <= hi)
+    ) + sorted(
+        p.id
+        for p in _plans(store, uid)
+        if p.status == "active" and p.start_date <= hi and lo <= p.end_date
+    )
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:24]
 
 
 def _save_plan(store: Store, uid: str, plan: TrainingPlan) -> None:
@@ -187,7 +228,11 @@ def generate(store: Store, uid: str, kind: str, start: date) -> TrainingPlan:
     ctx = analysis_context(store, uid)
     past = history(_sessions(store, uid), start)
     build = planner.build_week if kind == "week" else planner.build_single
-    return build(swimmer, ctx, start, past)
+    plan = build(swimmer, ctx, start, past)
+    for session in plan.sessions:
+        session.planned_date = session.date
+    plan.token = schedule_token(store, uid, start, date.fromisoformat(plan.end_date))
+    return plan
 
 
 # ---------------------------------------------------------------- reading
@@ -317,6 +362,16 @@ def calendar(store: Store, uid: str, start: date, end: date) -> dict:
 # ---------------------------------------------------------------- saving a generated plan
 
 
+def _lock_schedule(store: Store, uid: str) -> None:
+    """Only one plan can be saved for a swimmer at a time: the save first advances a small
+    per-swimmer counter with a compare-and-set, and a second save racing it loses."""
+    state = store.get_doc(STATE, uid)
+    current = None if state is None else int(state.get("revision", 0) or 0)
+    document = {"uid": uid, "id": uid, "revision": (current or 0) + 1, "updated_at": _now()}
+    if not store.swap_doc(STATE, uid, current, document):
+        raise TrainingError(409, SCHEDULE_CHANGED)
+
+
 def save_plan(
     store: Store,
     uid: str,
@@ -325,12 +380,22 @@ def save_plan(
     confirm: bool = False,
     discard_edits: bool = False,
     explainer=None,
+    token: str | None = None,
 ) -> dict:
-    """Store a generated plan and its sessions. Never silently replaces anything: if these
-    dates already hold a plan or a planned session, the answer describes the conflict and
-    nothing is stored until the swimmer confirms. Sessions the swimmer edited, completed,
-    skipped or cancelled are kept (edited ones unless `discard_edits`)."""
+    """Store a generated plan and its sessions. Never silently replaces anything.
+
+    - If these dates already hold a weekly plan or a planned session, the answer describes
+      the conflict and nothing is stored until the swimmer confirms.
+    - If the schedule changed after the preview was made (`token`), nothing is stored.
+    - On replacing a week: sessions the swimmer completed, skipped or edited are kept, with
+      the same id, and move over to the new version. Each one still holds the slot the plan
+      first gave it (`planned_date`) as well as the day it is on now, so a session that was
+      moved from Monday to Tuesday does not get a second copy on Monday. A cancelled session
+      frees its slot. Untouched planned sessions are marked `replaced` and stay stored with
+      the old version."""
     plan = generate(store, uid, kind, start)
+    if token is not None and token != plan.token:
+        raise TrainingError(409, SCHEDULE_CHANGED)
     sessions = _sessions(store, uid)
     live = {v.id for v in _live_videos(store, uid)}
     old_plans = [
@@ -342,6 +407,16 @@ def save_plan(
         and p.start_date <= plan.end_date
         and plan.start_date <= p.end_date
     ]
+    old_ids = {p.id for p in old_plans}
+    mine = [s for s in sessions if s.plan_id in old_ids and s.status != "replaced"]
+    kept = [
+        s
+        for s in mine
+        if s.status in ("completed", "skipped")
+        or (s.status == "planned" and s.edited and not discard_edits)
+    ]
+    cancelled = [s for s in mine if s.status == "canceled"]
+    dropped = [s for s in mine if s not in kept and s not in cancelled]
     same_day = [
         s
         for s in sessions
@@ -358,52 +433,69 @@ def save_plan(
                         "title": p.title,
                         "version": p.version,
                         "edited": sum(
-                            s.plan_id == p.id and s.status == "planned" and s.edited
-                            for s in sessions
+                            s.plan_id == p.id and s.status == "planned" and s.edited for s in mine
                         ),
                         "unedited": sum(
                             s.plan_id == p.id and s.status == "planned" and not s.edited
-                            for s in sessions
+                            for s in mine
                         ),
                         "recorded": sum(
                             s.plan_id == p.id and s.status in ("completed", "skipped", "canceled")
-                            for s in sessions
+                            for s in mine
                         ),
                     }
                     for p in old_plans
                 ],
+                # Sessions the swimmer moved: the new plan will not refill the day they left.
+                "moved": [
+                    {"id": s.id, "title": s.title, "planned_date": s.planned_date, "date": s.date}
+                    for s in mine
+                    if s.status == "planned" and s.planned_date and s.planned_date != s.date
+                ],
                 "sessions": [{"id": s.id, "title": s.title, "date": s.date} for s in same_day],
             },
         }
+    _lock_schedule(store, uid)
     plan.id = uuid.uuid4().hex
     plan.series_id = old_plans[0].series_id if old_plans else plan.id
     plan.version = max((p.version for p in old_plans), default=0) + 1
     plan.status = "active"
-    kept_dates: set[str] = set()
+    plan.token = ""
+    for s in dropped:
+        s.status = "replaced"  # kept in storage as part of the old version
+        _save_session(store, uid, s)
+    taken: dict[str, PlannedSession] = {}
+    for s in kept:
+        for day in {s.planned_date or s.date, s.date}:
+            taken.setdefault(day, s)
+    fresh: list[PlannedSession] = []
+    for s in plan.sessions:
+        holder = taken.get(s.date)
+        if holder is None:
+            s.id, s.plan_id, s.plan_version = uuid.uuid4().hex, plan.id, plan.version
+            fresh.append(s)
+        elif holder.date == s.date:
+            plan.notes.append(f"Kept the session you already had on {s.date}.")
+        else:
+            plan.notes.append(
+                f"No new session on {s.date}: the one planned for that day was moved to "
+                f"{holder.date} and is kept."
+            )
+    for s in kept + cancelled:  # same ids, now part of the new version
+        s.plan_id = plan.id
+        _save_session(store, uid, s)
     for old in old_plans:
-        for s in sessions:
-            if s.plan_id != old.id or s.status == "replaced":
-                continue
-            if s.status == "planned" and (not s.edited or discard_edits):
-                s.status = "replaced"  # kept in storage as part of the old version
-                _save_session(store, uid, s)
-            else:
-                kept_dates.add(s.date)
         old.status, old.replaced_by = "replaced", plan.id
         _save_plan(store, uid, old)
-    fresh = []
-    for s in plan.sessions:
-        if s.date in kept_dates:  # the swimmer's own version of that day stays
-            plan.notes.append(f"Kept the session you already had on {s.date}.")
-            continue
-        s.id, s.plan_id, s.plan_version = uuid.uuid4().hex, plan.id, plan.version
-        fresh.append(s)
     plan.sessions = fresh
     plan = explain_plan(plan, explainer)
     for s in fresh:
-        _save_session(store, uid, s)
+        _save_session(store, uid, s, new=True)
+    occupied = {s.date for s in fresh + kept}
+    plan.rest_days = [d for d in plan.rest_days if d.date not in occupied]
     _save_plan(store, uid, plan)
-    return {"saved": True, "plan": _public_plan(plan, fresh, live)}
+    shown = sorted(fresh + kept + cancelled, key=lambda s: (s.date, s.time))
+    return {"saved": True, "plan": _public_plan(plan, shown, live)}
 
 
 # ---------------------------------------------------------------- the swimmer's own edits
@@ -516,13 +608,14 @@ def create_session(store: Store, uid: str, body: dict) -> dict:
         raise TrainingError(409, "You already have a session with this title at that time.")
     session.id = uuid.uuid4().hex
     session.safety = list(planner.SAFETY)
-    _save_session(store, uid, session)
+    _save_session(store, uid, session, new=True)
     return _public(session, {v.id for v in _live_videos(store, uid)})
 
 
 def update_session(store: Store, uid: str, session_id: str, body: dict) -> dict:
     """Reschedule, retitle, change the activities, or skip / cancel / reopen a session."""
     session = _own_session(store, uid, session_id)
+    _expect(session, body)
     if session.status == "replaced":
         raise TrainingError(409, "This session belongs to a plan version that was replaced.")
     before = (session.date, session.time, session.title, [i.model_dump() for i in session.items])
@@ -552,6 +645,7 @@ def complete_session(store: Store, uid: str, session_id: str, body: dict) -> dic
     """Record that the swimmer did a session: which activities, when, and an optional note
     and video link. Only ever called by the swimmer; time passing completes nothing."""
     session = _own_session(store, uid, session_id)
+    _expect(session, body)
     if session.status in ("replaced", "canceled"):
         raise TrainingError(409, "A cancelled or replaced session cannot be completed.")
     on = parse_date(body.get("completed_on"), "completion date")
@@ -578,13 +672,15 @@ def complete_session(store: Store, uid: str, session_id: str, body: dict) -> dic
     return _public(session, live)
 
 
-def delete_session(store: Store, uid: str, session_id: str) -> dict:
+def delete_session(store: Store, uid: str, session_id: str, revision: int | None = None) -> dict:
     """Remove one training session. This never touches a video or an analysis."""
     doc = store.get_doc(SESSIONS, session_id)
     if doc is None:
         return {"deleted": True, "already_deleted": True}
     if doc.get("uid") != uid:
         raise TrainingError(404, "Session not found.")
+    if revision is not None and revision != int(doc.get("revision", 0) or 0):
+        raise TrainingError(409, CHANGED_ELSEWHERE)
     store.delete_doc(SESSIONS, session_id)
     return {"deleted": True, "already_deleted": False}
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { useUser } from "@/app/components/AppShell";
@@ -20,7 +22,7 @@ import {
   PageHeader,
   Stat,
 } from "@/app/components/ui";
-import { describeFirebaseError } from "@/app/lib/firebase";
+import { auth, describeFirebaseError } from "@/app/lib/firebase";
 import { analyses, formatTime, progression } from "@/app/lib/mock";
 import {
   BODY_CHECKS,
@@ -41,6 +43,7 @@ import {
   type Profile,
   type ProfileDraft,
 } from "@/app/lib/profile";
+import { deleteAccount } from "@/app/lib/trainingApi";
 
 export default function ProfilePage() {
   const user = useUser();
@@ -279,7 +282,89 @@ export default function ProfilePage() {
           </Card>
         </div>
       )}
+      {!editing && <DeleteAccount />}
     </>
+  );
+}
+
+const DELETE_PHRASE = "DELETE MY ACCOUNT"; // must match the backend exactly
+
+// Deleting the account is permanent and removes everything, so it needs the phrase typed
+// out. The backend does the deleting; if it stops part way, the same button finishes it.
+function DeleteAccount() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    const res = await deleteAccount(typed);
+    if (!res.ok) {
+      setError(res.error);
+      setBusy(false);
+      return;
+    }
+    await signOut(auth).catch(() => {});
+    router.replace("/login");
+  }
+
+  return (
+    <Card title="Delete your account" className="mt-6">
+      <p className="text-sm text-slate-600">
+        Permanently removes your sign-in, profile and goals, every uploaded video with its
+        analyses, pose data and feedback, and all training plans, sessions and notes. This
+        can&apos;t be undone. Copies in backups, if any exist in a deployed service, follow
+        that service&apos;s retention policy.
+      </p>
+      {!open ? (
+        <div className="mt-4">
+          <Button variant="secondary" onClick={() => setOpen(true)}>
+            Delete my account…
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3" role="group" aria-label="Confirm account deletion">
+          <label className="block text-sm font-medium text-slate-700">
+            Type {DELETE_PHRASE} to confirm
+            <input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              className="mt-1 block w-full max-w-sm rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm"
+            />
+          </label>
+          {error && (
+            <p role="alert" className="text-sm text-red-700">
+              {error}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy || typed !== DELETE_PHRASE}
+              className="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {busy ? "Deleting…" : "Delete everything permanently"}
+            </button>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                setTyped("");
+                setError(null);
+              }}
+            >
+              Keep my account
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

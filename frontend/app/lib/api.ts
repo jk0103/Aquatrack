@@ -18,6 +18,9 @@ function describeError(body: FastApiError | null, status: number): string {
 export async function api<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   let res: Response;
   try {
+    // On a fresh page load the saved sign-in is restored a moment after the page starts.
+    // Wait for that, or a request made straight away would go out without a login.
+    await auth.authStateReady();
     const token = await auth.currentUser?.getIdToken();
     res = await fetch(`/api${path}`, {
       ...init,

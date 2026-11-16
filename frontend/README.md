@@ -118,6 +118,11 @@ The contracts are defined in `src/aquatrack/contracts.py`.
 
 ### Not in the product scope yet
 
+Browser end-to-end tests: `npm run e2e` (Playwright, `e2e/journeys.spec.ts`). They use the
+Chrome installed on the machine and the Firebase emulators, create a disposable account,
+and start the emulators, API and dev server if they are not already running. The analysis
+journey needs the local public test clip and its saved pose data and skips without them.
+
 Training and Calendar are real since Phase 6 (`docs/TRAINING.md`). `app/lib/training.ts` holds
 the pure parts (parsing, local dates, month grid, editing a session's activity list; tested
 with `npm test`), `app/lib/trainingApi.ts` calls the backend, and `app/components/training/`

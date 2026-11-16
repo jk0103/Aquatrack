@@ -6,6 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // True while the backend is deleting this account: nothing new may be written for it.
+    function beingDeleted(uid) {
+      return exists(/databases/$(database)/documents/account_deletions/$(uid));
+    }
+
     function inRange(value, lo, hi) {
       return value is number && value >= lo && value <= hi;
     }
@@ -13,7 +18,9 @@ service cloud.firestore {
     // Survey answers, one document per user. Ranges match frontend/app/lib/profile.ts.
     match /profiles/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if signedIn() && request.auth.uid == uid
+      allow delete: if false;  // only the backend deletes a profile, with the whole account
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && !beingDeleted(uid)
         && request.resource.data.keys().hasOnly([
           'age', 'height_cm', 'weight_kg', 'swim_level',
           'sessions_per_week', 'minutes_per_day', 'pbs', 'updatedAt',
@@ -73,6 +80,7 @@ service cloud.firestore {
       allow read: if signedIn() && resource.data.uid == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
+        && !beingDeleted(request.auth.uid)
         && request.resource.data.status == 'uploaded'
         && request.resource.data.storagePath.matches('videos/' + request.auth.uid + '/.*')
         && request.resource.data.createdAt == request.time;
@@ -108,6 +116,15 @@ service cloud.firestore {
     match /training_sessions/{sessionId} {
       allow read: if signedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
+    }
+
+    // Backend bookkeeping: the schedule revision counter and the account-deletion marker.
+    // No client reads or writes either.
+    match /training_state/{uid} {
+      allow read, write: if false;
+    }
+    match /account_deletions/{uid} {
+      allow read, write: if false;
     }
   }
 }

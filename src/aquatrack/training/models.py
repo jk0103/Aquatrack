@@ -169,7 +169,13 @@ class PlannedSession(BaseModel):
     id: str = ""
     plan_id: str = ""  # empty for a session the swimmer created
     plan_version: int = 0
+    # Changes by one on every stored change. An edit must name the revision it was made
+    # from; if the stored one has moved on, the edit is refused instead of overwriting.
+    revision: int = 0
     date: str  # local calendar date, YYYY-MM-DD; no time zone conversion is ever applied
+    # The day the plan first put this session on. Never changes when the swimmer moves the
+    # session, so a regenerated plan knows that slot is already taken.
+    planned_date: str = ""
     time: str = ""  # optional local time, HH:MM
     title: str
     objective: str = ""
@@ -250,4 +256,7 @@ class TrainingPlan(BaseModel):
     assumptions: list[str] = []
     limitations: list[str] = []
     notes: list[str] = []
+    # Preview only: what the swimmer's schedule looked like when the preview was made.
+    # Saving needs it back, and is refused if the schedule has changed since.
+    token: str = ""
     created_at: str = Field(default_factory=_now)

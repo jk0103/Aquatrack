@@ -71,6 +71,19 @@ named `<video sha256>.rawpose.npz` in `data/precomputed_pose/`, produced in Cola
 (needs the pose extra and weights) or `remote` (interface only). A video without pose data
 fails with a clear reason; nothing is made up. See `docs/POSE_PROCESSING.md`.
 
+## Running analysis jobs
+
+A request to analyse a video writes a durable job; a worker claims it. In development the
+API runs a worker thread itself. To run the worker separately:
+
+    AQUATRACK_WORKER=external uv run uvicorn aquatrack.api.main:app
+    uv run python -m aquatrack.worker
+
+With the default `AQUATRACK_POSE_SOURCE=precomputed` the worker only finds pose files made
+beforehand: a development fixture, not inference. See `docs/ANALYSIS_JOBS.md`.
+
+Status of every feature, and what blocks a launch: `docs/IMPLEMENTATION_STATUS.md`.
+
 ## Roadmap
 
 1. Run pose estimation on 5 to 10 sample clips (underwater side view and overhead) and see where tracking breaks.

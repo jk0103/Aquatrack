@@ -318,6 +318,38 @@ def test_training_plans_and_sessions_are_owner_read_only(alice, bob):
         assert httpx.delete(doc, headers=ADMIN).status_code == 200
 
 
+def test_backend_bookkeeping_is_invisible_and_an_account_being_deleted_accepts_nothing(alice):
+    carol = User()  # a disposable account for this test only
+    for collection in ("training_state", "account_deletions"):
+        doc = f"{DOCS}/{collection}/{alice.uid}"
+        assert (
+            httpx.patch(doc, json={"fields": fields(uid=alice.uid)}, headers=ADMIN).status_code
+            == 200
+        )
+        assert httpx.get(doc, headers=alice.firestore).status_code == 403
+        assert (
+            httpx.patch(
+                doc, json={"fields": fields(uid=alice.uid)}, headers=alice.firestore
+            ).status_code
+            == 403
+        )
+        assert httpx.delete(doc, headers=alice.firestore).status_code == 403
+        assert httpx.delete(doc, headers=ADMIN).status_code == 200
+    assert _profile_write(carol) == 200
+    assert httpx.delete(f"{DOCS}/profiles/{carol.uid}", headers=carol.firestore).status_code == 403
+    marker = f"{DOCS}/account_deletions/{carol.uid}"
+    assert (
+        httpx.patch(marker, json={"fields": fields(uid=carol.uid)}, headers=ADMIN).status_code
+        == 200
+    )
+    assert _profile_write(carol) == 403  # no profile can be written back during deletion
+    assert (
+        create_video(carol, f"late-{secrets.token_hex(4)}").status_code == 403
+    )  # and no new upload record
+    assert httpx.delete(marker, headers=ADMIN).status_code == 200
+    assert _profile_write(carol) == 200
+
+
 # ---------- analysis artifacts in storage ----------
 
 

@@ -18,7 +18,11 @@ import {
   type MetricV1,
   type QualityReport,
 } from "@/app/lib/analysisV1";
-import { requestAnalysis, type VideoRecord } from "@/app/lib/videos";
+import {
+  cancelAnalysis,
+  requestAnalysis,
+  type VideoRecord,
+} from "@/app/lib/videos";
 
 // Everything on this panel comes from the swimmer's own video: the job state on the video
 // record and, once it's ready, the stored analysis. Nothing here is example data.
@@ -85,6 +89,14 @@ function JobStatus({ video }: { video: VideoRecord }) {
     setSending(false);
   }
 
+  async function cancel() {
+    setSending(true);
+    setSendError(null);
+    const res = await cancelAnalysis(video.id);
+    if (!res.ok) setSendError(res.error);
+    setSending(false);
+  }
+
   const working = video.status === "queued" || video.status === "analyzing";
   const failed = video.status === "failed";
   const canRetry = failed && video.job?.retryable === true;
@@ -100,12 +112,23 @@ function JobStatus({ video }: { video: VideoRecord }) {
                 : "Analyzing your swim. This page updates when it's done."
             }
           />
+          <p className="text-sm text-slate-600">
+            You can leave this page; the analysis carries on and is picked up again if
+            the server restarts.
+          </p>
+          <div className="mt-3">
+            <Button variant="secondary" onClick={cancel} disabled={sending}>
+              {sending ? "Cancelling…" : "Cancel analysis"}
+            </Button>
+          </div>
         </div>
       )}
-      {video.status === "uploaded" && (
+      {(video.status === "uploaded" || video.status === "canceled") && (
         <>
           <p className="text-sm text-slate-600">
-            This video hasn&apos;t been analyzed yet.
+            {video.status === "canceled"
+              ? "You cancelled the analysis. Nothing from it was kept; your upload is still saved."
+              : "This video hasn't been analyzed yet."}
           </p>
           <div className="mt-4">
             <Button onClick={start} disabled={sending}>
@@ -143,7 +166,7 @@ function JobStatus({ video }: { video: VideoRecord }) {
       )}
       {sendError && (
         <p role="alert" className="mt-3 text-sm text-red-700">
-          Couldn&apos;t start the analysis. {sendError}
+          {sendError}
         </p>
       )}
     </Card>

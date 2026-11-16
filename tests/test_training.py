@@ -414,13 +414,156 @@ def test_regenerating_never_silently_overwrites_and_keeps_edits_and_history(stor
     assert second["version"] == 2 and second["series_id"] == first["series_id"]
     old = store.get_doc("training_plans", first["id"])
     assert old["status"] == "replaced" and old["replaced_by"] == second["id"]
+    # the swimmer's own sessions keep their ids and move over to the new version
     assert stored(store, a)["status"] == "planned" and stored(store, a)["time"] == "06:30"
     assert stored(store, b)["status"] == "completed"
+    assert stored(store, a)["plan_id"] == stored(store, b)["plan_id"] == second["id"]
+    assert stored(store, a)["plan_version"] == 1  # where it came from is still recorded
     assert stored(store, c)["status"] == "replaced"  # kept in storage with the old version
-    assert [s["date"] for s in second["sessions"]] == ["2026-11-21"]  # only the free day
+    assert [s["id"] for s in second["sessions"]][:2] == [a, b]
+    assert [s["date"] for s in second["sessions"]] == ["2026-11-16", "2026-11-18", "2026-11-21"]
     assert sum("Kept the session you already had" in n for n in second["notes"]) == 2
     days = [s["date"] for s in training.calendar(store, UID, MON, MON + timedelta(6))["sessions"]]
     assert days == ["2026-11-16", "2026-11-18", "2026-11-21"]  # no duplicates on any day
+
+
+def test_a_moved_session_keeps_its_slot_so_regenerating_adds_no_duplicate(store):
+    """The Phase 6 defect: move Monday's session to Tuesday, regenerate, and Monday got a
+    second session. The slot the plan first gave a session now stays taken."""
+    first = saved_week(store)
+    monday = first["sessions"][0]
+    moved = training.update_session(store, UID, monday["id"], {"date": "2026-11-17"})
+    assert (moved["planned_date"], moved["date"]) == ("2026-11-16", "2026-11-17")
+    asked = training.save_plan(store, UID, "week", MON)
+    assert asked["conflict"]["moved"] == [
+        {
+            "id": monday["id"],
+            "title": monday["title"],
+            "planned_date": "2026-11-16",
+            "date": "2026-11-17",
+        }
+    ]
+    second = saved_week(store, confirm=True)
+    cal = training.calendar(store, UID, MON, MON + timedelta(6))
+    assert [s["date"] for s in cal["sessions"]] == ["2026-11-17", "2026-11-18", "2026-11-21"]
+    assert len(cal["sessions"]) == 3  # still three sessions this week, not four
+    assert cal["sessions"][0]["id"] == monday["id"]  # the same session, not a copy
+    assert any("moved to 2026-11-17 and is kept" in n for n in second["notes"])
+    assert "2026-11-17" not in {r["date"] for r in cal["rest_days"]}
+    # and again: regenerating twice still adds nothing
+    saved_week(store, confirm=True)
+    assert len(training.calendar(store, UID, MON, MON + timedelta(6))["sessions"]) == 3
+
+
+def test_a_cancelled_session_frees_its_day_and_a_skipped_one_does_not(store):
+    a, b, c = (s["id"] for s in saved_week(store)["sessions"])
+    training.update_session(store, UID, a, {"status": "canceled"})
+    training.update_session(store, UID, b, {"status": "skipped"})
+    saved_week(store, confirm=True)
+    by_day = {}
+    for s in training.calendar(store, UID, MON, MON + timedelta(6))["sessions"]:
+        by_day.setdefault(s["date"], []).append(s["status"])
+    assert sorted(by_day["2026-11-16"]) == ["canceled", "planned"]  # a new one may take the day
+    assert by_day["2026-11-18"] == ["skipped"]  # the record of the skipped day stands alone
+    assert by_day["2026-11-21"] == ["planned"]
+    assert stored(store, a)["status"] == "canceled" and stored(store, b)["status"] == "skipped"
+
+
+def test_an_edit_made_from_an_old_copy_is_refused_instead_of_overwriting(store):
+    """Two tabs: both opened the session at revision 1; the first saves, the second must
+    not silently win."""
+    session = saved_week(store)["sessions"][0]
+    assert session["revision"] == 1
+    tab_one = training.update_session(store, UID, session["id"], {"revision": 1, "time": "06:30"})
+    assert tab_one["revision"] == 2
+    for stale in (
+        lambda: training.update_session(
+            store, UID, session["id"], {"revision": 1, "time": "20:00"}
+        ),
+        lambda: training.complete_session(
+            store, UID, session["id"], {"revision": 1, "completed_on": "2026-11-16"}
+        ),
+        lambda: training.delete_session(store, UID, session["id"], revision=1),
+    ):
+        with pytest.raises(TrainingError) as e:
+            stale()
+        assert e.value.status_code == 409 and "changed somewhere else" in e.value.detail
+    now = stored(store, session["id"])
+    assert (now["time"], now["status"], now["revision"]) == ("06:30", "planned", 2)
+    done = training.complete_session(
+        store, UID, session["id"], {"revision": 2, "completed_on": "2026-11-16"}
+    )
+    assert done["revision"] == 3
+    with pytest.raises(
+        TrainingError, match="changed somewhere else"
+    ):  # a completion is protected too
+        training.update_session(store, UID, session["id"], {"revision": 2, "status": "skipped"})
+    assert stored(store, session["id"])["status"] == "completed"
+
+
+def test_a_write_that_races_another_is_caught_by_the_store_itself(store, monkeypatch):
+    """Even when both requests read the same revision before either writes, only one
+    write lands: the compare-and-set is inside the store."""
+    session = saved_week(store)["sessions"][0]
+    real = training._own_session
+
+    def read_then_someone_else_writes(st, uid, sid):
+        mine = real(st, uid, sid)
+        other = real(st, uid, sid)
+        other.title = "Changed in the other tab"
+        monkeypatch.setattr(training, "_own_session", real)
+        training._save_session(st, uid, other)
+        return mine
+
+    monkeypatch.setattr(training, "_own_session", read_then_someone_else_writes)
+    with pytest.raises(TrainingError, match="changed somewhere else"):
+        training.update_session(store, UID, session["id"], {"title": "Mine"})
+    assert stored(store, session["id"])["title"] == "Changed in the other tab"
+
+
+def test_a_plan_is_not_saved_from_a_preview_the_schedule_has_moved_on_from(store):
+    first = saved_week(store)
+    preview = training.generate(store, UID, "week", MON)
+    assert preview.token and training.generate(store, UID, "week", MON).token == preview.token
+    training.update_session(store, UID, first["sessions"][0]["id"], {"date": "2026-11-17"})
+    before = {k: dict(v) for k, v in store.docs.items()}
+    with pytest.raises(TrainingError) as e:
+        training.save_plan(store, UID, "week", MON, confirm=True, token=preview.token)
+    assert e.value.status_code == 409 and "Preview the plan again" in e.value.detail
+    assert store.docs == before  # nothing was written
+    fresh = training.generate(store, UID, "week", MON).token
+    assert fresh != preview.token
+    assert training.save_plan(store, UID, "week", MON, confirm=True, token=fresh)["saved"]
+
+
+def test_two_plan_saves_at_the_same_moment_cannot_both_land(store, monkeypatch):
+    real = training._sessions
+
+    def another_save_gets_in_first(st, uid):
+        monkeypatch.setattr(training, "_sessions", real)
+        state = st.get_doc("training_state", uid) or {}
+        st.set_doc(
+            "training_state",
+            uid,
+            {"uid": uid, "id": uid, "revision": int(state.get("revision", 0)) + 1},
+        )
+        return real(st, uid)
+
+    saved_week(store)  # creates the state document
+    monkeypatch.setattr(training, "_lock_schedule", training._lock_schedule)
+    original = store.get_doc
+
+    def stale_state(collection, doc_id):
+        doc = original(collection, doc_id)
+        if collection == "training_state" and doc:
+            store.docs["training_state"][doc_id]["revision"] += 1  # the other save wins the race
+        return doc
+
+    monkeypatch.setattr(store, "get_doc", stale_state)
+    with pytest.raises(TrainingError, match="Preview the plan again"):
+        training.save_plan(store, UID, "week", MON + timedelta(7))
+    monkeypatch.setattr(store, "get_doc", original)
+    assert len(store.docs["training_plans"]) == 1
 
 
 def test_edits_are_replaced_only_when_the_swimmer_says_so(store):
@@ -429,6 +572,7 @@ def test_edits_are_replaced_only_when_the_swimmer_says_so(store):
     training.update_session(store, UID, a, {"time": "06:30"})
     second = saved_week(store, confirm=True, discard_edits=True)
     assert stored(store, a)["status"] == "replaced" and len(second["sessions"]) == 3
+    assert a not in [s["id"] for s in second["sessions"]]
 
 
 def test_a_changed_preference_changes_the_next_plan_not_the_stored_one(store):
