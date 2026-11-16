@@ -39,7 +39,13 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   unless the environment says so), `config.py` (`AQUATRACK_ENV`, `validate()`), `limits.py`
   (per-swimmer request limits, in memory), `account.py` (account deletion and the guard that
   refuses new work during it). `src/aquatrack/worker.py`: the worker as its own process
-  (`python -m aquatrack.worker`). Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
+  (`python -m aquatrack.worker`, with `--check`, `--once`, `--drain`). Real inference is
+  prepared, not run: `analysis/pose/manifest.py` (model sources, manifest, checksums, ONNX
+  contract, GPU check, preflight), `analysis/pose/compare.py` (new run against the saved
+  reference), `worker/Dockerfile`, `scripts/fetch_models.py`, `scripts/export_rtmw_onnx.py`,
+  `scripts/gpu_acceptance.py`. The fetch, export and Dockerfile need the owner's acceptance
+  flag and must never be run on this Mac. Docs: `docs/INFERENCE_WORKER.md`,
+  `docs/GPU_ACCEPTANCE_TEST.md`, `docs/MODEL_LICENSING_DECISION.md`. Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
   `docs/DATA_LIFECYCLE.md`, `docs/DEPLOYMENT_PLAN.md`, `docs/RELEASE_PLAN.md`,
   `docs/IMPLEMENTATION_STATUS.md` (update the status document when a feature's state changes).
 - `src/aquatrack/analysis/`: `pose/sources.py` (precomputed / local / remote pose sources),
@@ -186,9 +192,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   credentials or `.DS_Store`. `.gitignore` covers these; check `git status` before commits.
 - Do not purchase or enable paid services without approval.
 - Licensing is unresolved and blocks a hosted launch: Ultralytics YOLO11 is AGPL-3.0 (or a
-  paid Enterprise licence); the RTMW weights were trained partly on a non-commercial dataset;
-  the repository has no LICENSE file. See `docs/RELEASE_PLAN.md`. Do not add a licence file
-  or swap a model without the owner's decision.
+  paid Enterprise licence); the RTMW-x checkpoint has no stated terms and several of its
+  training datasets are non-commercial; the repository has no LICENSE file. See
+  `docs/MODEL_LICENSING_DECISION.md`. Keep the licensor's own policy, the licence text and
+  legal conclusions apart, and never present an unresolved question as settled. Do not add
+  a licence file, publish the repository, contact a licensor, buy a licence or swap a model
+  without the owner's decision.
 - Environments: `AQUATRACK_ENV` is `emulator` locally. Never set `staging` or `production`,
   `AQUATRACK_ALLOW_PRODUCTION_FIREBASE`, or service-account credentials on this machine.
 
@@ -221,10 +230,15 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
    paid API call made).
 7. Pre-deployment readiness: durable job queue and worker, edit-conflict protection,
    account deletion, request limits, environment checks, browser journeys, security review,
-   deployment and release plans (implemented locally 2026-11-16, uncommitted, awaiting the
-   owner's review). Not a launch: production inference, licensing, legal review and a real
+   deployment and release plans (done, local commit `46e5649`, not pushed). Not a launch: production inference, licensing, legal review and a real
    Firebase project are open blockers (`docs/IMPLEMENTATION_STATUS.md`, section 3).
-8. Not defined yet. Nothing is deployed and nothing is pushed.
+8. Licensing review and real-inference readiness (implemented locally 2026-11-16,
+   uncommitted, awaiting the owner's review): licensing decision document, verified model
+   loading and preflight, worker container and scripts, acceptance test and budget, a
+   running inference that stops within seconds. **No real inference was run, no cloud
+   resource created, nobody contacted.** Next approvals: licensing direction, the GPU test
+   (provider and budget), whether the drafted questions may be sent.
+9. Not defined yet. Nothing is deployed and nothing is pushed.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without
 the owner's approval. After each phase, stop and report.

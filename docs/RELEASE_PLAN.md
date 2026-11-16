@@ -44,6 +44,9 @@ no deletion, at least one review.
 
 ## 4. Licences
 
+The full review of the two models, the strategies and the open questions is in
+`docs/MODEL_LICENSING_DECISION.md`; the table below is the summary.
+
 | Component | Licence | Consequence |
 | --- | --- | --- |
 | Ultralytics YOLO11 (`ultralytics`, `yolo11m.pt`) | AGPL-3.0 or paid Enterprise (ultralytics.com/license; the repository's licence file) | **Blocker for a hosted service.** Ultralytics states that SaaS use needs either AGPL compliance (publishing the whole service's source under AGPL-3.0) or an Enterprise licence. Pretrained weights fall under the same licence |

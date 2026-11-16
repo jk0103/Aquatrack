@@ -145,9 +145,10 @@ def test_estimate_returns_joint_sequence(blue_video):
     assert pose.fps == pytest.approx(10.0)
 
 
-def test_missing_onnx_file_says_where_to_get_it(tmp_path):
-    with pytest.raises(FileNotFoundError, match="Google Drive"):
+def test_missing_onnx_file_points_at_the_worker_docs_not_at_anyones_drive(tmp_path):
+    with pytest.raises(FileNotFoundError, match="docs/INFERENCE_WORKER.md") as e:
         RtmwEstimator(tmp_path / "missing.onnx", detector=FakeDetector())
+    assert "Drive" not in str(e.value)
 
 
 def test_to_pose_sequence_maps_coco_body_points():

@@ -84,6 +84,8 @@ one real run measures frames per second, start-up time and memory.**
 The model stays the same. No smaller or different model is proposed here; changing models
 because one is easier to host would throw away the validation done so far.
 
+The first controlled run, its tolerances and its budget: `docs/GPU_ACCEPTANCE_TEST.md`.
+
 ## 4. Budget for a small pilot (estimate)
 
 | Item | Monthly | Basis |

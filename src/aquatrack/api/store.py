@@ -81,6 +81,11 @@ class Store(Protocol):
 
     def get_analysis(self, video_id: str, analysis_id: str) -> dict[str, Any] | None: ...
 
+    def discard_analysis(self, video: VideoRecord, analysis_id: str) -> None:
+        """Remove one analysis document and its artifact files, whatever part of them
+        exists. For a result that was partly written when its job failed or was cancelled."""
+        ...
+
     def list_videos(self, uid: str) -> list[VideoRecord]:
         """All of one swimmer's video records (never anyone else's)."""
         ...
@@ -239,6 +244,12 @@ class MemoryStore:
 
     def get_analysis(self, video_id, analysis_id):
         return self.analyses.get((video_id, analysis_id))
+
+    def discard_analysis(self, video, analysis_id):
+        prefix = artifact_path(video, analysis_id, "")
+        for path in [p for p in self.files if p.startswith(prefix)]:
+            del self.files[path]
+        self.analyses.pop((video.id, analysis_id), None)
 
     def list_videos(self, uid):
         return [_record(k, v) for k, v in self.videos.items() if v.get("uid") == uid]
@@ -401,6 +412,16 @@ class FirebaseStore:
     def get_analysis(self, video_id, analysis_id):
         snap = self._ref(video_id).collection("analyses").document(analysis_id).get()
         return snap.to_dict() if snap.exists else None
+
+    def discard_analysis(self, video, analysis_id):
+        from google.api_core.exceptions import NotFound
+
+        for blob in list(self._bucket.list_blobs(prefix=artifact_path(video, analysis_id, ""))):
+            try:
+                blob.delete()
+            except NotFound:
+                pass
+        self._ref(video.id).collection("analyses").document(analysis_id).delete()
 
     def list_videos(self, uid):
         query = self._db.collection("videos").where("uid", "==", uid)

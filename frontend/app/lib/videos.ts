@@ -93,7 +93,27 @@ export type AnalysisJob = {
   errorCode: string | null;
   errorMessage: string | null;
   retryable: boolean;
+  // How far a running analysis has got, as the worker reports it. Null when not running.
+  progress: { stage: string; done: number | null; total: number | null } | null;
 };
+
+// What the worker's stage names mean to a swimmer.
+export function progressLabel(job: AnalysisJob | null): string | null {
+  const p = job?.progress;
+  if (!p) return null;
+  if (p.stage === "pose" && p.done !== null && p.total)
+    return `Finding your body position: frame ${p.done} of ${p.total}`;
+  return (
+    {
+      starting: "Starting",
+      downloading: "Loading your video",
+      checking: "Checking the video",
+      pose: "Finding your body position in each frame",
+      measuring: "Measuring your stroke",
+      saving: "Saving the result",
+    }[p.stage] ?? null
+  );
+}
 
 export type VideoDetails = {
   stroke: string;
@@ -244,7 +264,17 @@ function toJob(raw: unknown): AnalysisJob | null {
     errorCode: typeof j.errorCode === "string" ? j.errorCode : null,
     errorMessage: typeof j.errorMessage === "string" ? j.errorMessage : null,
     retryable: j.retryable === true,
+    progress: toProgress(j.progress),
   };
+}
+
+function toProgress(raw: unknown): AnalysisJob["progress"] {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  if (typeof p.stage !== "string") return null;
+  const count = (v: unknown) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+  return { stage: p.stage, done: count(p.done), total: count(p.total) };
 }
 
 function toRecord(id: string, v: DocumentData): VideoRecord {

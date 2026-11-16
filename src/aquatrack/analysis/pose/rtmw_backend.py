@@ -30,8 +30,9 @@ from aquatrack.contracts import (
 )
 
 MODELS_DIR = Path(os.environ.get("AQUATRACK_MODELS_DIR", "models"))
-# Official RTMW-x 384x288 (COCO-WholeBody), exported to ONNX by the training notebook.
-# Not in git: download MyDrive/aquatrack_swim_full/rtmw/rtmw_x_stock.onnx into models/.
+# Official RTMW-x 384x288 (cocktail14 checkpoint) exported to ONNX. Not in git and never
+# fetched at run time: a worker image gets it at build time from the public checkpoint
+# (analysis/pose/manifest.py, docs/INFERENCE_WORKER.md).
 RTMW_ONNX = MODELS_DIR / "rtmw_x_stock.onnx"
 # Our swim-trained YOLO; it finds swimmers underwater far more reliably than stock YOLO.
 SWIM_DETECTOR = MODELS_DIR / "swim_pose.pt"
@@ -186,12 +187,17 @@ class YoloPersonDetector:
         self._imgsz = imgsz
 
     @classmethod
-    def from_config(cls, config: ModelConfig, device: str | None = None) -> "YoloPersonDetector":
+    def from_config(
+        cls, config: ModelConfig, device: str | None = None, offline: bool = False
+    ) -> "YoloPersonDetector":
         """The detector a `ModelConfig` names. A bare file name is looked up in the models
-        folder first; otherwise Ultralytics resolves (and downloads) pretrained weights."""
+        folder first. If it is not there, Ultralytics would download pretrained weights by
+        itself: fine on a developer's machine, never in a worker, so `offline` refuses."""
         weights = Path(config.detector_weights)
         if not weights.is_absolute() and (MODELS_DIR / weights).exists():
             weights = MODELS_DIR / weights
+        elif offline:
+            raise FileNotFoundError(f"Detector weights {weights.name} are not installed.")
         return cls(
             weights,
             min_confidence=config.detector_confidence,
@@ -252,8 +258,8 @@ class RtmwEstimator:
             onnx_path = Path(onnx_path)
             if not onnx_path.exists():
                 raise FileNotFoundError(
-                    f"RTMW model not found at {onnx_path}. Download rtmw_x_stock.onnx from "
-                    "Google Drive (MyDrive/aquatrack_swim_full/rtmw/) into models/."
+                    f"RTMW model {onnx_path.name} is not installed in the models folder. "
+                    "See docs/INFERENCE_WORKER.md for how a worker image gets it."
                 )
             try:
                 from rtmlib import RTMPose
@@ -333,8 +339,13 @@ class RtmwEstimator:
         stats.timings.append(done - start)
         return points
 
-    def estimate_wholebody(self, video_path: str | Path, step: int = 1) -> WholeBodySequence:
+    def estimate_wholebody(
+        self, video_path: str | Path, step: int = 1, on_frame=None
+    ) -> WholeBodySequence:
+        """`on_frame(done, total)` is called after every analysed frame. It may raise to
+        stop the run (a cancelled job, a lost lease, a time or memory limit)."""
         info = read_video_info(video_path)
+        total = max(1, -(-info.frame_count // step))
         self.last_run = RunStats()
         self._tracker = BoxTracker(max(1, round(self.max_box_carry_s * info.fps / step)))
         self._previous_target = None
@@ -343,6 +354,8 @@ class RtmwEstimator:
         for index, frame in iter_frames(video_path, step=step):
             indices.append(index)
             frames.append(self.estimate_frame(frame))
+            if on_frame is not None:
+                on_frame(len(frames), total)
         keypoints = np.stack(frames) if frames else np.empty((0, NUM_KEYPOINTS, 3))
         return WholeBodySequence(
             keypoints=keypoints,
@@ -360,12 +373,13 @@ class RtmwEstimator:
         video_id: str | None = None,
         source: str = "local",
         produced_by: str = "aquatrack",
+        on_frame=None,
     ) -> RawPose:
         """Run detection and pose on a video and return the versioned raw output."""
         config = config or ModelConfig()
         self._target_selection = config.target_selection
         self.max_box_carry_s = config.max_box_carry_s
-        seq = self.estimate_wholebody(video_path, step=config.frame_step)
+        seq = self.estimate_wholebody(video_path, step=config.frame_step, on_frame=on_frame)
         records = self.last_frames
         n = len(seq)
         info = read_video_info(video_path)

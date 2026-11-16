@@ -26,7 +26,7 @@ touches Firebase; it is not repeated in each line.
 | Profile | Training preferences | 1, 3 | |
 | Upload | Direct upload to Storage with owner, type and size rules | 1, 3 | Type is the browser's claim; the worker checks the file itself |
 | Inference | Pose from saved files (`precomputed`) | 1 | **Development fixture, not inference.** Real model output for 3 public clips |
-| Inference | Pose from the models on the worker (`local`) | 4, 6 | Code path exists (YOLO11m + RTMW-x); **never run in this worker on a new video**. Needs weights and a GPU host |
+| Inference | Pose from the models on the worker (`local`) | 4, 6 | Prepared in Phase 8: verified model loading, start-up preflight, container, acceptance test and budget. **Still never run: no real inference in the worker.** Needs the owner's approval of licences, provider and budget |
 | Inference | Remote inference service (`remote`) | 5 | A stub that reports "not available" |
 | Jobs | Durable queue, leases, recovery, cancel, timeout, limits | 1, 3 | Tested with fake inference adapters and in the Firestore emulator; never under real load or on a second machine |
 | Jobs | Standalone worker process (`python -m aquatrack.worker`) | 1 (logic), 6 (deployment) | Same code as the embedded worker; not run as a separate deployed service |
@@ -65,9 +65,9 @@ touches Firebase; it is not repeated in each line.
 
 | # | Blocker | Kind |
 | --- | --- | --- |
-| B1 | No inference worker that runs the models on a new upload (needs weights from the public source, a GPU host, a measured run) | Infrastructure |
-| B2 | Ultralytics YOLO11 is AGPL-3.0 (hosted use needs the whole service open-sourced under AGPL or an Enterprise licence) | Licensing |
-| B3 | RTMW weights were trained partly on COCO-WholeBody, whose authors allow research and non-commercial use only | Licensing |
+| B1 | The inference worker is prepared but has never run the models (`docs/GPU_ACCEPTANCE_TEST.md`); needs approval of the test, then a Firebase project for the end-to-end stage | Infrastructure, approval |
+| B2 | Ultralytics YOLO11: AGPL-3.0 or Enterprise. Strategy not chosen (`docs/MODEL_LICENSING_DECISION.md`) | Licensing, decision |
+| B3 | RTMW-x checkpoint: no stated terms; at least six of its fourteen training datasets are non-commercial or research-only. Commercial use not cleared; unresolved, needs the rights holders or legal review | Licensing, unresolved |
 | B4 | No licence file in the repository; the hero photo's source is not recorded | Licensing |
 | B5 | No production Firebase project, backups, retention policy or deletion of backups and logs | Infrastructure, privacy |
 | B6 | No legal review: privacy policy, terms, consent for videos of minors, data processing agreements | Privacy |

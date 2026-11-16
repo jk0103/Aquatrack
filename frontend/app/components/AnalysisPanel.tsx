@@ -20,6 +20,7 @@ import {
 } from "@/app/lib/analysisV1";
 import {
   cancelAnalysis,
+  progressLabel,
   requestAnalysis,
   type VideoRecord,
 } from "@/app/lib/videos";
@@ -112,6 +113,9 @@ function JobStatus({ video }: { video: VideoRecord }) {
                 : "Analyzing your swim. This page updates when it's done."
             }
           />
+          {video.status === "analyzing" && progressLabel(video.job) && (
+            <p className="text-sm text-slate-700">{progressLabel(video.job)}.</p>
+          )}
           <p className="text-sm text-slate-600">
             You can leave this page; the analysis carries on and is picked up again if
             the server restarts.

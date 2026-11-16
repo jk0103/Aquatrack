@@ -21,6 +21,8 @@ inside the worker and is what a production worker would use, but it has **not be
 this worker on a new video**: the weights are not on this machine (by instruction) and no
 GPU host is approved. Until one real upload goes through `local` on a real worker and its
 numbers are compared with the saved results, arbitrary-video inference is not validated.
+Phase 8 prepared that run (model checks, container, acceptance test, budget) without
+executing it: `docs/INFERENCE_WORKER.md`, `docs/GPU_ACCEPTANCE_TEST.md`.
 
 ## 2. Target architecture
 
@@ -74,9 +76,12 @@ dedicated queue becomes the better choice.
 | Progress | `job.progress.stage`: starting, downloading, checking, pose, measuring, saving |
 | Failure reporting | `job.errorCode`, `job.errorMessage` (readable, no paths), `job.retryable` |
 
-Known limit: during the pose step the worker cannot be interrupted; a cancellation or lost
-lease is acted on when that step returns. A long video therefore keeps a GPU busy until the
-step ends. Passing a stop signal into the estimator is future work.
+During the pose step a source that reports per frame (the real `local` source does) is
+stopped within a few seconds of a cancellation, a deletion, a lost lease, or the time or
+memory limit (Phase 8); it also reports `done` / `total` frames as progress. The
+`precomputed` fixture has no frames to report and is checked between stages. A result that
+was only partly written when a job fails or is cancelled is removed, and working folders
+left by a killed worker are removed when the next one starts.
 
 ## 4. Running it
 

@@ -113,43 +113,132 @@ class PrecomputedPoseSource:
         return raw
 
 
+def pose_device() -> str:
+    """AQUATRACK_POSE_DEVICE = cpu (default) | cuda | mps."""
+    return os.environ.get("AQUATRACK_POSE_DEVICE", "cpu").strip().lower() or "cpu"
+
+
+class _Loaded:
+    """The estimator as loaded, with what the preflight needs to look at."""
+
+    def __init__(self, estimator):
+        self.estimator = estimator
+        self.pose_session = estimator._pose_model.session
+
+    def smoke(self) -> str:
+        """One blank frame through both models. It proves they run on this machine; it
+        says nothing about accuracy."""
+        import numpy as np
+
+        points = self.estimator.estimate_frame(np.zeros((480, 640, 3), dtype=np.uint8))
+        return f"ran on a blank frame ({points.shape[0]} points returned)"
+
+
 class LocalModelPoseSource:
-    """Runs the detector and RTMW in this process. Heavy imports happen on first use."""
+    """Runs the detector and RTMW in this process: the source a real inference worker uses.
+
+    Before the first video the model files are checked against the manifest that was
+    written when the image was built, the pose model's inputs and outputs are checked, and
+    a GPU that was asked for must really be in use (`preflight`). In strict mode (always
+    outside local development) a file that is not in the manifest is refused and nothing is
+    ever downloaded at run time. Heavy imports happen on first use."""
 
     name = "local"
+    supports_progress = True
 
-    def __init__(self, config: ModelConfig, device: str = "cpu"):
+    def __init__(self, config: ModelConfig, device: str | None = None):
         self.config = config
-        self.device = device
+        self.device = device or pose_device()
         self._estimator = None
+        self._files: dict[str, dict] = {}
+        self._versions: dict[str, str] = {}
+
+    def _build(self, detector_path: Path, pose_path: Path, device: str) -> _Loaded:
+        from aquatrack.analysis.pose.rtmw_backend import RtmwEstimator, YoloPersonDetector
+
+        detector = YoloPersonDetector.from_config(
+            self.config.model_copy(update={"detector_weights": str(detector_path)}),
+            device=None if device == "cpu" else device,
+            offline=True,
+        )
+        return _Loaded(
+            RtmwEstimator(
+                pose_path,
+                detector=detector,
+                device=device,
+                target_selection=self.config.target_selection,
+            )
+        )
+
+    @staticmethod
+    def _library_versions() -> dict[str, str]:
+        from importlib.metadata import PackageNotFoundError, version
+
+        found = {}
+        for package in ("ultralytics", "rtmlib", "onnxruntime", "onnxruntime-gpu", "torch"):
+            try:
+                found[package] = version(package)
+            except PackageNotFoundError:
+                continue
+        return found
+
+    def preflight(self):
+        """Check the models and load them. Returns the report; `ok` says whether this
+        worker may take jobs."""
+        from aquatrack.analysis.pose import manifest
+        from aquatrack.analysis.pose.rtmw_backend import MODELS_DIR
+
+        loaded: list[_Loaded] = []
+
+        def load(detector_path, pose_path, device):
+            loaded.append(self._build(detector_path, pose_path, device))
+            return loaded[0]
+
+        report = manifest.run_preflight(
+            MODELS_DIR,
+            Path(self.config.detector_weights).name,
+            Path(self.config.pose_weights).name,
+            self.device,
+            manifest.is_strict(),
+            load,
+            self._library_versions,
+        )
+        if report.ok:
+            self._estimator = loaded[0].estimator
+            self._files = {f["name"]: f for f in report.files}
+            self._versions = report.versions
+        return report
 
     def _load(self):
         if self._estimator is None:
-            try:
-                from aquatrack.analysis.pose.rtmw_backend import (
-                    MODELS_DIR,
-                    RtmwEstimator,
-                    YoloPersonDetector,
-                )
-
-                detector = YoloPersonDetector.from_config(self.config)
-                self._estimator = RtmwEstimator(
-                    MODELS_DIR / self.config.pose_weights,
-                    detector=detector,
-                    device=self.device,
-                    target_selection=self.config.target_selection,
-                )
-            except (ImportError, FileNotFoundError) as e:
+            report = self.preflight()
+            if not report.ok:
+                # Not retryable: the same image would fail the same way on every attempt.
                 raise PoseSourceError(
-                    "local_model_unavailable",
-                    "Pose models are not installed on this server.",
-                ) from e
+                    report.error_code or "local_model_unavailable",
+                    "The analysis service is not set up correctly. Nothing is wrong with "
+                    "your video.",
+                )
         return self._estimator
 
-    def get_raw_pose(self, video_path: Path, video: VideoIdentity, video_id: str) -> RawPose:
-        raw = self._load().estimate_raw(
-            video_path, config=self.config, video_id=video_id, source="local"
+    def get_raw_pose(
+        self, video_path: Path, video: VideoIdentity, video_id: str, progress=None
+    ) -> RawPose:
+        estimator = self._load()
+        raw = estimator.estimate_raw(
+            video_path,
+            config=self.config,
+            video_id=video_id,
+            source="local",
+            produced_by="worker",
+            on_frame=progress,
         )
+        # Record exactly which files and library versions produced this pose.
+        detector = self._files.get(Path(self.config.detector_weights).name, {})
+        raw.meta.detector.sha256 = detector.get("sha256")
+        raw.meta.detector.version = f"ultralytics {self._versions.get('ultralytics', '?')}"
+        runtime = self._versions.get("onnxruntime-gpu") or self._versions.get("onnxruntime", "?")
+        raw.meta.pose.version = f"onnxruntime {runtime} on {self.device}"
         validate_raw_pose(raw, video)
         return raw
 

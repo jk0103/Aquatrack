@@ -140,7 +140,8 @@ def test_local_source_without_models_fails_cleanly(monkeypatch, tmp_path, swim_v
     monkeypatch.setattr(rtmw_backend, "MODELS_DIR", tmp_path)  # no weights here
     with pytest.raises(PoseSourceError) as e:
         LocalModelPoseSource(ModelConfig()).get_raw_pose(swim_video, identity, "v")
-    assert code(e) == "local_model_unavailable"
+    assert code(e) == "model_missing" and not e.value.retryable
+    assert "Nothing is wrong with your video" in e.value.message
 
 
 def test_remote_source_is_an_interface_only(swim_video, identity):

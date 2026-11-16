@@ -20,8 +20,10 @@ infrastructure. It polls, so it is not meant for high volume. See docs/ANALYSIS_
 
 import logging
 import os
+import shutil
 import tempfile
 import threading
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -56,11 +58,19 @@ JOB_TIMEOUT_S = int(os.environ.get("AQUATRACK_JOB_TIMEOUT_S", "3600"))
 MAX_INTERRUPTIONS = 2
 # Jobs one swimmer may have queued or running at once.
 MAX_ACTIVE_JOBS = int(os.environ.get("AQUATRACK_MAX_ACTIVE_JOBS", "2"))
+# How often a running inference reports progress and looks for a reason to stop.
+PROGRESS_EVERY_S = float(os.environ.get("AQUATRACK_PROGRESS_EVERY_S", "5"))
 # Limits checked on the file itself, never on what the upload record claims.
 MAX_VIDEO_SECONDS = float(os.environ.get("AQUATRACK_MAX_VIDEO_SECONDS", "180"))
 MIN_VIDEO_SECONDS = 2.0
 MAX_VIDEO_FRAMES = int(os.environ.get("AQUATRACK_MAX_VIDEO_FRAMES", "9000"))
 MAX_VIDEO_SIDE_PX = 4096
+# Where a job's working files go. They are removed when the job ends; whatever a killed
+# worker left behind is removed when the next one starts (`clean_work_dirs`).
+WORK_PREFIX = "aquatrack-job-"
+# Stop a job whose process has grown past this (0 = no check). A container that is killed
+# for memory loses the job without a reason; this fails it with one first.
+MAX_RSS_MB = int(os.environ.get("AQUATRACK_WORKER_MAX_RSS_MB", "0"))
 
 
 class JobRequestError(Exception):
@@ -182,6 +192,42 @@ class TimedOut(Exception):
     """The run went past JOB_TIMEOUT_S."""
 
 
+class OutOfMemory(Exception):
+    """The worker process grew past AQUATRACK_WORKER_MAX_RSS_MB."""
+
+
+def work_root() -> Path:
+    return Path(os.environ.get("AQUATRACK_TMP_DIR") or tempfile.gettempdir())
+
+
+def clean_work_dirs(older_than_s: float = 0.0) -> int:
+    """Remove working folders left by a worker that was killed mid-job. They can hold a
+    swimmer's video, so they must not outlive the job. Call it when a worker starts, with
+    an age so that a job running in another process on the same machine is left alone."""
+    removed = 0
+    now = time.time()
+    for folder in work_root().glob(f"{WORK_PREFIX}*"):
+        try:
+            if folder.is_dir() and now - folder.stat().st_mtime >= older_than_s:
+                shutil.rmtree(folder, ignore_errors=True)
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+def rss_mb() -> float:
+    """Peak memory of this process in MB (0 where the platform cannot say)."""
+    try:
+        import resource
+        import sys
+
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak / (1024 * 1024 if sys.platform == "darwin" else 1024)
+    except Exception:
+        return 0.0
+
+
 def claim(
     store: Store, video_id: str, worker_id: str, now: datetime | None = None
 ) -> VideoRecord | None:
@@ -245,7 +291,12 @@ def claim_next(store: Store, worker_id: str, now: datetime | None = None) -> Vid
 
 
 def heartbeat(
-    store: Store, video_id: str, worker_id: str, stage: str = "", now: datetime | None = None
+    store: Store,
+    video_id: str,
+    worker_id: str,
+    stage: str = "",
+    now: datetime | None = None,
+    detail: dict | None = None,
 ) -> None:
     """Renew the lease and report progress. Raises if this worker must stop: the lease was
     lost, the swimmer cancelled, the run took too long, or the video is being deleted."""
@@ -267,7 +318,7 @@ def heartbeat(
             "heartbeatAt": now,
         }
         if stage:
-            job["progress"] = {"stage": stage, "at": now}
+            job["progress"] = {"stage": stage, "at": now, **(detail or {})}
         return {"job": job}, "ok"
 
     outcome = store.transact(video_id, decide)
@@ -341,10 +392,23 @@ class _KeepAlive:
             except Exception:  # a failed renewal is retried; the lease has slack for it
                 log.warning("heartbeat failed video=%s", self.video_id)
 
-    def checkpoint(self, stage: str) -> None:
+    def checkpoint(self, stage: str, detail: dict | None = None) -> None:
         if self.stop_reason is not None:
             raise self.stop_reason
-        heartbeat(self.store, self.video_id, self.worker_id, stage)
+        heartbeat(self.store, self.video_id, self.worker_id, stage, detail=detail)
+        self._last_beat = time.monotonic()
+
+    def on_frame(self, done: int, total: int) -> None:
+        """Called by the pose source after every frame. This is what lets a long inference
+        be cancelled, time out, or stop when its video is deleted, within seconds rather
+        than at the end; it also reports how far the run has got. Firestore is only
+        written every few seconds, not per frame."""
+        if self.stop_reason is not None:
+            raise self.stop_reason
+        if MAX_RSS_MB and done % 25 == 0 and rss_mb() > MAX_RSS_MB:
+            raise OutOfMemory
+        if time.monotonic() - getattr(self, "_last_beat", 0.0) >= PROGRESS_EVERY_S:
+            self.checkpoint("pose", {"done": done, "total": total})
 
 
 def check_video_limits(path: Path) -> JobError | None:
@@ -419,7 +483,7 @@ def process(
     analysis_id = str(video.job.get("analysisId") or f"{_now():%Y%m%dT%H%M%S}-01")
     try:
         with (
-            tempfile.TemporaryDirectory(prefix="aquatrack-job-") as tmp,
+            tempfile.TemporaryDirectory(prefix=WORK_PREFIX, dir=work_root()) as tmp,
             _KeepAlive(store, video_id, worker_id, keep_alive_s) as alive,
         ):
             work = Path(tmp)
@@ -466,7 +530,10 @@ def process(
                 )
             alive.checkpoint("pose")
             try:
-                raw = source.get_raw_pose(local, identity, video_id)
+                if getattr(source, "supports_progress", False):
+                    raw = source.get_raw_pose(local, identity, video_id, progress=alive.on_frame)
+                else:
+                    raw = source.get_raw_pose(local, identity, video_id)
             except PoseSourceError as e:
                 return _fail(
                     store,
@@ -481,12 +548,18 @@ def process(
             alive.checkpoint("saving")
             raw_path = raw.save(work / "raw_pose.npz")
             processed_path = processed.save(work / "processed_pose.npz")
-            store.save_analysis(
-                video,
-                analysis_id,
-                result.to_firestore(),
-                {"raw_pose.npz": raw_path, "processed_pose.npz": processed_path},
-            )
+            try:
+                store.save_analysis(
+                    video,
+                    analysis_id,
+                    result.to_firestore(),
+                    {"raw_pose.npz": raw_path, "processed_pose.npz": processed_path},
+                )
+            except Exception:
+                # Part of the result may have been written (one pose file, say). Pose data
+                # is private: do not leave a piece of it behind for a failed job.
+                _discard(store, video, analysis_id)
+                raise
         rate = next((m.value for m in result.measurements if m.key == "stroke_rate"), None)
         done = _finish(
             store,
@@ -517,7 +590,11 @@ def process(
             if current is None or current.status == Status.DELETING:
                 store.delete_video_data(current or video)
             elif current.status == Status.ANALYZING and current.job.get("cancelRequested"):
+                _discard(store, video, analysis_id)
                 _cancel_now(store, video_id)
+            elif current.status == Status.CANCELED:
+                _discard(store, video, analysis_id)
+            # Otherwise another worker holds the job now and will write the same analysis id.
             log.info("analysis result not recorded, job no longer ours video=%s", video_id)
             return
         log.info("analysis ready video=%s grade=%s", video_id, result.quality.grade.value)
@@ -534,6 +611,17 @@ def process(
     except Cancelled:
         _cancel_now(store, video_id)
         log.info("analysis cancelled video=%s", video_id)
+    except OutOfMemory:
+        _fail(
+            store,
+            video,
+            worker_id,
+            JobError(
+                code="worker_memory",
+                message="This video needs more memory than the analysis service has.",
+                retryable=False,
+            ),
+        )
     except TimedOut:
         _fail(
             store,
@@ -557,6 +645,14 @@ def process(
                 retryable=True,
             ),
         )
+
+
+def _discard(store: Store, video: VideoRecord, analysis_id: str) -> None:
+    """Best-effort removal of one analysis that must not be kept. Never raises."""
+    try:
+        store.discard_analysis(video, analysis_id)
+    except Exception:
+        log.warning("could not discard a partial analysis video=%s", video.id)
 
 
 def _cancel_now(store: Store, video_id: str) -> None:
@@ -849,17 +945,31 @@ class Worker:
         process(self.store, self.source, video, self.worker_id, keep_alive_s=LEASE_S / 3)
         return True
 
-    def run_forever(self, poll_s: float = 5.0) -> None:
+    def run_forever(
+        self, poll_s: float = 5.0, drain: bool = False, max_jobs: int | None = None
+    ) -> int:
+        """Take jobs until stopped. `drain`: stop as soon as the queue is empty (for a
+        worker that is started per batch and must not sit idle on a billed GPU).
+        `max_jobs`: stop after that many. Returns how many jobs were handled."""
         log.info("worker %s started (pose source: %s)", self.worker_id, self.source.name)
+        handled = 0
         while not self._stop.is_set():
             try:
                 if self.run_once():
+                    handled += 1
+                    if max_jobs is not None and handled >= max_jobs:
+                        break
                     continue  # look for the next job straight away
+                if drain:
+                    break
             except Exception:  # the queue being unreachable must not kill the worker
                 log.exception("worker loop error")
+                if drain:
+                    break
             self._wake.wait(poll_s)
             self._wake.clear()
-        log.info("worker %s stopped", self.worker_id)
+        log.info("worker %s stopped after %s job(s)", self.worker_id, handled)
+        return handled
 
     def wake(self) -> None:
         self._wake.set()
