@@ -36,6 +36,7 @@ class ModelSource:
     bytes: int | None = None
     sha256: str | None = None  # the full hash, when one is known
     sha256_prefix: str | None = None  # what the publisher's file name promises
+    md5: str | None = None  # the Content-MD5 the publisher's own server reports
     note: str = ""
 
 
@@ -58,6 +59,8 @@ SOURCES: dict[str, ModelSource] = {
         url="https://download.openmmlab.com/mmpose/v1/projects/rtmw/"
         "rtmw-x_simcc-cocktail14_pt-ucoco_270e-384x288-f840f204_20231122.pth",
         publisher="OpenMMLab MMPose (RTMW project)",
+        bytes=369_720_404,  # Content-Length from the download host, 2026-11-16
+        md5="e80606e7db921ddc566f8eb7a2ec119f",  # its Content-MD5 header, same day
         sha256_prefix="f840f204",  # checked in Colab in Phase 1: the hash starts with it
         note="Trained on the 14-dataset 'cocktail14' mix. Checkpoint terms unresolved.",
     ),
@@ -91,6 +94,39 @@ class ModelError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
+
+
+def md5_of(path: Path, chunk: int = 1 << 20) -> str:
+    digest = hashlib.md5(usedforsecurity=False)  # only to match the host's own header
+    with path.open("rb") as f:
+        while block := f.read(chunk):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def check_download(path: Path, source: ModelSource) -> str:
+    """Check a freshly downloaded file against everything its publisher states about it
+    (size, MD5 header, the hash prefix in its name, a pinned SHA-256). Returns its SHA-256
+    or raises ModelError naming what did not match."""
+    size = path.stat().st_size
+    if source.bytes is not None and size != source.bytes:
+        raise ModelError(
+            "model_download_mismatch", f"{source.name}: {size} bytes, expected {source.bytes}."
+        )
+    if source.md5 and md5_of(path) != source.md5:
+        raise ModelError(
+            "model_download_mismatch", f"{source.name}: MD5 does not match the host's."
+        )
+    digest = sha256_of(path)
+    if source.sha256_prefix and not digest.startswith(source.sha256_prefix):
+        raise ModelError(
+            "model_download_mismatch", f"{source.name}: hash does not match its file name."
+        )
+    if source.sha256 and digest != source.sha256:
+        raise ModelError(
+            "model_download_mismatch", f"{source.name}: checksum does not match the pinned one."
+        )
+    return digest
 
 
 def sha256_of(path: Path, chunk: int = 1 << 20) -> str:

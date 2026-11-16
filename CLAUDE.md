@@ -42,10 +42,15 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   (`python -m aquatrack.worker`, with `--check`, `--once`, `--drain`). Real inference is
   prepared, not run: `analysis/pose/manifest.py` (model sources, manifest, checksums, ONNX
   contract, GPU check, preflight), `analysis/pose/compare.py` (new run against the saved
-  reference), `worker/Dockerfile`, `scripts/fetch_models.py`, `scripts/export_rtmw_onnx.py`,
-  `scripts/gpu_acceptance.py`. The fetch, export and Dockerfile need the owner's acceptance
-  flag and must never be run on this Mac. Docs: `docs/INFERENCE_WORKER.md`,
-  `docs/GPU_ACCEPTANCE_TEST.md`, `docs/MODEL_LICENSING_DECISION.md`. Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
+  reference), `worker/Dockerfile` (one CUDA version: PyTorch's CUDA 13 pip libraries and
+  `onnxruntime-gpu` 1.30; `ultralytics` pinned to 8.4.210, the reference's version),
+  `worker/cloudbuild.yaml`, `worker/phase9b.sh`, `scripts/fetch_models.py`,
+  `scripts/export_rtmw_onnx.py`, `scripts/gpu_acceptance.py`, `scripts/compare_pose.py`
+  (runs locally, no models). The fetch, export, build and `phase9b.sh` need the owner's
+  acceptance and must never be run on this Mac. `.dockerignore` and `.gcloudignore` are
+  allowlists: keep them that way. Docs: `docs/INFERENCE_WORKER.md`,
+  `docs/GPU_ACCEPTANCE_TEST.md`, `docs/MODEL_LICENSING_DECISION.md`, and the single
+  execution package with its decision gate, `docs/PHASE_9B_EXECUTION.md`. Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
   `docs/DATA_LIFECYCLE.md`, `docs/DEPLOYMENT_PLAN.md`, `docs/RELEASE_PLAN.md`,
   `docs/IMPLEMENTATION_STATUS.md` (update the status document when a feature's state changes).
 - `src/aquatrack/analysis/`: `pose/sources.py` (precomputed / local / remote pose sources),
@@ -232,13 +237,18 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
    account deletion, request limits, environment checks, browser journeys, security review,
    deployment and release plans (done, local commit `46e5649`, not pushed). Not a launch: production inference, licensing, legal review and a real
    Firebase project are open blockers (`docs/IMPLEMENTATION_STATUS.md`, section 3).
-8. Licensing review and real-inference readiness (implemented locally 2026-11-16,
-   uncommitted, awaiting the owner's review): licensing decision document, verified model
-   loading and preflight, worker container and scripts, acceptance test and budget, a
-   running inference that stops within seconds. **No real inference was run, no cloud
-   resource created, nobody contacted.** Next approvals: licensing direction, the GPU test
-   (provider and budget), whether the drafted questions may be sent.
-9. Not defined yet. Nothing is deployed and nothing is pushed.
+8. Licensing review and real-inference readiness (done, local commit `59d6349`, not
+   pushed). No real inference was run.
+9. 9A, final preflight (implemented locally 2026-11-16, uncommitted, awaiting the owner's
+   review): the test package checked without a build or a GPU, a CUDA mismatch in the
+   container fixed, the licensing decision table and inquiry drafts, cost-control
+   assessment, and `docs/PHASE_9B_EXECUTION.md`. **Still no real inference, no cloud
+   resource, nobody contacted.**
+   9B, the first real GPU inference test: NOT started. It needs the owner's separate
+   approval of the model use, the provider, the billing exposure, the resources and the
+   execution. Do not begin it because it is technically ready. The next milestone is a new
+   RawPose from YOLO11m and RTMW-x in the worker, not another mocked test.
+Nothing is deployed and nothing is pushed.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without
 the owner's approval. After each phase, stop and report.

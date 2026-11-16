@@ -1,0 +1,15 @@
+# Build context for the worker image: an ALLOWLIST. Everything is ignored unless listed
+# here, so private videos, pose data, experiments, documents, credentials and the web app
+# can never be uploaded to a cloud build by accident.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!src/**
+!scripts/
+!scripts/**
+!worker/
+!worker/**
+**/__pycache__/
+**/*.pyc

@@ -1,0 +1,26 @@
+# Cloud Build configuration for the worker image. PREPARED, NEVER RUN.
+# Use only after the owner approves Phase 9B (docs/PHASE_9B_EXECUTION.md):
+#
+#   gcloud builds submit --config worker/cloudbuild.yaml \
+#       --substitutions=_IMAGE=us-central1-docker.pkg.dev/PROJECT_ID/aquatrack-test/worker:9b .
+#
+# Bounds: one build, at most 45 minutes, on the default machine (which the free build
+# minutes cover, per Google's pricing page). The upload is limited to the allowlist in
+# .gcloudignore. Passing _ACCEPT=yes is the owner's acceptance of the model terms.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=worker/Dockerfile
+      - --build-arg=ACCEPT_MODEL_TERMS=${_ACCEPT}
+      - --tag=${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+timeout: 2700s
+options:
+  diskSizeGb: "100"
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _ACCEPT: "no"
+  _IMAGE: us-central1-docker.pkg.dev/PROJECT_ID/aquatrack-test/worker:9b

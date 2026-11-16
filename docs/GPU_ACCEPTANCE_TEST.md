@@ -1,7 +1,8 @@
 # Real-inference acceptance test: hosts, procedure, budget
 
-**Nothing here has been run and no cloud resource exists.** This is the plan for the first
-real run of YOLO11m and RTMW-x in the AquaTrack worker, for the owner's approval.
+**Nothing here has been run and no cloud resource exists.** This is the background to the
+first real run of YOLO11m and RTMW-x in the AquaTrack worker: the host comparison and the
+reasoning. The exact steps, costs and decision gate are in `docs/PHASE_9B_EXECUTION.md`.
 
 Figures marked **published** were read on the provider's own pages on 2026-11-16;
 **derived** is arithmetic on those; **assumed** is unmeasured. Speed on a GPU has never been
@@ -113,58 +114,13 @@ has never seen.
 Real inference is only claimed after stage 1 has actually run; a new upload analysed
 automatically only after stage 2.
 
-## 3. Budget (proposal; nothing is approved)
+## 3. Budget, procedure, shutdown
 
-| Item | Proposal |
-| --- | --- |
-| Provider | Google Cloud Run, job |
-| GPU | 1 x NVIDIA L4, 4 vCPU, 16 GiB, no zonal redundancy |
-| Region | us-central1 (published prices; first-time L4 quota granted automatically) |
-| Project | a new, dedicated test project with billing, deleted after the test |
-| Videos | 1 first (the 13 s reference clip); at most 3 (the three public clips that have saved references) |
-| Executions | at most 5 in total, including failed starts |
-| Time limit | 15 minutes per execution, enforced by the job's own timeout; 75 minutes in all |
-| Expected run time | a few minutes in total (assumed) |
-| Expected compute cost | under $0.30 (derived from assumed speeds) |
-| Worst-case compute cost | 75 min x $1.05/h = **$1.31** (derived: every execution runs to its limit) |
-| Image build | Cloud Build; price not read; expected cents to a few dollars (assumed) |
-| Image storage | about 6 GiB at about $0.10 per GiB-month (derived) = cents if deleted the same day |
-| Logging, transfer | inside free allowances (published allowances; usage assumed small) |
-| **Budget alert** | **$5** |
-| **Hard ceiling** | **$10**: stop and report if reached, whatever the state |
-
-Measured cost comes from the project's billing report after the test, not from this table.
-
-### Procedure
-
-1. Owner: create the test project, link billing, set a $5 budget alert. (Needs approval;
-   not done.)
-2. Enable Cloud Run, Artifact Registry, Cloud Build. Build `worker/Dockerfile` in Cloud Build
-   with `ACCEPT_MODEL_TERMS=yes`. Record the two model hashes from the build log into
-   `analysis/pose/manifest.py`.
-3. Put the public clip and its reference RawPose in a private bucket of the test project.
-4. Create the job from `worker/cloudrun-job.yaml`, with the command
-   `python scripts/gpu_acceptance.py ...` and the bucket mounted read/write.
-5. `gcloud run jobs execute ... --wait`. Read `acceptance.json` and the logs.
-6. If the preflight fails: fix, rebuild, re-run, within the execution limit.
-7. Write the results into `docs/GPU_ACCEPTANCE_TEST.md` (speed, memory, cost, comparison).
-
-### Failure handling
-
-- Preflight fails (exit 3): nothing was processed; cost is the start-up minute.
-- The run exceeds 15 minutes: the job is killed by its timeout; investigate before another.
-- GPU quota not granted: stop; use the fallback or request quota. No retry loop.
-- Any cost surprise or the alert firing: stop and delete (below).
-
-### Shutdown and proof that nothing is running
-
-1. `gcloud run jobs delete aquatrack-worker` (also ends running executions).
-2. Delete the Artifact Registry repository and the test bucket.
-3. `gcloud run jobs list` and `gcloud run services list` are empty; no instances under
-   Compute Engine.
-4. Simplest and complete: **delete the test project** (`gcloud projects delete`), which
-   stops all billing for it.
-5. The next day, check the billing report for the project: no new charges after shutdown.
+Moved to the single execution package, which supersedes the earlier figures here:
+`docs/PHASE_9B_EXECUTION.md`. In short: one Cloud Run job execution is bounded by the
+platform at 15 minutes with no retries (at most $0.26); a conservative ceiling for the whole
+test is $5; a budget alert does not cap spending and Google's spend caps are neither
+instant nor cover the build and storage, so no figure can be guaranteed.
 
 ## 4. What the test does not show
 

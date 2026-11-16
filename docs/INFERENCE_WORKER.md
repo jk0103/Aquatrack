@@ -75,22 +75,36 @@ and is recorded as unverified.
 
 ## 4. Container
 
-`worker/Dockerfile`, two stages:
+`worker/Dockerfile`, two stages, both on `python:3.11-slim`:
 
-1. **export**: Python 3.11 with CPU PyTorch and the MMPose tool chain; downloads the
-   checkpoint, exports the ONNX model, fetches the detector, writes the manifest.
-2. **worker**: `nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04`, the locked application
-   dependencies plus the `pose` extra, `onnxruntime-gpu` in place of `onnxruntime`, the
-   `/models` folder from stage 1, an unprivileged user, and a build-time `--check` on CPU.
+1. **export**: CPU PyTorch 2.5.1 and the MMPose tool chain of the Phase 1 export (mmengine
+   0.10.7, mmcv-lite 2.1.0, mmpose 1.3.2, mmdet 3.3.0, `numpy<2`); downloads the checkpoint,
+   checks it, exports the ONNX model, fetches the detector, writes the manifest.
+2. **worker**: the locked application dependencies plus the `pose` extra (ultralytics
+   8.4.210, the version that produced the reference pose; PyTorch 2.14.0, which brings the
+   CUDA 13 and cuDNN 9 libraries as pip packages), `onnxruntime-gpu` 1.30 in place of
+   `onnxruntime`, the `/models` folder from stage 1, an unprivileged user, and a build-time
+   `--check` on CPU.
 
-Both stages refuse to build without `--build-arg ACCEPT_MODEL_TERMS=yes`, because building
-downloads the weights (`docs/MODEL_LICENSING_DECISION.md`). The image must be built in the
-cloud build environment, **not on the owner's Mac**. It contains no credentials.
+**One CUDA version throughout.** ONNX Runtime requires its CUDA and cuDNN to match the
+libraries it loads, and documents its 1.27 to 1.30 GPU packages as built for CUDA 13.0 and
+cuDNN 9; the unpinned newest package is also a CUDA 13 build. The locked PyTorch brings
+CUDA 13. So there is no CUDA base image at all: both use the pip-installed libraries, and
+the estimator calls `onnxruntime.preload_dlls()` before creating its session. An earlier
+draft (Phase 8) used a CUDA 12 base image with an unpinned `onnxruntime-gpu`; that would
+have paired a CUDA 13 build with CUDA 12 libraries and, at best, fallen back to the CPU. It
+was found in Phase 9A by reading the lock file and ONNX Runtime's requirements, not by
+running anything.
 
-Not verified until a build is run: that the pinned tool-chain versions still install; that
-`onnxruntime-gpu` finds the CUDA 12 / cuDNN 9 libraries of this base image under Cloud
-Run's driver (580.x, CUDA 13 runtime per Google's page); the image size (expected 5 to 8 GB,
-an estimate); that Ultralytics' PyTorch wheel uses the GPU in the same image.
+Both stages refuse to build without `ACCEPT_MODEL_TERMS=yes`, because building downloads the
+weights (`docs/MODEL_LICENSING_DECISION.md`). The build runs in Cloud Build
+(`worker/cloudbuild.yaml`, 45-minute limit), **never on the owner's Mac**, and its upload is
+limited to an allowlist (`.gcloudignore`, `.dockerignore`): the application source and
+scripts, nothing else. The image contains no credentials.
+
+Not verified until a build and a GPU run: that the pinned export tool chain still installs;
+that ONNX Runtime 1.30 and PyTorch 2.14 load the same CUDA 13 libraries under Cloud Run's
+driver (580.x); the image size; frames per second and memory.
 
 ## 5. GPU environment
 
@@ -162,7 +176,8 @@ not yet applied to a real project.
 
 ## 9. What is still open
 
-1. The image has never been built; the models have never run in the worker.
+1. The image has never been built; the models have never run in the worker. The exact
+   steps to change that, once approved: `docs/PHASE_9B_EXECUTION.md`.
 2. GPU speed, memory and cost per video are unmeasured.
 3. Licences of both models (`docs/MODEL_LICENSING_DECISION.md`).
 4. No Firebase project exists for the worker to connect to (stage 2 of the acceptance test).

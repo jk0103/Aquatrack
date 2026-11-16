@@ -265,6 +265,15 @@ class RtmwEstimator:
                 from rtmlib import RTMPose
             except ImportError as e:
                 raise ImportError("Install the pose extra: uv sync --extra pose") from e
+            if str(device).startswith("cuda"):
+                # ONNX Runtime looks for the CUDA and cuDNN libraries itself and, when it
+                # cannot find them, quietly runs on the CPU. In the worker image those
+                # libraries are the pip packages PyTorch brought; this makes ONNX Runtime
+                # load them before the session is created (available since 1.21).
+                import onnxruntime as ort
+
+                if hasattr(ort, "preload_dlls"):
+                    ort.preload_dlls()
             pose_model = RTMPose(
                 str(onnx_path),
                 model_input_size=RTMW_INPUT_SIZE,

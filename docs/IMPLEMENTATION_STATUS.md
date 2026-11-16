@@ -65,7 +65,7 @@ touches Firebase; it is not repeated in each line.
 
 | # | Blocker | Kind |
 | --- | --- | --- |
-| B1 | The inference worker is prepared but has never run the models (`docs/GPU_ACCEPTANCE_TEST.md`); needs approval of the test, then a Firebase project for the end-to-end stage | Infrastructure, approval |
+| B1 | The inference worker is prepared but has never run the models. The first run is packaged and waits for five approvals (`docs/PHASE_9B_EXECUTION.md`); the end-to-end stage then needs a Firebase project | Infrastructure, approval |
 | B2 | Ultralytics YOLO11: AGPL-3.0 or Enterprise. Strategy not chosen (`docs/MODEL_LICENSING_DECISION.md`) | Licensing, decision |
 | B3 | RTMW-x checkpoint: no stated terms; at least six of its fourteen training datasets are non-commercial or research-only. Commercial use not cleared; unresolved, needs the rights holders or legal review | Licensing, unresolved |
 | B4 | No licence file in the repository; the hero photo's source is not recorded | Licensing |

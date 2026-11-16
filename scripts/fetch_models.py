@@ -31,14 +31,12 @@ def fetch(source: manifest.ModelSource, dest: Path) -> dict:
         with urllib.request.urlopen(request, timeout=300) as response, target.open("wb") as out:
             while block := response.read(1 << 20):
                 out.write(block)
+    try:
+        digest = manifest.check_download(target, source)
+    except manifest.ModelError as e:
+        target.unlink()
+        raise SystemExit(e.message) from e
     size = target.stat().st_size
-    if source.bytes is not None and size != source.bytes:
-        target.unlink()
-        raise SystemExit(f"{source.name}: got {size} bytes, the release lists {source.bytes}.")
-    digest = manifest.sha256_of(target)
-    if source.sha256 and digest != source.sha256:
-        target.unlink()
-        raise SystemExit(f"{source.name}: checksum does not match the pinned one.")
     return {"sha256": digest, "bytes": size, "source": source.url, "publisher": source.publisher}
 
 
