@@ -479,3 +479,67 @@ def test_documents_without_the_1_2_fields_still_load():
     assert loaded.coverage.view is None and loaded.coverage.arms[0].supported_pct is None
     assert loaded.coverage.arms[0].followed_pct == result.coverage.arms[0].followed_pct
     assert loaded.metrics[0].excluded_cycles == 0
+
+
+class _FlatGeometry:
+    """Travel to the right, down is +y, trunk length 1: angles read straight off the points."""
+
+    def tilt(self, vec):
+        return np.degrees(np.arctan2(vec[:, 1], vec[:, 0]))
+
+    def along(self, vec):
+        return vec[:, 0]
+
+    def depth(self, vec):
+        return vec[:, 1]
+
+
+def _catch_arm(upper_deg, forearm_from_down_deg):
+    """Left arm (shoulder 5, elbow 7, wrist 9) frame by frame, from the upper arm's tilt
+    below travel and the forearm's angle from straight down (positive: hand ahead)."""
+    n = len(upper_deg)
+    xy = np.full((n, 17, 2), np.nan)
+    u, f = np.radians(upper_deg), np.radians(forearm_from_down_deg)
+    xy[:, 5] = 0.0
+    xy[:, 7] = np.stack([np.cos(u), np.sin(u)], axis=1)
+    xy[:, 9] = xy[:, 7] + np.stack([np.sin(f), np.cos(f)], axis=1)
+    return xy
+
+
+def _cycle(pull_start, end):
+    from aquatrack.analysis.metrics.cycles import StrokeCycle
+
+    return StrokeCycle("left", 0, end, 0, 1.0, True, pull_start=pull_start)
+
+
+def test_catch_is_read_where_the_upper_arm_crosses_the_mark_and_interpolated():
+    upper = np.array([20, 30, 40, 50, 60, 70, 80, 90.0])
+    forearm = np.array([60, 50, 40, 20, 10, 5, 0, 0.0])  # high elbow: forearm drops early
+    xy = _catch_arm(upper, forearm)
+    out = biomechanics.catch_angles(
+        _FlatGeometry(), xy, "left", [_cycle(0, 7)], np.ones(8, bool), lambda i: i / 25
+    )
+    # 45 degrees falls halfway between frames 2 (40) and 3 (50): forearm 30 degrees.
+    assert [s.value for s in out] == [30.0]
+
+
+def test_catch_needs_the_pull_start_followed_and_supported_frames_either_side():
+    upper = np.array([20, 30, 40, 50, 60, 70, 80, 90.0])
+    xy = _catch_arm(upper, np.full(8, 10.0))
+    g, sec = _FlatGeometry(), lambda i: i / 25
+    hole = np.ones(8, bool)
+    hole[[1, 2, 3, 4]] = False  # frames around the crossing not supported: gap of 5
+    assert biomechanics.catch_angles(g, xy, "left", [_cycle(0, 7)], hole, sec) == []
+    late = np.ones(8, bool)
+    late[:4] = False  # first supported frame is already past the mark
+    assert biomechanics.catch_angles(g, xy, "left", [_cycle(0, 7)], late, sec) == []
+    assert biomechanics.catch_angles(g, xy, "left", [_cycle(None, 7)], np.ones(8, bool), sec) == []
+
+
+def test_catch_metric_is_a_limited_picture_angle_for_the_near_arm_only():
+    result, metrics = run(side_view(far="left"))
+    m = metrics["catch_forearm_angle"]
+    assert m.kind.value == "proxy"
+    if m.status is not MetricStatus.UNAVAILABLE:
+        assert m.status is MetricStatus.LIMITED
+        assert m.side == result.coverage.camera_side.arm

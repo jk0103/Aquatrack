@@ -144,15 +144,18 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   vouches for a metric.
 - A metric is not a technique problem. Interpretation (`analysis/interpretation.py`) keeps
   three levels apart: observations, issue candidates, priorities (at most three, often
-  none). No ideal angles, no technique score, no comparison with other swimmers: only the
-  swimmer's own cycles and their own compatible earlier swims. Rules needing an outside norm
+  none). No ideal angles, no technique score, no comparison with other swimmers for
+  findings: only the swimmer's own cycles and their own compatible earlier swims. Exception
+  (owner's decision, 2026-11-18): a separate, labelled "reference" hint may show a measured
+  value next to a few strong swimmers filmed the same way (`analysis/reference.py`,
+  `docs/REFERENCE_SWIMMERS.md`); it never becomes a finding, rank or fault. Rules needing an outside norm
   stay `pending_validation` until a source is verified. Limited or unavailable metrics, arm
   metrics and anything measured under a changing camera view never trigger an issue.
   Measurement limits are reported apart from findings and are never technique faults.
   Missing evidence, missing history or a missing profile must never be filled in.
-- Feedback (`analysis/feedback.py`) keeps five categories apart: observation, focus,
+- Feedback (`analysis/feedback.py`) keeps its categories apart: observation, focus,
   priority, education (general information for a goal the swimmer chose: never about their
-  video, never ranked) and insufficient. It never creates a finding; goals only add education
+  video, never ranked), insufficient, and reference (strong-swimmer hints, added 2026-11-18). It never creates a finding; goals only add education
   and affect ranking. Choosing a goal never makes something measurable.
 - Evidence (`evidence.py`): a source enters only after its DOI resolves at Crossref with a
   matching title and its abstract has been read; claims say no more than the abstract.

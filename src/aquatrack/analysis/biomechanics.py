@@ -45,6 +45,9 @@ MAX_EDGE_CYCLES = 1.2  # a part-cycle at the clip edge longer than this many cyc
 # viewing angle changing (a pan as the swimmer passes) than the swimmer changing.
 DRIFT_MIN_SAMPLES = 4
 ELBOW_PHASE_DEG = (45, 135)  # arm angle from straight ahead: the part under the shoulder
+CATCH_UPPER_ARM_DEG = 45.0  # the catch: upper arm this far below the direction of travel
+# (30 degrees often comes before the pull is followed at all, above all in sprints)
+MAX_CATCH_GAP = 2  # frames between the supported frames either side of that moment
 MIN_ELBOW_FRAMES = 3
 DRIFT_MIN_CORRELATION = 0.8
 MAX_HORIZON_SPREAD_DEG = 6.0  # pool-line direction wandering more than this is not trusted
@@ -164,6 +167,23 @@ DEFS: dict[str, tuple[str, str, MetricKind, str, str, list[str]]] = {
             "Only the arm nearer the camera, and not the end of the push: near the hip and the "
             "surface the wrist is often placed wrongly.",
             SMALL_SAMPLE,
+        ],
+    ),
+    "catch_forearm_angle": (
+        "Forearm angle at the catch (2D)",
+        "arm",
+        MetricKind.PROXY,
+        "deg",
+        "How far the forearm still points forward, away from straight down, at the moment the "
+        "upper arm has dropped 45 degrees below the direction of travel, for the arm nearer "
+        "the camera. 0 is a forearm pointing straight down.",
+        [
+            "A picture angle: a forearm turned toward or away from the camera looks more or "
+            "less vertical than it is.",
+            "Only the arm nearer the camera, and only pulls whose start was followed.",
+            "Checked against human labels on SWIM-360 (370 frames, 9 freestyle swims): "
+            "forearm direction within 2.4 degrees typically, 6.7 degrees in 9 of 10 frames, "
+            "for a visible arm. Not checked as a whole metric on full clips.",
         ],
     ),
     "pull_path_variation": (
@@ -339,6 +359,57 @@ def _per_cycle(
             )
         )
     return samples, (100.0 * used / total if total else None)
+
+
+def catch_angles(
+    g: _Geometry,
+    xy: np.ndarray,
+    arm: str,
+    cycles: list[StrokeCycle],
+    supported: np.ndarray,
+    seconds: Callable[[int], float],
+) -> list[MetricSample]:
+    """Forearm angle from straight down at the catch, one value per pull.
+
+    The catch is the moment the upper arm crosses `CATCH_UPPER_ARM_DEG` below the direction
+    of travel, between the pull's start and mid-pull. Both frames either side of that moment
+    must be supported (the model's own points, inside a followed pull) and at most
+    `MAX_CATCH_GAP` frames apart; the value is interpolated between them, since the arm turns
+    several degrees per frame. Positive: the hand is still ahead of the elbow.
+    """
+    shoulder, wrist = ARMS[arm]
+    elbow = 7 if arm == "left" else 8
+    upper = g.tilt(xy[:, elbow] - xy[:, shoulder])
+    forearm = xy[:, wrist] - xy[:, elbow]
+    with np.errstate(invalid="ignore"):
+        from_down = np.degrees(np.arctan2(g.along(forearm), g.depth(forearm)))
+    samples = []
+    for c in cycles:
+        if c.pull_start is None or c.end is None:
+            continue
+        # The pull that ends this cycle runs from pull_start to its mid-pull, which is c.end.
+        frames = np.arange(c.pull_start, c.end + 1)
+        f = frames[supported[frames] & np.isfinite(upper[frames]) & np.isfinite(from_down[frames])]
+        if len(f) < 2 or upper[f[0]] >= CATCH_UPPER_ARM_DEG:
+            continue  # the start of the pull wasn't followed: the catch can't be placed
+        crossed = np.nonzero(upper[f] >= CATCH_UPPER_ARM_DEG)[0]
+        if not len(crossed):
+            continue
+        k1, k0 = int(f[crossed[0]]), int(f[crossed[0] - 1])
+        if k1 - k0 > MAX_CATCH_GAP:
+            continue
+        t = (CATCH_UPPER_ARM_DEG - upper[k0]) / (upper[k1] - upper[k0])
+        value = float(from_down[k0] + t * (from_down[k1] - from_down[k0]))
+        shows = k1 if t >= 0.5 else k0
+        samples.append(
+            MetricSample(
+                t_s=seconds(shows),
+                value=_round(value, "deg"),
+                start_s=seconds(c.start),
+                end_s=seconds(c.end),
+            )
+        )
+    return samples
 
 
 def timing_arm(strokes: StrokeAnalysis, side: CameraSide) -> str | None:
@@ -561,7 +632,7 @@ def measure(
     out.append(_from_samples("head_height", samples, cov, basis, caps, none_reason=no_cycles))
 
     # ---- arm geometry: only the arm nearer the camera, only inside its underwater pulls
-    arm_keys = ("pull_depth", "elbow_angle_min", "pull_path_variation")
+    arm_keys = ("pull_depth", "elbow_angle_min", "catch_forearm_angle", "pull_path_variation")
     if side.arm is None:
         why = side.reason or "It is not clear which arm is nearer the camera."
         out += [
@@ -646,6 +717,19 @@ def measure(
                 [*caps, "A picture angle from one camera, not the true joint angle."],
                 side=side.arm,
                 none_reason=none,
+            )
+        )
+        catch_samples = catch_angles(g, xy, side.arm, near, supported, seconds)
+        out.append(
+            _from_samples(
+                "catch_forearm_angle",
+                catch_samples,
+                arm_cov,
+                arm_basis,
+                [*caps, "A picture angle from one camera, not the true joint angle."],
+                side=side.arm,
+                none_reason=f"No pull of the {side.arm} arm was followed through the catch "
+                "(the moment the upper arm drops 45 degrees).",
             )
         )
         out.append(

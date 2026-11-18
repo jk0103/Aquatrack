@@ -802,6 +802,35 @@ class ContextUsed(BaseModel):
     notes: list[str] = []
 
 
+class ReferenceSwimmer(BaseModel):
+    """One strong swimmer's value for a metric, measured by AquaTrack on a public clip."""
+
+    name: str
+    group: Literal["sprint", "distance"]
+    value: float
+    n_cycles: int
+    note: str = ""  # who they are, what the clip shows
+
+
+class ReferenceComparison(BaseModel):
+    """The swimmer's value next to strong swimmers filmed the same way. A hint for
+    orientation only: never a finding, never ranked, never a fault (owner's decision
+    2026-11-18; see docs/REFERENCE_SWIMMERS.md)."""
+
+    metric_key: str
+    label: str
+    unit: str
+    value: float  # the swimmer's
+    metric_status: str  # reliable / limited, as measured
+    group: Literal["sprint", "distance"]  # which reference swimmers it is set against
+    low: float  # range of those swimmers' values
+    high: float
+    tolerance: float  # differences smaller than this are not told apart
+    position: Literal["within", "below", "above"]
+    swimmers: list[ReferenceSwimmer] = []
+    limitations: list[str] = []
+
+
 class Interpretation(BaseModel):
     interpretation_version: str = INTERPRETATION_VERSION
     rules_version: str
@@ -817,6 +846,9 @@ class Interpretation(BaseModel):
     undetermined: list[Undetermined] = []
     sessions: list[SessionComparison] = []
     rules: list[RuleStatus] = []
+    # Added 2026-11-18: strong-swimmer reference hints, kept apart from every finding.
+    reference_version: str = ""
+    references: list[ReferenceComparison] = []
     summary: str = ""
     created_at: str = Field(default_factory=_now)
 
@@ -844,7 +876,7 @@ class FeedbackReference(BaseModel):
 
 
 class FeedbackItem(BaseModel):
-    """One piece of feedback. `category` decides how it may be worded and shown; the five
+    """One piece of feedback. `category` decides how it may be worded and shown; the
     categories are never mixed:
 
       observation   measured in this swimmer's video
@@ -852,10 +884,12 @@ class FeedbackItem(BaseModel):
       priority      a focus that is also ranked (at most three)
       education     general information for a goal they chose; NOT about their video
       insufficient  something that could not be determined, and what would help
+      reference     the swimmer's value next to strong swimmers filmed the same way: a hint
+                    for orientation, never a fault, never ranked (added 2026-11-18)
     """
 
     id: str
-    category: Literal["observation", "focus", "priority", "education", "insufficient"]
+    category: Literal["observation", "focus", "priority", "education", "insufficient", "reference"]
     personal: bool  # False for education: it says nothing about this swimmer's swimming
     title: str
     body: str  # deterministic text; always present and always safe to show

@@ -164,6 +164,31 @@ The end of the push is left out because the hand is then at the hip and the surf
 real clips the model pulls the wrist up against the elbow. **Always limited:** a picture angle
 is not the joint angle.
 
+### catch_forearm_angle - Forearm angle at the catch, 2D (proxy, camera-side arm only)
+1 Element: arm trajectory, early catch ("high elbow"). 2 Joints: shoulder, elbow and wrist of the
+camera-side arm. 3 Calculation: for each pull, the moment the upper arm (shoulder to elbow) crosses
+45 degrees below the direction of travel, between the pull's start and mid-pull; the forearm's
+angle from straight down at that moment, interpolated between the two supported frames either
+side (at most 2 frames apart). Positive: the hand is still ahead of the elbow. 4 Unit: deg.
+5 Stroke: freestyle. 6 View: underwater side. 7 Coverage: as the other arm metrics; a pull gives
+no value when its start was not followed (first supported frame already past 45 degrees) or the
+frames around the crossing are not supported. 8 Interpolated: not used. 9 Reliable: never; it is
+a picture angle and is always held at limited, like elbow_angle_min. 10 Unavailable: no pull
+followed through the catch. 11 Limits: a forearm turned toward or away from the camera looks
+more or less vertical than it is; one camera.
+Why 45 and not 30 degrees: on the sprint clip the upper arm was already 31-40 degrees down at the
+first supported frame of every pull, so a 30-degree catch fell outside what was followed.
+Point accuracy (SWIM-360 dynamic, Apache-2.0: 370 human-labelled frames, every 100th video frame
+of 9 freestyle swims by 7 swimmers, side-on underwater; RTMW-x given the labelled box): for an arm
+labelled visible, elbow and wrist within 0.04 trunk lengths (median) and forearm direction within
+2.4 degrees (median), 6.7 degrees (90th percentile). For an arm labelled hidden the points are
+0.3-0.9 trunk lengths off and the arms are swapped in 41% of frames, while the model's score
+barely separates the two (AUC 0.76): the reason only the camera-side arm's supported frames are
+read. This checks points in single frames, not the metric on whole clips.
+On saved pose of four public clips (not validated): Wellbrock 0.0, Effortless Swimming 0.6,
+Khloptsov (50 m sprint, straight-arm pull) 50.4, the student's clip 26.5 degrees; the frames
+behind each value were checked by eye.
+
 ### pull_path_variation - Pull path variation (geometric, camera-side arm only)
 Element: repeatability of the arm trajectory. Calculation: each pull's wrist path relative to the
 shoulder, resampled to 20 points from the pull's start to its exit, RMS distance from that arm's mean path

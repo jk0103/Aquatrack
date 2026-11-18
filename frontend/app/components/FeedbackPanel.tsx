@@ -24,6 +24,7 @@ export function FeedbackPanel({
   const observations = of("observation");
   const education = of("education");
   const insufficient = of("insufficient");
+  const reference = of("reference");
   return (
     <div className="space-y-6">
       <Card title="Improvement priorities">
@@ -159,6 +160,24 @@ export function FeedbackPanel({
                   ))}
                 </dl>
               </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {reference.length > 0 && (
+        <Card title="Compared with strong swimmers">
+          <p className="mb-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+            <span className="font-medium text-slate-900">
+              For orientation only.
+            </span>{" "}
+            The same measurements on a few strong swimmers filmed the same way.
+            Good swimmers differ from each other, so a value outside their range
+            only says where yours sits.
+          </p>
+          <ul className="divide-y divide-slate-100">
+            {reference.map((item) => (
+              <Item key={item.id} item={item} />
             ))}
           </ul>
         </Card>

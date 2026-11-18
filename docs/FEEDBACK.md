@@ -12,6 +12,7 @@ feedback -> optional rewording -> screen.
 | focus | an interpretation issue candidate | what was seen, why it may matter (with its source and limits) | that it is a confirmed fault |
 | priority | an interpretation priority (at most three) | the same, plus why it is ranked and what to watch | anything about expected results |
 | education | a goal on the swimmer's profile | what verified research says in general, and what AquaTrack can and cannot look at for that goal | anything about this swimmer's video; it has no rank and no measurements |
+| reference | an interpretation `references` entry (added 2026-11-18) | where the swimmer's value sits next to strong swimmers measured the same way, with the limits | that it is better, worse, a fault or something to fix; it is never ranked |
 | insufficient | an interpretation "undetermined" entry | the limit and what footage or information would help | that the limit reflects on the swimmer |
 
 Feedback never creates a finding: observations, focus items and priorities map one-to-one to the

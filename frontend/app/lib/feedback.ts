@@ -4,13 +4,20 @@
 // Five categories that are never mixed: observation (measured in the video), focus (may
 // deserve attention), priority (ranked, at most three), education (general information for
 // a chosen goal, NOT about the swimmer's video) and insufficient (could not be determined).
+// Since 2026-11-18 also reference: the swimmer's value next to strong swimmers measured the
+// same way; orientation only, never a finding or a fault.
 // Pure parsing: no Firebase.
 
 import { parseFollowUps, type FollowUp } from "./history.ts";
 import type { FindingEvidence, FindingSample } from "./interpretation.ts";
 
 export type FeedbackCategory =
-  "observation" | "focus" | "priority" | "education" | "insufficient";
+  | "observation"
+  | "focus"
+  | "priority"
+  | "education"
+  | "insufficient"
+  | "reference";
 
 export type FeedbackItem = {
   id: string;
@@ -75,6 +82,7 @@ const categories: FeedbackCategory[] = [
   "priority",
   "education",
   "insufficient",
+  "reference",
 ];
 
 function parseEvidence(raw: unknown): FindingEvidence[] {

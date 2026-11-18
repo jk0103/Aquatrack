@@ -10,7 +10,9 @@ judgement of technique. Code: `src/aquatrack/analysis/interpretation.py`.
   from a chosen number. There is no ideal angle, no technique score, and no comparison with
   other swimmers.
 - **The swimmer is compared only with themselves:** their own cycles within a clip, and their
-  own earlier compatible swims.
+  own earlier compatible swims. Separately, and never as a finding, `references` sets a few
+  measured values next to strong swimmers filmed the same way (owner's decision 2026-11-18,
+  `docs/REFERENCE_SWIMMERS.md`).
 - **Metric availability is not interpretive validity.** A metric that passed its Phase 2 checks
   can still be barred from issue detection (section 3).
 - **Missing evidence produces nothing.** Empty issue and priority lists are normal results.
@@ -34,7 +36,7 @@ swims and whether they were comparable), `rules` (what every rule did, including
 | cycle_duration, rhythm_variation | yes | yes | **yes**, when they passed their checks |
 | stroke_rate | yes | yes | no (rule pending) |
 | body_line_angle, leg_line_angle, head_height | yes | yes, unless either clip's camera view changed | no (rules pending) |
-| pull_depth, elbow_angle_min, pull_path_variation | one "for information only" entry | no | no |
+| pull_depth, elbow_angle_min, catch_forearm_angle, pull_path_variation | one "for information only" entry | no | no |
 | cycle_time_change | yes | no | no |
 | far-side arm, kick, breathing, rotation, left-right balance | not measured | - | - |
 

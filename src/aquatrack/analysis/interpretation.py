@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from aquatrack.analysis import reference
 from aquatrack.contracts import (
     AnalysisResult,
     ContextUsed,
@@ -60,7 +61,7 @@ DESCRIBE_AND_COMPARE = {
 GEOMETRIC = {"body_line_angle", "leg_line_angle", "head_height"}
 # Shown as context only. Phase 2 left open problems with them (wrist placement at the end of
 # the push, few supported frames), so they never trigger anything and are not compared.
-CONTEXT_ONLY = {"pull_depth", "elbow_angle_min", "pull_path_variation"}
+CONTEXT_ONLY = {"pull_depth", "elbow_angle_min", "catch_forearm_angle", "pull_path_variation"}
 
 # ---- measurement resolution: differences below these cannot be told from noise
 RESOLUTION = {"body_line_angle": 2.0, "leg_line_angle": 2.0, "head_height": 0.05}  # deg, trunk
@@ -191,7 +192,7 @@ RULES = [
     Rule(
         "pending.arm_pull",
         "Elbow bend, pull depth or pull path judged",
-        ("elbow_angle_min", "pull_depth", "pull_path_variation"),
+        ("elbow_angle_min", "catch_forearm_angle", "pull_depth", "pull_path_variation"),
         "",
         "",
         "",
@@ -997,5 +998,7 @@ def interpret(
         undetermined=undetermined,
         sessions=sessions,
         rules=rules,
+        reference_version=reference.REFERENCE_VERSION,
+        references=reference.compare(result),
         summary=summary,
     )

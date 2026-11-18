@@ -31,10 +31,11 @@ touches Firebase; it is not repeated in each line.
 | Jobs | Durable queue, leases, recovery, cancel, timeout, limits | 1, 3 | Tested with fake inference adapters and in the Firestore emulator; never under real load or on a second machine |
 | Jobs | Standalone worker process (`python -m aquatrack.worker`) | 1 (logic), 6 (deployment) | Same code as the embedded worker; not run as a separate deployed service |
 | Analysis | Pose cleaning, quality grade, stroke cycles | 1, 7 | Compared with manual annotation on 2 real clips (`docs/PHASE2_VALIDATION.md`) |
-| Analysis | Biomechanics metrics with per-metric reliability | 1, 7 | 11 metrics; freestyle, underwater side view only |
+| Analysis | Biomechanics metrics with per-metric reliability | 1, 7 | 12 metrics (catch forearm angle added 2026-11-18, point accuracy checked on SWIM-360); freestyle, underwater side view only |
 | Analysis | Other strokes, above-water or oblique footage | 4 | Reported as limited or not measurable |
 | Interpretation | Observations, issue candidates, priorities | 2, 7 | On real clips: observations only, zero issues. Issue rules and priorities only ran on synthetic data |
 | Feedback | Five categories, checkpoints, references | 2 (issues), 1 (observations) | Evidence library: 10 sources, abstracts only |
+| Feedback | Strong-swimmer reference hints (catch, elbow, pull depth, head) | 2, 7 | 3 public clips measured locally; orientation only, never a finding (`docs/REFERENCE_SWIMMERS.md`) |
 | Feedback | Rewording by an OpenAI model | 2 (mocked) | Off by default. **No real call has ever been made**; account access and real output unverified |
 | History | Upload list, filters, detail page, video deletion | 1, 3 | |
 | History | Session comparison, progress series, checkpoint follow-up | 2 | No real swimmer has two comparable sessions; on the real pair the answer is "not comparable" |

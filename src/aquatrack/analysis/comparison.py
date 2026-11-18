@@ -53,6 +53,7 @@ DEFINED_SINCE = {
     "head_height": "1.2",
     "pull_depth": "1.2",
     "elbow_angle_min": "1.2",
+    "catch_forearm_angle": "1.2",
     "pull_path_variation": "1.2",
 }
 RELATIVE = {"stroke_rate", "cycle_duration"}  # a percentage means something for these
@@ -65,6 +66,7 @@ ORDER = [
     "head_height",
     "pull_depth",
     "elbow_angle_min",
+    "catch_forearm_angle",
     "pull_path_variation",
 ]
 LABELS = {
@@ -76,6 +78,7 @@ LABELS = {
     "head_height": ("Head against the trunk line", "trunk lengths"),
     "pull_depth": ("Pull depth", "trunk lengths"),
     "elbow_angle_min": ("Elbow bend in the pull (2D)", "deg"),
+    "catch_forearm_angle": ("Forearm angle at the catch (2D)", "deg"),
     "pull_path_variation": ("Pull path variation", "trunk lengths"),
 }
 MIN_SERIES_FOR_REPEAT = 2

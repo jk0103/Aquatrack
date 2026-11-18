@@ -31,6 +31,7 @@ from aquatrack.contracts import (
     FeedbackReference,
     Finding,
     Interpretation,
+    ReferenceComparison,
 )
 
 MAX_CHECKPOINTS = 4
@@ -280,6 +281,42 @@ CHECKPOINT_REASONS = {
 }
 
 
+def _num(value: float, unit: str, with_unit: bool = True) -> str:
+    text = f"{value:.0f}" if unit == "deg" else f"{value:.2f}"
+    if not with_unit:
+        return text
+    return text + ("°" if unit == "deg" else f" {unit}")
+
+
+def _reference(r: ReferenceComparison) -> FeedbackItem:
+    """A strong-swimmer hint. Neutral wording: where the value sits, never good or bad."""
+    names = ", ".join(f"{s.name} {_num(s.value, r.unit)}" for s in r.swimmers)
+    who = "a sprinter" if r.group == "sprint" else "distance swimmers"
+    span = (
+        _num(r.low, r.unit)
+        if r.low == r.high
+        else f"{_num(r.low, r.unit, False)} to {_num(r.high, r.unit)}"
+    )
+    single = len(r.swimmers) == 1
+    where = {
+        "within": "close to" if single else "in the same range as",
+        "below": "below" if single else "below the range of",
+        "above": "above" if single else "above the range of",
+    }[r.position]
+    return FeedbackItem(
+        id=f"fb.reference.{r.metric_key}.{r.group}",
+        category="reference",
+        personal=True,
+        title=f"{r.label}: compared with {who}",
+        body=f"Yours: {_num(r.value, r.unit)}. Measured the same way on {who} filmed from the "
+        f"side underwater: {span} ({names}). Yours is {where} {'that' if single else 'theirs'}. "
+        "This is for orientation only: good swimmers differ from each other.",
+        metric_keys=[r.metric_key],
+        confidence="for_information",
+        limitations=r.limitations,
+    )
+
+
 def build_feedback(
     i: Interpretation,
     interpretation_id: str = "",
@@ -302,6 +339,7 @@ def build_feedback(
         items.append(item)
     items += [_focus(f) for f in i.issue_candidates if f.id not in ranked]
     items += [_observation(f) for f in i.observations]
+    items += [_reference(r) for r in i.references]  # hints, after the swimmer's own findings
     # Education: only for goals the swimmer chose, main goal first. Never ranked.
     ordered = sorted(goals, key=lambda g: (g != i.context.primary_goal, goals.index(g)))
     items += [_education(g, g == i.context.primary_goal) for g in ordered]
