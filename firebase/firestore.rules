@@ -100,6 +100,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Still frames chosen for one feedback document's priorities (images in Storage).
+      match /frames/{feedbackId} {
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+        allow write: if false;
+      }
+
       // One document per interpretation of a stored analysis: findings, not measurements.
       match /interpretations/{interpretationId} {
         allow read: if signedIn() && resource.data.uid == request.auth.uid;

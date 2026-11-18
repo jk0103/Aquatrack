@@ -38,6 +38,7 @@ touches Firebase; it is not repeated in each line.
 | Feedback | Strong-swimmer reference hints (catch, elbow, pull depth, head) | 2, 7 | 3 public clips measured locally; orientation only, never a finding (`docs/REFERENCE_SWIMMERS.md`) |
 | Feedback | Rewording by an OpenAI model | 2 (mocked) | Off by default. **No real call has ever been made**; account access and real output unverified |
 | History | Upload list, filters, detail page, video deletion | 1, 3 | |
+| History | Result page in the example's layout, with problem frames from the swimmer's video (`docs/PROBLEM_FRAMES.md`) | 1, 3 (empty case), 2 (frames) | Real clip through the worker in the emulator: no priority, so no frames (the intended result). Frames and arrow placement checked on real frames and real saved pose only with a SYNTHETIC priority. Frames are not remade on `POST /interpret` |
 | History | Session comparison, progress series, checkpoint follow-up | 2 | No real swimmer has two comparable sessions; on the real pair the answer is "not comparable" |
 | Training | Activity library with checked sources | 1, 7 | 14 activities; nothing tested on swimmers |
 | Training | Goal-based single session and 7-day plan | 1, 7 | |

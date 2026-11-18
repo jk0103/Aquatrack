@@ -1084,3 +1084,54 @@ class Feedback(BaseModel):
 
     def to_firestore(self) -> dict:
         return json.loads(self.model_dump_json())
+
+
+# ---------- problem frames ----------
+# Still frames from the swimmer's own video that show what the feedback's priorities rest on.
+# Chosen only from the evidence samples (cycles) of the priorities in one Feedback document,
+# never for anything the feedback did not report. Stored per feedback document:
+# Firestore videos/{id}/frames/{feedbackId}, images in Storage under the analysis folder.
+
+PROBLEM_FRAMES_VERSION = "1.0"
+
+
+class FrameArrow(BaseModel):
+    """An arrow drawn over a frame, from a label to a body point the model placed in it.
+    Coordinates are 0-1 of the stored image (the original, unmirrored picture)."""
+
+    joint: str  # e.g. "right wrist"
+    to: tuple[float, float]  # the point, from that frame's own pose
+    label_at: tuple[float, float]  # where the label sits; the arrow starts there
+    label: str  # at most six words
+
+
+class ProblemFrame(BaseModel):
+    item_id: str  # the FeedbackItem (a priority) it illustrates
+    finding_id: str = ""
+    rank: int | None = None
+    t_s: float  # the moment shown
+    frame_index: int  # video frame number
+    cycle_index: int  # 1-based, among the cycles the analysis measured
+    cycle_start_s: float | None = None
+    cycle_end_s: float | None = None
+    image: str = ""  # Storage path of the JPEG
+    width: int = 0
+    height: int = 0
+    arrows: list[FrameArrow] = []
+    joint_confidence: float | None = None  # lowest model confidence of the joints used
+    sharpness: float | None = None  # variance of the Laplacian around those joints
+
+
+class ProblemFrames(BaseModel):
+    frames_version: str = PROBLEM_FRAMES_VERSION
+    video_id: str
+    analysis_id: str = ""
+    feedback_id: str = ""
+    frames: list[ProblemFrame] = []  # at most five
+    # Why there are none: "no_issue" (no priority), "no_frame_rule" (the priority is not
+    # something a single frame can show), "no_trusted_frame" (no frame passed the checks).
+    empty_reason: Literal["", "no_issue", "no_frame_rule", "no_trusted_frame"] = ""
+    created_at: str = Field(default_factory=_now)
+
+    def to_firestore(self) -> dict:
+        return json.loads(self.model_dump_json())

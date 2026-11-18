@@ -12,6 +12,8 @@ Firestore layout:
                                    a new document per run, earlier ones are never changed
   videos/{id}/feedback/{feedbackId}  feedback built from one interpretation; the id is a
                                    hash of its inputs, and an existing document is kept
+  videos/{id}/frames/{feedbackId}  still frames chosen for that feedback's priorities
+                                   (ProblemFrames; see docs/PROBLEM_FRAMES.md)
   profiles/{uid}                   the swimmer's own survey answers (read only here)
   training_plans/{id}              one version of a training plan (see docs/TRAINING.md)
   training_sessions/{id}           one planned or manually created swimming session
@@ -20,6 +22,7 @@ Firestore layout:
 Storage layout:
   videos/{uid}/{id}.{ext}          the uploaded video (written by the web app)
   analysis/{uid}/{id}/{analysisId}/raw_pose.npz, processed_pose.npz   per-frame arrays
+  analysis/{uid}/{id}/{analysisId}/frames/{feedbackId}/{n}.jpg      problem frames
 """
 
 import os
@@ -109,6 +112,21 @@ class Store(Protocol):
 
     def get_feedback(self, video_id: str, feedback_id: str) -> dict[str, Any] | None: ...
 
+    def save_problem_frames(
+        self,
+        video: VideoRecord,
+        analysis_id: str,
+        frames_id: str,
+        document: dict[str, Any],
+        files: dict[str, Path],
+    ) -> dict[str, Any]:
+        """Upload the frame images next to the analysis's pose files and write (or replace)
+        the frames document. Each frame's `image` becomes its Storage path. Returns the
+        document as stored."""
+        ...
+
+    def get_problem_frames(self, video_id: str, frames_id: str) -> dict[str, Any] | None: ...
+
     def get_interpretation(
         self, video_id: str, interpretation_id: str
     ) -> dict[str, Any] | None: ...
@@ -195,6 +213,18 @@ def _document(video: VideoRecord, result: dict, saved: dict[str, tuple[str, int]
     return {**result, "uid": video.uid, "artifacts": artifacts}
 
 
+def _frames_document(
+    video: VideoRecord, analysis_id: str, frames_id: str, document: dict[str, Any]
+) -> dict[str, Any]:
+    frames = [
+        {**f, "image": artifact_path(video, analysis_id, f"frames/{frames_id}/{f['image']}")}
+        if f.get("image")
+        else f
+        for f in document.get("frames") or []
+    ]
+    return {**document, "frames": frames, "uid": video.uid}
+
+
 def _training(collection: str) -> str:
     if collection not in TRAINING_COLLECTIONS:
         raise ValueError(f"not a training collection: {collection}")
@@ -211,6 +241,7 @@ class MemoryStore:
         self.interpretations: dict[tuple[str, str], dict[str, Any]] = {}
         self.profiles: dict[str, dict[str, Any]] = {}
         self.feedback: dict[tuple[str, str], dict[str, Any]] = {}
+        self.frames: dict[tuple[str, str], dict[str, Any]] = {}
         self.docs: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in TRAINING_COLLECTIONS}
         self._lock = threading.Lock()
 
@@ -280,6 +311,18 @@ class MemoryStore:
     def get_feedback(self, video_id, feedback_id):
         return self.feedback.get((video_id, feedback_id))
 
+    def save_problem_frames(self, video, analysis_id, frames_id, document, files):
+        doc = _frames_document(video, analysis_id, frames_id, document)
+        for name, path in files.items():
+            self.files[artifact_path(video, analysis_id, f"frames/{frames_id}/{name}")] = Path(
+                path
+            ).read_bytes()
+        self.frames[(video.id, frames_id)] = doc
+        return doc
+
+    def get_problem_frames(self, video_id, frames_id):
+        return self.frames.get((video_id, frames_id))
+
     def get_interpretation(self, video_id, interpretation_id):
         return self.interpretations.get((video_id, interpretation_id))
 
@@ -297,7 +340,7 @@ class MemoryStore:
         if video.storage_path.startswith(f"videos/{video.uid}/"):
             self.files.pop(video.storage_path, None)
         step("documents")
-        for table in (self.feedback, self.interpretations, self.analyses):
+        for table in (self.frames, self.feedback, self.interpretations, self.analyses):
             for key in [k for k in table if k[0] == video.id]:
                 del table[key]
         step("record")
@@ -464,6 +507,19 @@ class FirebaseStore:
         snap = self._ref(video_id).collection("feedback").document(feedback_id).get()
         return snap.to_dict() if snap.exists else None
 
+    def save_problem_frames(self, video, analysis_id, frames_id, document, files):
+        doc = _frames_document(video, analysis_id, frames_id, document)
+        for name, path in files.items():
+            self._bucket.blob(
+                artifact_path(video, analysis_id, f"frames/{frames_id}/{name}")
+            ).upload_from_filename(str(path), content_type="image/jpeg")
+        self._ref(video.id).collection("frames").document(frames_id).set(doc)
+        return doc
+
+    def get_problem_frames(self, video_id, frames_id):
+        snap = self._ref(video_id).collection("frames").document(frames_id).get()
+        return snap.to_dict() if snap.exists else None
+
     def get_interpretation(self, video_id, interpretation_id):
         snap = self._ref(video_id).collection("interpretations").document(interpretation_id).get()
         return snap.to_dict() if snap.exists else None
@@ -484,7 +540,7 @@ class FirebaseStore:
             except NotFound:
                 pass
         ref = self._ref(video.id)
-        for name in ("feedback", "interpretations", "analyses"):
+        for name in ("frames", "feedback", "interpretations", "analyses"):
             for snap in ref.collection(name).stream():
                 snap.reference.delete()
         ref.delete()

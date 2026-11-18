@@ -7,6 +7,15 @@ import { useEffect, useState } from "react";
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
 import { FeedbackPanel } from "@/app/components/FeedbackPanel";
 import { InterpretationPanel } from "@/app/components/InterpretationPanel";
+import {
+  ProblemFrameStage,
+  ResultPills,
+} from "@/app/components/ProblemFrameStage";
+import {
+  NextVideoCard,
+  ResultFeedbackCard,
+  SuggestedPlanCard,
+} from "@/app/components/ResultLower";
 import { useUser } from "@/app/components/AppShell";
 import { ChevronIcon } from "@/app/components/icons";
 import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
@@ -20,6 +29,11 @@ import { loadInterpretation } from "@/app/lib/interpretationLoad";
 import { describeFirebaseError } from "@/app/lib/firebase";
 import { deleteVideo } from "@/app/lib/historyApi";
 import { formatSwimTime } from "@/app/lib/profile";
+import { framesForPriorities } from "@/app/lib/problemFrames";
+import {
+  loadProblemFrames,
+  type LoadedFrames,
+} from "@/app/lib/problemFramesLoad";
 import {
   formatBytes,
   formatDuration,
@@ -146,11 +160,52 @@ export default function UploadPage() {
   }, [id, feedbackId]);
   const feedback = fb && fb.id === feedbackId ? fb.value : null;
 
+  // Frames from the video that show the feedback's priorities, stored per feedback document.
+  const [fr, setFr] = useState<{
+    id: string;
+    value: LoadedFrames | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!id || !feedbackId) return;
+    let live = true;
+    loadProblemFrames(id, feedbackId)
+      .then((value) => live && setFr({ id: feedbackId, value }))
+      .catch(() => live && setFr({ id: feedbackId, value: null }));
+    return () => {
+      live = false;
+    };
+  }, [id, feedbackId]);
+  // undefined while loading
+  const loadedFrames = !feedbackId
+    ? null
+    : fr && fr.id === feedbackId
+      ? fr.value
+      : undefined;
+  const priorities = (feedback?.items ?? [])
+    .filter((i) => i.category === "priority")
+    .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const mainFix = priorities[0] ?? null;
+  const frames =
+    loadedFrames && loadedFrames !== null
+      ? {
+          ...loadedFrames,
+          frames: framesForPriorities(
+            loadedFrames,
+            priorities.map((p) => p.id),
+          ),
+        }
+      : loadedFrames;
+
   function seek(seconds: number) {
     const player = document.querySelector<HTMLVideoElement>("main video");
     if (!player) return;
     player.currentTime = seconds;
     player.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function playFrom(seconds: number) {
+    seek(seconds);
+    void document.querySelector<HTMLVideoElement>("main video")?.play();
   }
 
   const back = (
@@ -223,6 +278,84 @@ export default function UploadPage() {
       <LoadingState label="Getting the video…" />
     </div>
   );
+
+  // A finished analysis: the example page's layout and motion, filled from the real result.
+  if (video.status === "ready" && analysis) {
+    const dateText = date
+      ? date.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "Date not recorded";
+    const hasFrames = !!frames && frames.frames.length > 0;
+    return (
+      <>
+        {back}
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+              {mainFix ? mainFix.title : "No main fix from this clip"}
+            </h1>
+            <p className="mt-1.5 text-slate-600">
+              {[dateText, [video.stroke, video.distance].filter(Boolean).join(" "), video.camera]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+        <div className="mb-5">
+          <ResultPills analysis={analysis} />
+        </div>
+        <ProblemFrameStage
+          video={video}
+          analysis={analysis}
+          mainFix={mainFix}
+          frames={frames}
+          videoUrl={url}
+          onPlayFrom={playFrom}
+        />
+        {/* Below the stage, as on the example page: feedback card and plan card */}
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="min-w-0 space-y-6 lg:col-span-3">
+            {feedback ? (
+              <ResultFeedbackCard feedback={feedback} comment={video.comments || undefined} />
+            ) : (
+              interpretation && (
+                <InterpretationPanel
+                  interpretation={interpretation}
+                  onSeek={url ? seek : undefined}
+                />
+              )
+            )}
+            {/* The stage shows the video itself when there are no frames */}
+            {hasFrames && player}
+          </div>
+          <div className="min-w-0 space-y-6 lg:col-span-2">
+            <SuggestedPlanCard videoId={video.id} />
+            {feedback && <NextVideoCard feedback={feedback} />}
+            <SessionCard video={video} />
+          </div>
+        </div>
+        <details className="group mt-6 rounded-2xl glass p-5 sm:p-6">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+            Full analysis details
+          </summary>
+          <div className="mt-5 space-y-6">
+            {feedback && <FeedbackPanel feedback={feedback} onSeek={url ? seek : undefined} />}
+            <AnalysisPanel
+              video={video}
+              analysis={analysis}
+              analysisError={analysisError}
+              onSeek={url ? seek : undefined}
+            />
+          </div>
+        </details>
+        <DeleteVideo id={video.id} stuck={false} />
+      </>
+    );
+  }
 
   return (
     <>

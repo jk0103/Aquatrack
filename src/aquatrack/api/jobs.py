@@ -37,10 +37,11 @@ from aquatrack.analysis.feedback import build_feedback, feedback_id
 from aquatrack.analysis.interpretation import PriorSession, SwimmerContext, interpret
 from aquatrack.analysis.pipeline import analyze
 from aquatrack.analysis.pose.sources import PoseSource, PoseSourceError
+from aquatrack.analysis.problem_frames import extract as extract_problem_frames
 from aquatrack.analysis.video import read_video_info, video_identity
 from aquatrack.api.store import Store, VideoRecord
 from aquatrack.contracts import AnalysisJobStatus as Status
-from aquatrack.contracts import AnalysisResult, Interpretation, JobError
+from aquatrack.contracts import AnalysisResult, Feedback, Interpretation, JobError, RawPose
 
 log = logging.getLogger("aquatrack.jobs")
 
@@ -482,130 +483,138 @@ def process(
     video_id = video.id
     analysis_id = str(video.job.get("analysisId") or f"{_now():%Y%m%dT%H%M%S}-01")
     try:
-        with (
-            tempfile.TemporaryDirectory(prefix=WORK_PREFIX, dir=work_root()) as tmp,
-            _KeepAlive(store, video_id, worker_id, keep_alive_s) as alive,
-        ):
-            work = Path(tmp)
-            local = work / f"video{Path(video.storage_path).suffix}"
-            store.transact(
-                video_id,
-                lambda v: (
-                    ({"job": v.job | {"poseSource": source.name}}, None)
-                    if v is not None and v.job.get("leaseOwner") == worker_id
-                    else (None, None)
-                ),
-            )
-            alive.checkpoint("downloading")
-            try:
-                store.download_video(video.storage_path, local)
-            except Exception:
-                log.exception("download failed video=%s", video_id)
-                return _fail(
-                    store,
-                    video,
-                    worker_id,
-                    JobError(
-                        code="video_unavailable",
-                        message="The uploaded video could not be loaded.",
-                        retryable=True,
+        with tempfile.TemporaryDirectory(prefix=WORK_PREFIX, dir=work_root()) as tmp:
+            with _KeepAlive(store, video_id, worker_id, keep_alive_s) as alive:
+                work = Path(tmp)
+                local = work / f"video{Path(video.storage_path).suffix}"
+                store.transact(
+                    video_id,
+                    lambda v: (
+                        ({"job": v.job | {"poseSource": source.name}}, None)
+                        if v is not None and v.job.get("leaseOwner") == worker_id
+                        else (None, None)
                     ),
                 )
-            alive.checkpoint("checking")
-            problem = check_video_limits(local)
-            if problem is not None:
-                return _fail(store, video, worker_id, problem)
-            try:
-                identity = video_identity(local)
-            except ValueError:
-                return _fail(
-                    store,
-                    video,
-                    worker_id,
-                    JobError(
-                        code="video_unreadable",
-                        message="This file could not be read as a video.",
-                        retryable=False,
-                    ),
+                alive.checkpoint("downloading")
+                try:
+                    store.download_video(video.storage_path, local)
+                except Exception:
+                    log.exception("download failed video=%s", video_id)
+                    return _fail(
+                        store,
+                        video,
+                        worker_id,
+                        JobError(
+                            code="video_unavailable",
+                            message="The uploaded video could not be loaded.",
+                            retryable=True,
+                        ),
+                    )
+                alive.checkpoint("checking")
+                problem = check_video_limits(local)
+                if problem is not None:
+                    return _fail(store, video, worker_id, problem)
+                try:
+                    identity = video_identity(local)
+                except ValueError:
+                    return _fail(
+                        store,
+                        video,
+                        worker_id,
+                        JobError(
+                            code="video_unreadable",
+                            message="This file could not be read as a video.",
+                            retryable=False,
+                        ),
+                    )
+                alive.checkpoint("pose")
+                try:
+                    if getattr(source, "supports_progress", False):
+                        raw = source.get_raw_pose(
+                            local, identity, video_id, progress=alive.on_frame
+                        )
+                    else:
+                        raw = source.get_raw_pose(local, identity, video_id)
+                except PoseSourceError as e:
+                    return _fail(
+                        store,
+                        video,
+                        worker_id,
+                        JobError(code=e.code, message=e.message, retryable=e.retryable),
+                    )
+                alive.checkpoint("measuring")
+                result, processed = analyze(
+                    raw, video_id, video.session, identity, video_path=local
                 )
-            alive.checkpoint("pose")
-            try:
-                if getattr(source, "supports_progress", False):
-                    raw = source.get_raw_pose(local, identity, video_id, progress=alive.on_frame)
-                else:
-                    raw = source.get_raw_pose(local, identity, video_id)
-            except PoseSourceError as e:
-                return _fail(
-                    store,
-                    video,
-                    worker_id,
-                    JobError(code=e.code, message=e.message, retryable=e.retryable),
-                )
-            alive.checkpoint("measuring")
-            result, processed = analyze(raw, video_id, video.session, identity, video_path=local)
 
-            # Last check before anything is stored: still ours, not cancelled, not deleted.
-            alive.checkpoint("saving")
-            raw_path = raw.save(work / "raw_pose.npz")
-            processed_path = processed.save(work / "processed_pose.npz")
-            try:
-                store.save_analysis(
-                    video,
-                    analysis_id,
-                    result.to_firestore(),
-                    {"raw_pose.npz": raw_path, "processed_pose.npz": processed_path},
-                )
-            except Exception:
-                # Part of the result may have been written (one pose file, say). Pose data
-                # is private: do not leave a piece of it behind for a failed job.
-                _discard(store, video, analysis_id)
-                raise
-        rate = next((m.value for m in result.measurements if m.key == "stroke_rate"), None)
-        done = _finish(
-            store,
-            video_id,
-            worker_id,
-            Status.READY,
-            {
-                "job": {"progress": None},
-                "latestAnalysisId": analysis_id,
-                "sha256": identity.sha256,
-                "analysisSummary": {
-                    "schemaVersion": result.schema_version,
-                    "grade": result.quality.grade.value,
-                    "validPosePct": result.quality.valid_pose_pct,
-                    "strokeMeasurable": result.stroke.measurable,
-                    "cyclesPerMin": rate,  # the same number the result page shows
-                    "strokeCount": result.stroke.stroke_count,
-                    "cycleCount": result.stroke.counted_cycles,
-                    "metricsReliable": result.coverage.metrics_reliable,
-                    "metricsLimited": result.coverage.metrics_limited,
+                # Last check before anything is stored: still ours, not cancelled, not deleted.
+                alive.checkpoint("saving")
+                raw_path = raw.save(work / "raw_pose.npz")
+                processed_path = processed.save(work / "processed_pose.npz")
+                try:
+                    store.save_analysis(
+                        video,
+                        analysis_id,
+                        result.to_firestore(),
+                        {"raw_pose.npz": raw_path, "processed_pose.npz": processed_path},
+                    )
+                except Exception:
+                    # Part of the result may have been written (one pose file, say). Pose data
+                    # is private: do not leave a piece of it behind for a failed job.
+                    _discard(store, video, analysis_id)
+                    raise
+            rate = next((m.value for m in result.measurements if m.key == "stroke_rate"), None)
+            done = _finish(
+                store,
+                video_id,
+                worker_id,
+                Status.READY,
+                {
+                    "job": {"progress": None},
+                    "latestAnalysisId": analysis_id,
+                    "sha256": identity.sha256,
+                    "analysisSummary": {
+                        "schemaVersion": result.schema_version,
+                        "grade": result.quality.grade.value,
+                        "validPosePct": result.quality.valid_pose_pct,
+                        "strokeMeasurable": result.stroke.measurable,
+                        "cyclesPerMin": rate,  # the same number the result page shows
+                        "strokeCount": result.stroke.stroke_count,
+                        "cycleCount": result.stroke.counted_cycles,
+                        "metricsReliable": result.coverage.metrics_reliable,
+                        "metricsLimited": result.coverage.metrics_limited,
+                    },
                 },
-            },
-        )
-        if not done:
-            # Deleted, cancelled or taken over between the save and here: what was just
-            # written must not be left behind for a video that is going away.
-            current = store.get_video(video_id)
-            if current is None or current.status == Status.DELETING:
-                store.delete_video_data(current or video)
-            elif current.status == Status.ANALYZING and current.job.get("cancelRequested"):
-                _discard(store, video, analysis_id)
-                _cancel_now(store, video_id)
-            elif current.status == Status.CANCELED:
-                _discard(store, video, analysis_id)
-            # Otherwise another worker holds the job now and will write the same analysis id.
-            log.info("analysis result not recorded, job no longer ours video=%s", video_id)
-            return
-        log.info("analysis ready video=%s grade=%s", video_id, result.quality.grade.value)
-        # Interpretation is a separate step on the stored result. If it fails the analysis
-        # still stands, and it can be run again without new pose inference.
-        try:
-            ready = store.get_video(video_id)
-            if ready is not None:
-                interpret_video(store, ready, analysis_id)
-        except Exception:
-            log.exception("interpretation failed video=%s", video_id)
+            )
+            if not done:
+                # Deleted, cancelled or taken over between the save and here: what was just
+                # written must not be left behind for a video that is going away.
+                current = store.get_video(video_id)
+                if current is None or current.status == Status.DELETING:
+                    store.delete_video_data(current or video)
+                elif current.status == Status.ANALYZING and current.job.get("cancelRequested"):
+                    _discard(store, video, analysis_id)
+                    _cancel_now(store, video_id)
+                elif current.status == Status.CANCELED:
+                    _discard(store, video, analysis_id)
+                # Otherwise another worker holds the job now and will write the same analysis id.
+                log.info("analysis result not recorded, job no longer ours video=%s", video_id)
+                return
+            log.info("analysis ready video=%s grade=%s", video_id, result.quality.grade.value)
+            # Interpretation is a separate step on the stored result. If it fails the analysis
+            # still stands, and it can be run again without new pose inference.
+            try:
+                ready = store.get_video(video_id)
+                if ready is not None:
+                    interpret_video(store, ready, analysis_id)
+            except Exception:
+                log.exception("interpretation failed video=%s", video_id)
+            # Frames that show the feedback's priorities, read from the video still on disk.
+            # Optional: a failure leaves the analysis and the feedback as they are.
+            try:
+                problem_frames_for(store, video_id, analysis_id, raw, local, work)
+            except Exception:
+                log.exception("problem frames failed video=%s", video_id)
     except LeaseLost:
         log.info("analysis stopped, lease lost video=%s", video_id)
     except Cancelled:
@@ -797,6 +806,43 @@ def interpret_video(
     except Exception:
         log.exception("feedback failed video=%s", video.id)
     return found
+
+
+def problem_frames_for(
+    store: Store,
+    video_id: str,
+    analysis_id: str,
+    raw: RawPose,
+    video_path: Path,
+    work: Path,
+) -> dict | None:
+    """Choose and store the frames that show the latest feedback's priorities, from the
+    video file and raw pose this worker still has on disk. Stored under the feedback's id,
+    so frames always belong to the feedback they illustrate. Returns the stored document,
+    or None when there is no feedback for this analysis to illustrate."""
+    video = store.get_video(video_id)
+    if video is None or video.latest_analysis_id != analysis_id or not video.latest_feedback_id:
+        return None
+    stored = store.get_feedback(video_id, video.latest_feedback_id)
+    analysis = store.get_analysis(video_id, analysis_id)
+    if not stored or not analysis or stored.get("uid") != video.uid:
+        return None
+    feedback = Feedback.model_validate(stored)
+    result = AnalysisResult.model_validate(analysis)
+    out = work / "frames"
+    out.mkdir(exist_ok=True)
+    chosen, files = extract_problem_frames(feedback, result, raw, video_path, out)
+    chosen.feedback_id = video.latest_feedback_id
+    doc = store.save_problem_frames(
+        video, analysis_id, video.latest_feedback_id, chosen.to_firestore(), files
+    )
+    log.info(
+        "problem frames video=%s frames=%d empty=%s",
+        video_id,
+        len(chosen.frames),
+        chosen.empty_reason or "-",
+    )
+    return doc
 
 
 def reinterpret(store: Store, video_id: str, uid: str) -> Interpretation:

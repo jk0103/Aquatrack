@@ -49,7 +49,7 @@ type Filter = (typeof filters)[number];
 
 export function StatPills({ analysis }: { analysis: Analysis }) {
   const m = swimMetrics;
-  const pills = [
+  const pills: [string, string][] = [
     ["Score", `${analysis.score}`],
     ["Lap", m.lapTime],
     ["Stroke rate", `${m.strokeRate}/min`],
@@ -57,6 +57,11 @@ export function StatPills({ analysis }: { analysis: Analysis }) {
     ["Breaths", `${m.breaths}`],
     ["Kick", m.kick],
   ];
+  return <PillRow pills={pills} />;
+}
+
+// The pill row itself, shared by the example and real results: [label, value] pairs.
+export function PillRow({ pills }: { pills: [string, string][] }) {
   return (
     <ul className="flex gap-2 overflow-x-auto pt-1 pb-2">
       {pills.map(([label, value]) => (
@@ -272,7 +277,7 @@ function ResultCard({ session, result }: { session: StageSession; result: Analys
   );
 }
 
-function MainFix({ issue }: { issue: TechniqueIssue }) {
+export function MainFix({ issue }: { issue: Pick<TechniqueIssue, "title"> }) {
   return (
     <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
       <svg
@@ -291,22 +296,65 @@ function MainFix({ issue }: { issue: TechniqueIssue }) {
 }
 
 function FeedbackList({ result, comment }: { result: AnalysisResult; comment?: string }) {
-  const [filter, setFilter] = useState<Filter>("All");
-  const issues = allIssues(result);
-  const shown = issues.filter((f) => filter === "All" || f.severity === filter);
-  const count = (f: Filter) =>
-    f === "All" ? issues.length : issues.filter((p) => p.severity === f).length;
+  const entries: ListEntry<Filter>[] = allIssues(result).map((point) => ({
+    id: point.id,
+    group: point.severity,
+    title: point.title,
+    badge: point.severity,
+    tone: severityTone[point.severity],
+    detail: point.detail,
+    lineLabel: point.drill ? "Drill: " : undefined,
+    line: point.drill,
+    note:
+      point.confidence !== undefined
+        ? `${Math.round(point.confidence * 100)}% confidence`
+        : undefined,
+  }));
+  return <FeedbackCard groups={filters} entries={entries} comment={comment} />;
+}
+
+// One row of the feedback card. `group` is the filter tab it belongs to.
+export type ListEntry<G extends string = string> = {
+  id: string;
+  group: G;
+  title: string;
+  badge: string;
+  tone: "sky" | "teal" | "indigo" | "amber" | "slate";
+  detail: string;
+  lineLabel?: string; // teal lead-in, e.g. "Drill: "
+  line?: string;
+  note?: string;
+};
+
+// The feedback card: filter tabs, numbered rows that fade in one after another, and the
+// swimmer's own comment. `groups` starts with "All".
+export function FeedbackCard<G extends string>({
+  groups,
+  entries,
+  comment,
+  title = "Feedback",
+}: {
+  groups: readonly G[];
+  entries: ListEntry<G>[];
+  comment?: string;
+  title?: string;
+}) {
+  const all = groups[0];
+  const [filter, setFilter] = useState<G>(all);
+  const shown = entries.filter((f) => filter === all || f.group === filter);
+  const count = (f: G) =>
+    f === all ? entries.length : entries.filter((p) => p.group === f).length;
   return (
     <section className="min-w-0 rounded-2xl glass p-5 sm:p-6 lg:col-span-3">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900">Feedback</h2>
-        <FilterTabs value={filter} onChange={setFilter} count={count} />
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <FilterTabs options={groups} value={filter} onChange={setFilter} count={count} />
       </div>
       {shown.length ? (
         <ol key={filter} className="space-y-5">
           {shown.map((point, i) => (
             <li key={point.id} className="feedback-enter" style={{ animationDelay: `${i * 60}ms` }}>
-              <FeedbackItem point={point} n={issues.indexOf(point) + 1} />
+              <FeedbackItem point={point} n={entries.indexOf(point) + 1} />
             </li>
           ))}
         </ol>
@@ -385,42 +433,22 @@ function StatsCard({
         )}
       </div>
 
-      {/* Lane progress */}
-      <div className="rounded-xl bg-slate-50 p-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-slate-800">Wall → {m.lapMeters} m</span>
-          <span className="text-slate-500">
-            <span className="font-semibold text-slate-900">{m.atMeters} m</span> {pct}%
-          </span>
-        </div>
-        <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300/70 ring-inset">
-          <div
-            className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="mt-2 flex justify-between text-xs text-slate-500">
-          <span>25 m split {m.split25}</span>
-          <span>Lap {m.lapTime}</span>
-        </div>
-      </div>
+      <LaneProgress
+        title={`Wall → ${m.lapMeters} m`}
+        value={`${m.atMeters} m`}
+        pct={pct}
+        left={`25 m split ${m.split25}`}
+        right={`Lap ${m.lapTime}`}
+      />
 
       {/* Gauges */}
       <div className="grid flex-1 grid-cols-2 gap-3">
-        <div className="flex flex-col rounded-xl bg-slate-50 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">Stroke rate</span>
-            <Badge tone="teal">In range</Badge>
-          </div>
+        <GaugeTile title="Stroke rate" badge={<Badge tone="teal">In range</Badge>}>
           <RateGauge value={m.strokeRate} target={m.strokeRateTarget} />
-        </div>
-        <div className="flex flex-col rounded-xl bg-slate-50 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">Technique</span>
-            <Badge tone="sky">+4</Badge>
-          </div>
+        </GaugeTile>
+        <GaugeTile title="Technique" badge={<Badge tone="sky">+4</Badge>}>
           <WaterGauge value={analysis.score} />
-        </div>
+        </GaugeTile>
       </div>
 
       {focus && <MainFix issue={focus} />}
@@ -428,9 +456,65 @@ function StatsCard({
   );
 }
 
+// Lane progress: a smooth bar that fills on load (bar-fill in globals.css).
+export function LaneProgress({
+  title,
+  value,
+  pct,
+  left,
+  right,
+}: {
+  title: string;
+  value: string;
+  pct: number;
+  left: string;
+  right: string;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium text-slate-800">{title}</span>
+        <span className="text-slate-500">
+          <span className="font-semibold text-slate-900">{value}</span> {pct}%
+        </span>
+      </div>
+      <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300/70 ring-inset">
+        <div
+          className="bar-fill h-full rounded-full bg-gradient-to-r from-sky-600 to-cyan-400"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="mt-2 flex justify-between text-xs text-slate-500">
+        <span>{left}</span>
+        <span>{right}</span>
+      </div>
+    </div>
+  );
+}
+
+export function GaugeTile({
+  title,
+  badge,
+  children,
+}: {
+  title: string;
+  badge?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col rounded-xl bg-slate-50 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-700">{title}</span>
+        {badge}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 // Speedometer-style gauge, 0 to 70 strokes per minute, with the target band marked when
 // there is one.
-function RateGauge({ value: target_value, target }: { value: number; target?: [number, number] }) {
+export function RateGauge({ value: target_value, target }: { value: number; target?: [number, number] }) {
   // Needle and arc sweep up from 0 when the page opens.
   const value = useCountUp(target_value);
   const max = 70;
@@ -515,7 +599,15 @@ function RateGauge({ value: target_value, target }: { value: number; target?: [n
 
 // Round tank that fills with water to the score. The water rises on load, then two wave
 // layers drift past each other and a few bubbles float up (animations in globals.css).
-function WaterGauge({ value }: { value: number }) {
+export function WaterGauge({
+  value,
+  caption = "out of 100",
+  label = `Technique score ${value}`,
+}: {
+  value: number;
+  caption?: string;
+  label?: string;
+}) {
   // The card can render twice (laptop and phone layouts), so SVG ids must be unique.
   const id = useId();
   const level = 86 - (value / 100) * 72; // y of the water surface inside the circle
@@ -528,7 +620,7 @@ function WaterGauge({ value }: { value: number }) {
         viewBox="0 0 100 100"
         className="w-full max-w-[130px]"
         role="img"
-        aria-label={`Technique score ${value}`}
+        aria-label={label}
       >
         <defs>
           <clipPath id={`${id}-circle`}>
@@ -595,7 +687,7 @@ function WaterGauge({ value }: { value: number }) {
           fontSize="7"
           className={value > 45 ? "fill-sky-50/90" : "fill-slate-500"}
         >
-          out of 100
+          {caption}
         </text>
       </svg>
     </div>
@@ -653,7 +745,7 @@ function RotationDial({ degrees }: { degrees: number }) {
   );
 }
 
-function RoundButton({
+export function RoundButton({
   label,
   children,
   onClick,
@@ -693,7 +785,7 @@ function RoundButton({
   );
 }
 
-function PoolBackdrop() {
+export function PoolBackdrop() {
   return (
     <svg
       aria-hidden="true"
@@ -730,7 +822,7 @@ function PoolBackdrop() {
   );
 }
 
-function FeedbackItem({ point, n }: { point: TechniqueIssue; n: number }) {
+function FeedbackItem({ point, n }: { point: ListEntry; n: number }) {
   return (
     <div className="flex gap-3">
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-800">
@@ -739,36 +831,34 @@ function FeedbackItem({ point, n }: { point: TechniqueIssue; n: number }) {
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium text-slate-900">{point.title}</p>
-          <Badge tone={severityTone[point.severity]}>{point.severity}</Badge>
+          <Badge tone={point.tone}>{point.badge}</Badge>
         </div>
         <p className="mt-1 text-sm text-slate-600">{point.detail}</p>
-        {point.drill && (
+        {point.line && (
           <p className="mt-2 text-sm text-slate-700">
-            <span className="font-medium text-teal-700">Drill: </span>
-            {point.drill}
+            <span className="font-medium text-teal-700">{point.lineLabel}</span>
+            {point.line}
           </p>
         )}
-        {point.confidence !== undefined && (
-          <p className="mt-1 text-xs text-slate-500">
-            {Math.round(point.confidence * 100)}% confidence
-          </p>
-        )}
+        {point.note && <p className="mt-1 text-xs text-slate-500">{point.note}</p>}
       </div>
     </div>
   );
 }
 
 // Segmented filter with a white pill that slides to the chosen option.
-function FilterTabs({
+function FilterTabs<G extends string>({
+  options,
   value,
   onChange,
   count,
 }: {
-  value: Filter;
-  onChange: (f: Filter) => void;
-  count: (f: Filter) => number;
+  options: readonly G[];
+  value: G;
+  onChange: (f: G) => void;
+  count: (f: G) => number;
 }) {
-  const buttons = useRef<Partial<Record<Filter, HTMLButtonElement | null>>>({});
+  const buttons = useRef<Partial<Record<G, HTMLButtonElement | null>>>({});
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -794,7 +884,7 @@ function FilterTabs({
           style={{ left: pill.left, width: pill.width }}
         />
       )}
-      {filters.map((f) => {
+      {options.map((f) => {
         const on = value === f;
         return (
           <button
