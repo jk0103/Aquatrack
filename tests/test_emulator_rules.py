@@ -377,3 +377,23 @@ def test_clients_cannot_write_artifacts(alice, video):
     path = f"analysis/{alice.uid}/{video['id']}/a1/forged.npz"
     assert upload(alice, path, content_type="application/octet-stream") == 403
     assert httpx.delete(obj(video["artifact"]), headers=alice.storage).status_code == 403
+
+
+def test_advice_is_read_only_and_private_to_its_owner(alice, bob, video):
+    """`videos/{id}/advice/{adviceId}`: written by the backend, read by the owner only."""
+    advice = f"{DOCS}/videos/{video['id']}/advice/adv1"
+    body = {"fields": fields(uid=alice.uid, advice_version="1.0", source="ai")}
+    assert httpx.patch(advice, json=body, headers=ADMIN).status_code == 200  # the backend's path
+    assert httpx.get(advice, headers=alice.firestore).status_code == 200
+    assert httpx.get(advice, headers=bob.firestore).status_code == 403
+    assert httpx.get(advice).status_code == 403
+    forged = {"fields": fields(uid=alice.uid, advice_version="1.0", source="ai", note="forged")}
+    assert httpx.patch(advice, json=forged, headers=alice.firestore).status_code == 403
+    assert httpx.delete(advice, headers=alice.firestore).status_code == 403
+    # a client cannot create advice either, for its own video or for anyone's
+    new = f"{DOCS}/videos/{video['id']}/advice/adv2"
+    assert httpx.patch(new, json=forged, headers=alice.firestore).status_code == 403
+    assert httpx.patch(new, json=forged, headers=bob.firestore).status_code == 403
+    # listing the collection as another user gives nothing away
+    listed = httpx.get(f"{DOCS}/videos/{video['id']}/advice", headers=bob.firestore)
+    assert listed.status_code == 403

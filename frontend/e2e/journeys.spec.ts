@@ -200,9 +200,12 @@ test("B. a video is uploaded, analysed by the worker and its feedback shown (dev
   await page.getByRole("link", { name: /result|analysis|video|View|Open/i }).first().click();
   await expect(page).toHaveURL(/\/history\/.+/);
   // processing state first, then the result, without reloading
-  await expect(page.getByRole("heading", { name: "No main fix from this clip" })).toBeVisible({ timeout: 110_000 });
+  await expect(page.getByRole("heading", { name: "No clear technique issue in this clip" })).toBeVisible({ timeout: 110_000 });
   // saved pose data is disclosed without opening anything
   await expect(page.getByText(/extracted earlier from this\s+exact video/)).toBeVisible();
+  // AI advice is off in these journeys: the page says so plainly and still gives practice
+  await expect(page.getByText(/AI coaching suggestions weren.t made for this video/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "General practice" })).toBeVisible();
   await page.getByText("Full analysis details").click();
   await expect(page.getByRole("heading", { name: "Improvement priorities" })).toBeVisible();
   await expect(page.getByText("Measured in your video")).toBeVisible();
@@ -215,7 +218,7 @@ test("B. a video is uploaded, analysed by the worker and its feedback shown (dev
     await expect.poll(async () => page.locator("video").evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0);
   }
   await page.reload();
-  await expect(page.getByRole("heading", { name: "No main fix from this clip" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No clear technique issue in this clip" })).toBeVisible();
   await page.getByText("Full analysis details").click();
   await expect(page.getByText("Measured in your video")).toBeVisible();
   const videos = await adminOwned("videos", owner);
@@ -286,7 +289,8 @@ test("E. deleting the account removes the sign-in and every record it owned", as
   await page.getByLabel("Email").fill(swimmer.email);
   await page.getByLabel("Password", { exact: true }).fill(swimmer.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  // by its text: Next's own route announcer is also an alert, so the role alone can match two
+  await expect(page.getByText("Incorrect email or password")).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });
 

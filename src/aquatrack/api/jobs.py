@@ -30,16 +30,19 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from aquatrack.analysis import comparison
+from aquatrack.analysis import advice as advice_engine
+from aquatrack.analysis import comparison, motion_profile
 from aquatrack.analysis.comparison import Session
 from aquatrack.analysis.explain import Explainer, explain_feedback, explainer_from_env
 from aquatrack.analysis.feedback import build_feedback, feedback_id
 from aquatrack.analysis.interpretation import PriorSession, SwimmerContext, interpret
+from aquatrack.analysis.metrics.cycles import analyze_strokes
 from aquatrack.analysis.pipeline import analyze
 from aquatrack.analysis.pose.sources import PoseSource, PoseSourceError
 from aquatrack.analysis.problem_frames import extract as extract_problem_frames
+from aquatrack.analysis.processing import process as clean_pose
 from aquatrack.analysis.video import read_video_info, video_identity
-from aquatrack.api.store import Store, VideoRecord
+from aquatrack.api.store import Store, VideoRecord, artifact_path
 from aquatrack.contracts import AnalysisJobStatus as Status
 from aquatrack.contracts import AnalysisResult, Feedback, Interpretation, JobError, RawPose
 
@@ -609,6 +612,14 @@ def process(
                     interpret_video(store, ready, analysis_id)
             except Exception:
                 log.exception("interpretation failed video=%s", video_id)
+            # Advice: the motion is interpreted from the pose still in memory. Optional: a
+            # failure leaves the analysis, the interpretation and the feedback as they are.
+            try:
+                ready = store.get_video(video_id)
+                if ready is not None:
+                    advise_video(store, ready, analysis_id, raw, result)
+            except Exception:
+                log.exception("advice failed video=%s", video_id)
             # Frames that show the feedback's priorities, read from the video still on disk.
             # Optional: a failure leaves the analysis and the feedback as they are.
             try:
@@ -843,6 +854,89 @@ def problem_frames_for(
         chosen.empty_reason or "-",
     )
     return doc
+
+
+def advise_video(
+    store: Store,
+    video: VideoRecord,
+    analysis_id: str,
+    raw: RawPose,
+    result: AnalysisResult,
+    interpreter: advice_engine.Interpreter | None = None,
+    regenerate: bool = False,
+) -> dict[str, Any]:
+    """Build and store the advice for one analysis. The motion profile is rebuilt from the
+    raw pose (deterministic), and the advice's id is a hash of the analysis, the profile, the
+    model and the prompt: when a document with that id exists nothing is called or written,
+    so the same interpretation is never paid for twice. `regenerate` (an explicit request)
+    asks the model again and stores the answer as a new document beside the earlier ones."""
+    clean = clean_pose(raw).clean
+    profile = motion_profile.build(clean, analyze_strokes(clean), result)
+    interpreter = interpreter if interpreter is not None else advice_engine.interpreter_from_env()
+    model = interpreter.model if interpreter is not None else "deterministic"
+    aid = advice_engine.advice_id(analysis_id, motion_profile.digest(profile), model)
+    if regenerate:
+        aid = f"{aid}-{_now():%Y%m%dT%H%M%S}"
+    existing = None if regenerate else store.get_advice(video.id, aid)
+    if existing is None or existing.get("uid") != video.uid:
+        profile_doc = store.get_profile(video.uid) or {}
+        goals = profile_doc.get("goals")
+        built = advice_engine.build_advice(
+            result,
+            analysis_id,
+            profile,
+            interpreter,
+            goals=[g for g in goals if isinstance(g, str)] if isinstance(goals, list) else [],
+            level=profile_doc.get("swim_level")
+            if isinstance(profile_doc.get("swim_level"), str)
+            else None,
+        )
+        store.save_advice(video, aid, built.to_firestore())
+        existing = built.to_firestore()
+    store.update_video(
+        video.id,
+        {
+            "latestAdviceId": aid,
+            "adviceSummary": {
+                "adviceVersion": existing.get("advice_version"),
+                "source": existing.get("source"),
+                "model": existing.get("model") or "",
+                "analysisId": analysis_id,
+                "suggestions": len(existing.get("suggestions") or []),
+            },
+        },
+    )
+    return {"id": aid, **existing}
+
+
+def regenerate_advice(store: Store, video_id: str, uid: str) -> dict[str, Any]:
+    """Ask for the caller's own video's advice again, from the pose stored with its
+    analysis. Makes a new model call when AI advice is enabled."""
+    video = store.get_video(video_id)
+    if video is None or video.uid != uid:
+        raise JobRequestError(404, "Video not found.")
+    if video.status != Status.READY or not video.latest_analysis_id:
+        raise JobRequestError(409, "This video has no finished analysis to advise on.")
+    stored = store.get_analysis(video_id, video.latest_analysis_id)
+    if stored is None or stored.get("uid") != uid:
+        raise JobRequestError(409, "This video's analysis could not be read.")
+    try:
+        result = AnalysisResult.model_validate(stored)
+        work = Path(tempfile.mkdtemp(prefix="aquatrack-advice-"))
+        try:
+            local = work / "raw_pose.npz"
+            store.download_video(
+                artifact_path(video, video.latest_analysis_id, "raw_pose.npz"), local
+            )
+            raw = RawPose.load(local)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+    except Exception as e:
+        log.warning(
+            "advice regeneration could not load the pose video=%s (%s)", video_id, type(e).__name__
+        )
+        raise JobRequestError(409, "The pose data of this analysis is not available.") from None
+    return advise_video(store, video, video.latest_analysis_id, raw, result, regenerate=True)
 
 
 def reinterpret(store: Store, video_id: str, uid: str) -> Interpretation:

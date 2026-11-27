@@ -1138,3 +1138,103 @@ class ProblemFrames(BaseModel):
 
     def to_firestore(self) -> dict:
         return json.loads(self.model_dump_json())
+
+
+# ---------- hybrid advice (deterministic measurement + model interpretation) ----------
+
+ADVICE_VERSION = "1.0"
+
+AdviceCategory = Literal[
+    "timing", "arm_path", "body_alignment", "legs", "head", "breathing", "other"
+]
+
+
+class AdviceObservation(BaseModel):
+    """Something the measurements show. Every number in it was found in the motion profile."""
+
+    statement: str
+    evidence_refs: list[str] = []  # metric keys or motion-profile fields
+    times_s: list[float] = []
+
+
+class AdviceSuggestion(BaseModel):
+    """An AI coaching suggestion: an interpretation of the motion, never a confirmed fault.
+    It passed the checks in analysis/advice.py (numbers, references, times, repeated in at
+    least two cycles, joints usable)."""
+
+    id: str
+    title: str
+    category: AdviceCategory
+    noticed: str  # what was noticed in the motion
+    why_it_may_matter: str
+    try_this: str  # something to try in the water
+    drill_id: str = ""  # an activity of the training library, when one fits
+    drill_name: str = ""
+    drill_how: str = ""
+    check_next_time: str = ""
+    confidence: Literal["low", "medium", "high"] = "low"  # the model's own; not evidence
+    cycles_supporting: int = 0
+    evidence_refs: list[str] = []
+    times_s: list[float] = []
+    # Set by the checks, not by the model: the suggestion rests on few stroke cycles or on
+    # timing differences close to what one video frame can resolve. Shown as "tentative".
+    tentative: bool = False
+    tentative_reasons: list[str] = []
+
+
+class AdvicePractice(BaseModel):
+    """General practice from the training library. Not based on a detected problem."""
+
+    activity_id: str
+    name: str
+    purpose: str
+    instructions: list[str] = []
+    reason: str = ""
+
+
+class AdviceRejected(BaseModel):
+    """A piece of the model's answer that failed a check and is not shown."""
+
+    kind: Literal["observation", "consistent", "suggestion"]
+    title: str
+    reasons: list[str]
+
+
+class Advice(BaseModel):
+    """Advice for one analysis (`videos/{id}/advice/{adviceId}`; a new document per source
+    and per set of inputs, older ones are never rewritten).
+
+    `source` "ai": a model interpreted the motion profile and what is stored passed the
+    checks. "deterministic": no model answer was used (not enabled, nothing measurable, the
+    call failed or nothing passed); the result page then relies on the Feedback document.
+    """
+
+    advice_version: str = ADVICE_VERSION
+    video_id: str
+    analysis_id: str
+    source: Literal["ai", "deterministic"]
+    fallback_reason: str = ""
+    # provenance
+    model: str = ""
+    reasoning_effort: str = ""
+    prompt_version: str = ""
+    profile_version: str = ""
+    profile_sha256: str = ""  # the exact measurements the interpretation was made from
+    analysis_schema_version: str = ""
+    engine_version: str = ""
+    library_version: str = ""
+    usage: dict[str, int] = {}
+    trusted_cycles: int = 0  # of the followed arm: how much swimming the advice rests on
+    # content
+    summary: str = ""
+    data_quality: list[str] = []
+    observations: list[AdviceObservation] = []
+    consistent: list[AdviceObservation] = []  # what looks consistent: never a problem
+    suggestions: list[AdviceSuggestion] = []  # at most three
+    general_practice: list[AdvicePractice] = []
+    rejected: list[AdviceRejected] = []
+    limitations: list[str] = []
+    created_at: str = Field(default_factory=_now)
+
+    def to_firestore(self) -> dict:
+        return json.loads(self.model_dump_json())

@@ -100,3 +100,11 @@ implemented; unit-tested; emulator-tested (restricted rules, backend gate); brow
 locally (`frontend/e2e/demo.spec.ts`). **Not deployed and not tested in any cloud.** It is
 not real inference on a new upload and does not change the status of Phase 9B or of the
 licensing blockers. Plan, costs, blockers and approvals: `docs/SCHOOL_DEMO_DEPLOYMENT.md`.
+
+## Hybrid advice (2026-11-27)
+
+Motion profile, model interpretation (`gpt-6.2-astra`), deterministic checks, fallback,
+storage, API route and the Advice section of the result page: implemented; unit-tested with
+a fake model; run end to end with three real model calls on saved pose data (two public
+clips, one synthetic swimmer). Off by default. **Not validated for accuracy on real
+swimmers; not deployed.** Details and limits: `docs/ADVICE.md`.

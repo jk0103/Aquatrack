@@ -80,7 +80,7 @@ export function ProblemFrameStage({
     frames === undefined
       ? null
       : !mainFix
-        ? "No main fix to show in this clip"
+        ? "No measured issue to mark on the video"
         : !shown.length
           ? "Not enough clear frames to show this"
           : null;

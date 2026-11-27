@@ -163,3 +163,26 @@ def test_account_deletion_against_the_emulators_removes_data_files_and_the_sign_
         "deleted"
     ]
     assert PROJECT.startswith("demo-") and ADMIN  # emulator project only
+
+
+def test_the_backend_stores_advice_once_and_removes_it_with_the_video(store, swimmer):
+    """The intended write path: the backend (admin) through FirebaseStore. A second save
+    with the same id leaves the first as it is; deleting the video deletes its advice."""
+    video = store.get_video(swimmer.video)
+    doc = {
+        "advice_version": "1.0",
+        "video_id": video.id,
+        "analysis_id": "a1",
+        "source": "ai",
+        "suggestions": [{"id": "s1", "title": "first"}],
+    }
+    assert store.save_advice(video, "adv1", doc) is True
+    assert store.save_advice(video, "adv1", doc | {"suggestions": []}) is False
+    stored = store.get_advice(video.id, "adv1")
+    assert stored["uid"] == swimmer.uid and stored["suggestions"][0]["title"] == "first"
+    # the owner reads it through the rules, exactly as the web app does
+    url = f"{DOCS}/videos/{video.id}/advice/adv1"
+    assert httpx.get(url, headers=swimmer.firestore).status_code == 200
+    assert httpx.get(url, headers=User().firestore).status_code == 403
+    store.delete_video_data(video)
+    assert store.get_advice(video.id, "adv1") is None

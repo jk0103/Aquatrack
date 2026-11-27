@@ -145,6 +145,8 @@ export type VideoRecord = VideoDetails & {
   latestAnalysisId: string | null;
   latestInterpretationId: string | null;
   latestFeedbackId: string | null;
+  // Hybrid advice (videos/{id}/advice); null for videos analysed before it existed.
+  latestAdviceId: string | null;
 };
 
 export const statusLabel: Record<VideoStatus, string> = {
@@ -307,6 +309,8 @@ function toRecord(id: string, v: DocumentData): VideoRecord {
         : null,
     latestFeedbackId:
       typeof v.latestFeedbackId === "string" ? v.latestFeedbackId : null,
+    latestAdviceId:
+      typeof v.latestAdviceId === "string" ? v.latestAdviceId : null,
   };
 }
 

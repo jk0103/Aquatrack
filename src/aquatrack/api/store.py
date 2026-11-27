@@ -13,6 +13,8 @@ Firestore layout:
   videos/{id}/feedback/{feedbackId}  feedback built from one interpretation; the id is a
                                    hash of its inputs, and an existing document is kept
   videos/{id}/frames/{feedbackId}  still frames chosen for that feedback's priorities
+  videos/{id}/advice/{adviceId}    hybrid advice for one analysis (analysis/advice.py); the id
+                                   is a hash of its inputs, so the same inputs are stored once
                                    (ProblemFrames; see docs/PROBLEM_FRAMES.md)
   profiles/{uid}                   the swimmer's own survey answers (read only here)
   training_plans/{id}              one version of a training plan (see docs/TRAINING.md)
@@ -51,6 +53,7 @@ class VideoRecord:
     latest_analysis_id: str = ""
     latest_interpretation_id: str = ""
     latest_feedback_id: str = ""
+    latest_advice_id: str = ""
     file_name: str = ""
     interpretation_summary: dict[str, Any] = field(default_factory=dict)
     created_at: str = ""  # ISO time of the upload, for ordering a swimmer's sessions
@@ -111,6 +114,13 @@ class Store(Protocol):
         ...
 
     def get_feedback(self, video_id: str, feedback_id: str) -> dict[str, Any] | None: ...
+
+    def save_advice(self, video: VideoRecord, advice_id: str, document: dict[str, Any]) -> bool:
+        """Add an advice document (`videos/{id}/advice/{adviceId}`) unless one with this id
+        exists. Returns True if added. Existing advice is never rewritten."""
+        ...
+
+    def get_advice(self, video_id: str, advice_id: str) -> dict[str, Any] | None: ...
 
     def save_problem_frames(
         self,
@@ -182,6 +192,7 @@ def _record(video_id: str, data: dict[str, Any]) -> VideoRecord:
         latest_analysis_id=str(data.get("latestAnalysisId") or ""),
         latest_interpretation_id=str(data.get("latestInterpretationId") or ""),
         latest_feedback_id=str(data.get("latestFeedbackId") or ""),
+        latest_advice_id=str(data.get("latestAdviceId") or ""),
         file_name=str(data.get("fileName") or ""),
         interpretation_summary=dict(data.get("interpretationSummary") or {}),
         created_at=_iso(data.get("createdAt")),
@@ -241,6 +252,7 @@ class MemoryStore:
         self.interpretations: dict[tuple[str, str], dict[str, Any]] = {}
         self.profiles: dict[str, dict[str, Any]] = {}
         self.feedback: dict[tuple[str, str], dict[str, Any]] = {}
+        self.advice: dict[tuple[str, str], dict[str, Any]] = {}
         self.frames: dict[tuple[str, str], dict[str, Any]] = {}
         self.docs: dict[str, dict[str, dict[str, Any]]] = {c: {} for c in TRAINING_COLLECTIONS}
         self._lock = threading.Lock()
@@ -311,6 +323,16 @@ class MemoryStore:
     def get_feedback(self, video_id, feedback_id):
         return self.feedback.get((video_id, feedback_id))
 
+    def save_advice(self, video, advice_id, document):
+        key = (video.id, advice_id)
+        if key in self.advice:
+            return False
+        self.advice[key] = {**document, "uid": video.uid}
+        return True
+
+    def get_advice(self, video_id, advice_id):
+        return self.advice.get((video_id, advice_id))
+
     def save_problem_frames(self, video, analysis_id, frames_id, document, files):
         doc = _frames_document(video, analysis_id, frames_id, document)
         for name, path in files.items():
@@ -340,7 +362,7 @@ class MemoryStore:
         if video.storage_path.startswith(f"videos/{video.uid}/"):
             self.files.pop(video.storage_path, None)
         step("documents")
-        for table in (self.frames, self.feedback, self.interpretations, self.analyses):
+        for table in (self.frames, self.advice, self.feedback, self.interpretations, self.analyses):
             for key in [k for k in table if k[0] == video.id]:
                 del table[key]
         step("record")
@@ -507,6 +529,17 @@ class FirebaseStore:
         snap = self._ref(video_id).collection("feedback").document(feedback_id).get()
         return snap.to_dict() if snap.exists else None
 
+    def save_advice(self, video, advice_id, document):
+        ref = self._ref(video.id).collection("advice").document(advice_id)
+        if ref.get().exists:
+            return False  # same inputs, same advice: keep what is there
+        ref.create({**document, "uid": video.uid})
+        return True
+
+    def get_advice(self, video_id, advice_id):
+        snap = self._ref(video_id).collection("advice").document(advice_id).get()
+        return snap.to_dict() if snap.exists else None
+
     def save_problem_frames(self, video, analysis_id, frames_id, document, files):
         doc = _frames_document(video, analysis_id, frames_id, document)
         for name, path in files.items():
@@ -540,7 +573,7 @@ class FirebaseStore:
             except NotFound:
                 pass
         ref = self._ref(video.id)
-        for name in ("frames", "feedback", "interpretations", "analyses"):
+        for name in ("frames", "advice", "feedback", "interpretations", "analyses"):
             for snap in ref.collection(name).stream():
                 snap.reference.delete()
         ref.delete()

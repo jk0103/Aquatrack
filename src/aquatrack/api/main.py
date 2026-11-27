@@ -23,6 +23,7 @@ from aquatrack.api.jobs import (
     compare_videos,
     delete_video,
     progress_for,
+    regenerate_advice,
     reinterpret,
     request_analysis,
 )
@@ -164,6 +165,24 @@ def cancel_video_analysis(video_id: str, user: CurrentUser, runner: Runner) -> d
         return cancel_analysis(runner.store, video_id, user.uid)
     except JobRequestError as e:
         raise HTTPException(e.status_code, e.detail) from e
+
+
+@app.post("/videos/{video_id}/advice", status_code=201)
+def advise_again(video_id: str, user: CurrentUser, runner: Runner) -> dict:
+    """Generate the advice of one of the caller's own analysed videos again and store it as
+    a new document. With AI advice enabled this makes one model call, so it shares the
+    analysis request limit; opening a result never calls a model."""
+    _guard(runner, user.uid, "analyze")
+    try:
+        made = regenerate_advice(runner.store, video_id, user.uid)
+    except JobRequestError as e:
+        raise HTTPException(e.status_code, e.detail) from e
+    return {
+        "id": video_id,
+        "adviceId": made["id"],
+        "source": made.get("source"),
+        "suggestions": len(made.get("suggestions") or []),
+    }
 
 
 @app.post("/videos/{video_id}/interpret", status_code=201)

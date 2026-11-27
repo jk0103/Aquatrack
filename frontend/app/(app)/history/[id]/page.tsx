@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { AdvicePanel } from "@/app/components/AdvicePanel";
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
 import { SavedPoseNotice } from "@/app/components/DemoNotice";
 import { FeedbackPanel } from "@/app/components/FeedbackPanel";
@@ -23,6 +24,8 @@ import { Badge, ButtonLink, Card, LoadingState } from "@/app/components/ui";
 import { VideoPlayer } from "@/app/components/VideoPlayer";
 import { loadAnalysis } from "@/app/lib/analysisLoad";
 import type { AnalysisV1 } from "@/app/lib/analysisV1";
+import { resultHeadline, type Advice } from "@/app/lib/advice";
+import { loadAdvice } from "@/app/lib/adviceLoad";
 import type { Feedback } from "@/app/lib/feedback";
 import { loadFeedback } from "@/app/lib/feedbackLoad";
 import type { Interpretation } from "@/app/lib/interpretation";
@@ -161,6 +164,22 @@ export default function UploadPage() {
   }, [id, feedbackId]);
   const feedback = fb && fb.id === feedbackId ? fb.value : null;
 
+  // Advice (coaching suggestions, general practice) was stored when the video was analysed.
+  // Reading it here never calls a model. Videos analysed before it existed have none.
+  const adviceId = video?.status === "ready" ? video.latestAdviceId : null;
+  const [adv, setAdv] = useState<{ id: string; value: Advice | null } | null>(null);
+  useEffect(() => {
+    if (!id || !adviceId) return;
+    let live = true;
+    loadAdvice(id, adviceId)
+      .then((value) => live && setAdv({ id: adviceId, value }))
+      .catch(() => live && setAdv({ id: adviceId, value: null }));
+    return () => {
+      live = false;
+    };
+  }, [id, adviceId]);
+  const advice = adv && adv.id === adviceId ? adv.value : null;
+
   // Frames from the video that show the feedback's priorities, stored per feedback document.
   const [fr, setFr] = useState<{
     id: string;
@@ -297,8 +316,11 @@ export default function UploadPage() {
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-              {mainFix ? mainFix.title : "No main fix from this clip"}
+              {resultHeadline(mainFix?.title ?? null, advice).title}
             </h1>
+            <p className="mt-1.5 max-w-2xl text-sm text-slate-700">
+              {resultHeadline(mainFix?.title ?? null, advice).note}
+            </p>
             <p className="mt-1.5 text-slate-600">
               {[dateText, [video.stroke, video.distance].filter(Boolean).join(" "), video.camera]
                 .filter(Boolean)
@@ -324,6 +346,13 @@ export default function UploadPage() {
           videoUrl={url}
           onPlayFrom={playFrom}
         />
+        {/* What to work on comes before the measurements: coaching suggestions (AI, to
+            try), what looks consistent, and general practice. */}
+        {advice && (
+          <div className="mb-6">
+            <AdvicePanel advice={advice} onSeek={url ? seek : undefined} />
+          </div>
+        )}
         {/* Below the stage, as on the example page: feedback card and plan card */}
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="min-w-0 space-y-6 lg:col-span-3">

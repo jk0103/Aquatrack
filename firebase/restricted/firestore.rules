@@ -109,6 +109,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Hybrid advice for one analysis: checked AI suggestions and general practice.
+      match /advice/{adviceId} {
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+        allow write: if false;
+      }
+
       // One document per interpretation of a stored analysis: findings, not measurements.
       match /interpretations/{interpretationId} {
         allow read: if signedIn() && resource.data.uid == request.auth.uid;

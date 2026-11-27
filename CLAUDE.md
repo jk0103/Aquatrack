@@ -180,9 +180,19 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   measured change. What the swimmer typed in (notes, own activities) is never sent to a model.
 - Metrics and issue detection are deterministic, tested and independent of any LLM.
   Report an issue only with enough measured evidence; "no clear issue" is a valid result.
-- The LLM only rewords validated findings. Send it structured metrics, never videos, names
-  or emails. Reject output containing numbers, issues or references that were not in its
-  input. The app must stay useful when the LLM API is unavailable.
+- LLM roles (owner's decision, 2026-11-27). Rewording (`analysis/explain.py`) still only
+  rewords validated findings. Hybrid advice (`analysis/motion_profile.py`,
+  `analysis/advice.py`, `docs/ADVICE.md`) lets a model interpret the motion profile and
+  propose coaching suggestions; the Python analysis stays the authority for every
+  measurement and checks each piece of the answer (numbers, references, times, at least two
+  cycles, usable joints, no ideal angles, no unsafe work), dropping pieces that fail. AI
+  suggestions are shown as suggestions to try, never as findings, priorities or faults, and
+  never feed the training planner. Send structured data only, never videos, frames, names,
+  emails or free-text notes. Model `gpt-6.2-astra`, reasoning high; off unless
+  `AQUATRACK_ADVICE_PROVIDER=openai` and `OPENAI_API_KEY` are set. One call per analysis,
+  stored once (`videos/{id}/advice/{id}`); opening a result never calls a model. The app
+  must stay useful when the API is unavailable (deterministic fallback). Bump
+  `PROMPT_VERSION` / `ADVICE_VERSION` / `PROFILE_VERSION` on any change.
 - Scientific references are used only after verifying title, authors, year, DOI/URL,
   population and limitations. Never cite from memory. Do not apply elite-adult findings to
   beginners or young swimmers without saying so. Correlation is never stated as causation.

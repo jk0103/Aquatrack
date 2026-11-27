@@ -222,3 +222,15 @@ def test_without_a_login_nothing_is_readable():
     assert httpx.get(f"{DOCS}/videos/anything").status_code == 403
     path = urllib.parse.quote("videos/someone/a.webm", safe="")
     assert httpx.get(f"{STORAGE}/{path}?alt=media").status_code in (401, 403)
+
+
+def test_advice_follows_the_same_restriction(invited, other_invited, stranger):
+    video_id = f"v-{secrets.token_hex(4)}"
+    assert create_video(invited, video_id).status_code == 200
+    advice = f"{DOCS}/videos/{video_id}/advice/adv1"
+    body = {"fields": {"uid": {"stringValue": invited.uid}, "source": {"stringValue": "ai"}}}
+    assert httpx.patch(advice, json=body, headers=ADMIN).status_code == 200  # the backend
+    assert httpx.get(advice, headers=invited.firestore).status_code == 200
+    assert httpx.get(advice, headers=other_invited.firestore).status_code == 403
+    assert httpx.get(advice, headers=stranger.firestore).status_code == 403
+    assert httpx.patch(advice, json=body, headers=invited.firestore).status_code == 403
