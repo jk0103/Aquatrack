@@ -75,7 +75,8 @@ test("A. a wrong password is refused and a signed-out visitor cannot open the ap
   await other.getByLabel("Email").fill(swimmer.email);
   await other.getByLabel("Password", { exact: true }).fill("not-the-password");
   await other.getByRole("button", { name: "Log in" }).click();
-  await expect(other.getByRole("alert")).toBeVisible();
+  // by its text: Next's route announcer is also an alert, so the role alone can match two
+  await expect(other.getByText("Incorrect email or password")).toBeVisible();
   await expect(other).toHaveURL(/\/login/);
   await other.close();
 });

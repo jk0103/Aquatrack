@@ -1,4 +1,4 @@
-# Hybrid advice (advice 1.0, prompt 2026.11-2, motion profile 1.0)
+# Hybrid advice (advice 1.0, prompt 2026.11-3, motion profile 1.1)
 
 Owner's decision, 2026-11-27: the language model is no longer limited to rewording findings.
 It interprets the swimmer's motion and proposes coaching hypotheses; the Python analysis
@@ -71,6 +71,37 @@ from fewer than four as a first indication, and not to build a suggestion on a d
 a frame or two. Both thresholds are engineering choices. On the three-cycle public clip the
 one suggestion is marked tentative; on the sprint clip the reach-to-catch suggestion rests on
 a 0.08 s spread at 25 fps and is marked tentative for the second reason.
+
+## Exploratory evidence: the legs and the kick
+
+The first real-inference run produced a suggestion about the kick ("the range of knee bend
+narrowed from 63 to 47 to 26 degrees"). Traced back, it rested on one profile feature,
+`knee_angle_range_deg`, which had two problems:
+
+- it was computed from the 12 path samples of each cycle. The kick turns 12 to 16 times in
+  one arm cycle of that clip, so 12 samples alias it: from every frame the three ranges are
+  66, 54 and 48 degrees. The steep narrowing was an artifact of the profile, not movement;
+- leg values are not measurements AquaTrack stands behind at all: `kick_rhythm` is listed as
+  not measurable, the kick has never been checked against video, and the far leg is hidden.
+
+Corrections (profile 1.1, prompt 2026.11-3):
+
+- per-cycle values in `cycle_to_cycle` are computed from every frame of the cycle; the 12
+  samples remain only as the path;
+- the profile names its exploratory content (`motion.exploratory`: the features
+  `knee_angle_range_deg` and `ankle_below_hip_line`, the sample fields for knee and ankle,
+  and why);
+- the checks set `evidence_basis = "exploratory"` on any suggestion filed under legs or
+  citing one of those, which makes it tentative with the reason shown ("leg positions that
+  AquaTrack does not yet verify as a measurement ... something to look at in your video, not
+  a finding"), and sort it after suggestions that rest on measured values. It is kept, not
+  removed;
+- the prompt tells the model the same.
+
+On the same clip with the corrected profile the model made no kick suggestion (one real
+call). Evidence levels now in the output: measured statements; suggestions on measured
+values; tentative suggestions (small sample or frame-limited timing); exploratory
+suggestions (unverified leg tracking); and pieces that failed a check, which are not shown.
 
 ## The headline of a result
 

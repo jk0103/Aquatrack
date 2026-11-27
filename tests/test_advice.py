@@ -562,3 +562,70 @@ def test_a_timing_suggestion_within_a_few_frames_is_tentative(steady):
     series["max"] = 0.60  # a clear difference is not marked for this reason
     clear = advice.build_advice(result, "a1", p, FakeInterpreter(answer(suggestions=[timing])))
     assert not clear.suggestions[0].tentative
+
+
+# ---------- exploratory evidence: the legs and the kick ----------
+
+
+def kicking(frames=360):
+    t = synthetic.times(frames)
+    identity = VideoIdentity(
+        sha256=hashlib.sha256(b"kick").hexdigest(),
+        frame_count=frames,
+        fps=float(synthetic.FPS),
+        width=synthetic.W,
+        height=synthetic.H,
+    )
+    # a slow arm cycle (2.4 s) with a fast kick: about 10 beats per cycle, where 12 samples
+    # fall 5 frames apart and one kick lasts under 6
+    return make_raw_pose(
+        xy=synthetic.swimmer_xy(t, 2.4, elbow_deg=120.0, kick_hz=4.3, kick_amp=0.25),
+        video=identity,
+    )
+
+
+def test_per_cycle_values_come_from_every_frame_not_from_the_twelve_samples():
+    """Found on the first local run: a knee range read from the 12 path samples of a cycle
+    came out at 26 degrees where the frames of that cycle show 48. The kick turns several
+    times per arm cycle; the samples are for the path, the cycle's numbers need every frame."""
+    _, profile = analysed(kicking())
+    motion = profile["motion"]
+    ranges = motion["cycle_to_cycle"]["knee_angle_range_deg"]["per_cycle"]
+    wider = 0
+    for cycle, stored in zip(motion["cycles"], ranges, strict=True):
+        sampled = [s["knee_angle_deg"] for s in cycle["samples"] if s["knee_angle_deg"] is not None]
+        assert stored >= max(sampled) - min(sampled) - 1  # never less than the samples show
+        wider += stored > max(sampled) - min(sampled) + 2
+    assert wider >= 1  # and for a fast kick, more than they can show
+    listed = motion["exploratory"]
+    assert (
+        set(listed["features"]) == set(motion_profile.EXPLORATORY) <= set(motion["cycle_to_cycle"])
+    )
+    assert "knee_angle_deg" in listed["sample_fields"] and "kick" in listed["why"]
+    assert "every frame" in motion["phase"]
+
+
+def test_a_suggestion_about_the_legs_is_kept_but_marked_exploratory(alternating):
+    result, profile = alternating
+    legs = suggestion(
+        title="Kick size changes",
+        category="legs",
+        evidence_refs=["motion.cycle_to_cycle.knee_angle_range_deg"],
+    )
+    arm = suggestion(title="Arm shape changes")
+    made = advice.build_advice(
+        result, "a1", profile, FakeInterpreter(answer(suggestions=[legs, arm]))
+    )
+    # both are kept; the one on measured values leads
+    assert [s.title for s in made.suggestions] == ["Arm shape changes", "Kick size changes"]
+    first, second = made.suggestions
+    assert (first.evidence_basis, second.evidence_basis) == ("measured", "exploratory")
+    assert second.tentative and "does not yet verify" in second.tentative_reasons[0]
+    assert not first.tentative
+    # cited through a sample field, or simply filed under legs, it is exploratory all the same
+    by_field = suggestion(
+        category="arm_path", evidence_refs=["motion.cycles.samples.knee_angle_deg"]
+    )
+    by_category = suggestion(category="legs", evidence_refs=["leg_line_angle"])
+    kept = advice.check(answer(suggestions=[by_field, by_category]), profile)["suggestions"]
+    assert [s.evidence_basis for s in kept] == ["exploratory", "exploratory"]

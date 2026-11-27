@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from aquatrack.analysis import reference
+from aquatrack.analysis.biomechanics import RESOLUTION as biomechanics_resolution
 from aquatrack.contracts import (
     AnalysisResult,
     ContextUsed,
@@ -64,7 +65,10 @@ GEOMETRIC = {"body_line_angle", "leg_line_angle", "head_height"}
 CONTEXT_ONLY = {"pull_depth", "elbow_angle_min", "catch_forearm_angle", "pull_path_variation"}
 
 # ---- measurement resolution: differences below these cannot be told from noise
-RESOLUTION = {"body_line_angle": 2.0, "leg_line_angle": 2.0, "head_height": 0.05}  # deg, trunk
+# One table for the whole analysis (biomechanics.RESOLUTION); the three used by the rules:
+RESOLUTION = {
+    k: biomechanics_resolution[k] for k in ("body_line_angle", "leg_line_angle", "head_height")
+}
 TIMING_FRAMES = 2  # a cycle time is uncertain by about one frame at each end
 
 # ---- rule thresholds (engineering baselines, not norms)

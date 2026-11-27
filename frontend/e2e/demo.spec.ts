@@ -112,7 +112,7 @@ test("an account that was not invited is turned away, by the backend and by the 
 
 test("the invited account uploads the approved video and gets a real analysis and feedback", async ({ page }) => {
   await logIn(page, account("INVITED"));
-  await expect(page).toHaveURL(/localhost:3000\/(onboarding)?$/);
+  await expect(page).toHaveURL(/localhost:\d+\/(onboarding)?$/);
   const owner = await uid(page);
   await upload(page, PUBLIC_CLIP);
 
@@ -154,7 +154,7 @@ test("the invited account uploads the approved video and gets a real analysis an
 
 test("another video is refused with a plain explanation and no result", async ({ page }) => {
   await logIn(page, account("INVITED"));
-  await expect(page).toHaveURL(/localhost:3000\/(onboarding)?$/);
+  await expect(page).toHaveURL(/localhost:\d+\/(onboarding)?$/);
   await upload(page, OTHER_CLIP);
   await expect(page.getByText("The analysis couldn't finish.")).toBeVisible({ timeout: 110_000 });
   await expect(page.getByText(/can't be analysed in the demonstration environment/)).toBeVisible();
@@ -165,7 +165,7 @@ test("another video is refused with a plain explanation and no result", async ({
 
 test("the demonstration data can be deleted afterwards", async ({ page }) => {
   await logIn(page, account("INVITED"));
-  await expect(page).toHaveURL(/localhost:3000\/(onboarding)?$/);
+  await expect(page).toHaveURL(/localhost:\d+\/(onboarding)?$/);
   const owner = await uid(page);
   const token = await idToken(page);
   for (const v of await adminOwned("videos", owner)) {

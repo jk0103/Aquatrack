@@ -222,6 +222,34 @@ def test_steady_drift_through_the_clip_is_flagged():
     assert not biomechanics.drifts(samples([1, 2, 3]))  # too few to call a trend
 
 
+def test_a_trend_is_not_decided_by_differences_the_measurement_cannot_tell_apart():
+    """From the first local model run (2026-11-28): two poses of one clip a few pixels apart
+    gave leg-line values of [-8.2, -7.9, -9.9, -11.2] and [-8.1, -8.3, -10.5, -11.2] degrees.
+    The order of the first two (0.3 degrees apart, resolution 2 degrees) moved the rank
+    correlation between 1.0 and 0.8, the cut-off, where floating point then decided: one clip
+    came out "reliable" and the other "limited". Both now get the same answer, and neither
+    is a trend: the whole change is under twice the resolution."""
+
+    def samples(values):
+        return [MetricSample(t_s=float(i), value=v) for i, v in enumerate(values)]
+
+    one, other = samples([-8.2, -7.9, -9.9, -11.2]), samples([-8.1, -8.3, -10.5, -11.2])
+    resolution = biomechanics.RESOLUTION["leg_line_angle"]
+    assert biomechanics.drifts(one, resolution) is False
+    assert biomechanics.drifts(other, resolution) is False
+    # exactly at the cut-off is now decided the same way every time
+    assert biomechanics.drifts(one) is biomechanics.drifts(samples([-8.2, -7.9, -9.9, -11.2]))
+    # head height: three equal values and one apart is not a steady trend, either way round
+    head = biomechanics.RESOLUTION["head_height"]
+    assert not biomechanics.drifts(samples([-0.08, -0.0, -0.0, -0.01]), head)
+    assert not biomechanics.drifts(samples([-0.08, 0.0, -0.0, -0.0]), head)
+    # a change well beyond the resolution is still a trend, ties or not
+    assert biomechanics.drifts(samples([-8.0, -8.5, -14.0, -19.0]), resolution)
+    assert biomechanics.drifts(samples([0.0, 0.2, 0.4, 0.6]), head)
+    # and a value that wanders without direction is not
+    assert not biomechanics.drifts(samples([-8.0, -15.0, -9.0, -16.0]), resolution)
+
+
 def test_other_strokes_and_views_are_held_at_limited():
     _, m = run(side_view(), SessionInfo(stroke="Butterfly", camera="Underwater"))
     assert m["stroke_rate"].status is MetricStatus.LIMITED

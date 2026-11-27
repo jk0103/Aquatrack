@@ -9,6 +9,10 @@
 // involved: every account is created by the test and is disposable.
 import { defineConfig } from "@playwright/test";
 
+// The web app's port. Another project on this machine may hold 3000; with E2E_PORT set the
+// tests start (or reuse) AquaTrack on that port instead and never touch someone else's server.
+const PORT = process.env.E2E_PORT ?? "3000";
+
 const emulators = {
   FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099",
   FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
@@ -21,6 +25,7 @@ const emulators = {
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   timeout: 120_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
@@ -28,7 +33,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${PORT}`,
     channel: "chrome",
     headless: true,
     trace: "retain-on-failure",
@@ -51,9 +56,9 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "npm run dev",
+      command: `npm run dev -- --port ${PORT}`,
       env: { NEXT_PUBLIC_FIREBASE_EMULATORS: "true" },
-      url: "http://localhost:3000/login",
+      url: `http://localhost:${PORT}/login`,
       reuseExistingServer: true,
       timeout: 180_000,
     },

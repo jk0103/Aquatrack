@@ -81,7 +81,7 @@ class Fix(IntFlag):
     LOW_SCORE = 1  # dropped: model unsure
     BAD_FRAME = 2  # dropped: whole frame flipped or wrong size
     IMPOSSIBLE = 4  # dropped: anatomically impossible
-    SPIKE = 8  # dropped: one-frame jump
+    SPIKE = 8  # dropped: a jump away from its path and back (one frame or a short excursion)
     SWAPPED = 16  # left/right swapped back
     FILLED = 32  # interpolated over a short gap
 
@@ -240,6 +240,7 @@ class _Cleaner:
         self.drop_bad_frames()
         self.fix_swaps()
         self.drop_impossible()
+        self.drop_excursions()
         self.drop_spikes()
         confidence = np.clip(self.score / FULL_CONFIDENCE_SCORE, 0, 1)
         confidence = np.where(np.isnan(confidence), 0.0, confidence)
@@ -388,6 +389,54 @@ class _Cleaner:
                 for p in hand:
                     far = np.linalg.norm(self.xy[:, p] - center, axis=-1) / trunk[:, 0]
                     self.drop(np.nonzero(far > HAND_MAX_FROM_WRIST)[0], p, Fix.IMPOSSIBLE)
+
+    def drop_excursions(self) -> None:
+        """Drop a point that leaves its path faster than any body part can move and is back
+        on it within `MAX_GAP_S`, leaving it just as fast: the model drew the limb somewhere
+        else for a frame or a few (often onto the other arm, in bubbles). `drop_spikes`
+        compares each point with the median of its neighbours, which a two-frame excursion
+        drags along with it; this looks at speed instead. A jump the point does not come
+        back from is kept: that is a real move, or a change of what is being followed, and
+        not this step's to judge.
+
+        Found on the first local model run (2026-11-28): two frames of the camera-side wrist
+        drawn above the head stayed in one pose and were removed in the other only because
+        the hidden arm happened to be drawn on the same spot, and that alone decided whether
+        a whole stroke was counted."""
+        fps = self.seq.fps
+        reach = max(1, round(MAX_GAP_S * fps))
+
+        def within(a: int, b: int, point: int) -> bool:
+            moved = np.linalg.norm(self.xy[b, point] - self.xy[a, point]) / self.ref_trunk[b]
+            return bool(moved <= SPIKE_SLACK + MAX_POINT_SPEED * (b - a) / fps)
+
+        for point in range(NUM_KEYPOINTS):
+            seen = np.nonzero(~np.isnan(self.xy[:, point, 0]))[0]
+            last, k = None, 0
+            while k < len(seen):
+                f = int(seen[k])
+                if last is None or within(last, f, point):
+                    last, k = f, k + 1
+                    continue
+                # Back on its path: reachable from where it was before the jump, and itself
+                # a jump away from the frame before it. Without the second condition a limb
+                # that really moved (the arm drawn ahead after a pull) would look "back"
+                # as soon as enough time had passed to make any position reachable.
+                back = None
+                for j in range(k + 1, len(seen)):
+                    g = int(seen[j])
+                    if g - f > reach:
+                        break
+                    if within(last, g, point) and not within(int(seen[j - 1]), g, point):
+                        back = g
+                        break
+                if back is None:
+                    last, k = f, k + 1  # it stays away: not an excursion
+                    continue
+                gone = seen[(seen >= f) & (seen < back)]
+                self.drop(gone, point, Fix.SPIKE)
+                last = back
+                k = int(np.searchsorted(seen, back)) + 1
 
     def drop_spikes(self) -> None:
         """Drop points far from the median of the two samples on each side."""

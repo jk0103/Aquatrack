@@ -50,6 +50,19 @@ CATCH_UPPER_ARM_DEG = 45.0  # the catch: upper arm this far below the direction 
 MAX_CATCH_GAP = 2  # frames between the supported frames either side of that moment
 MIN_ELBOW_FRAMES = 3
 DRIFT_MIN_CORRELATION = 0.8
+# Differences between per-cycle values smaller than this cannot be told from noise, so they
+# neither order two cycles nor count as a change (2026-11-28). Body and head values: the
+# resolution the interpretation rules use. Arm values: the point and forearm-direction
+# accuracy measured on SWIM-360 (see the catch metric above).
+RESOLUTION = {
+    "body_line_angle": 2.0,
+    "leg_line_angle": 2.0,
+    "head_height": 0.05,
+    "pull_depth": 0.05,
+    "pull_path_variation": 0.05,
+    "elbow_angle_min": 7.0,
+    "catch_forearm_angle": 7.0,
+}
 MAX_HORIZON_SPREAD_DEG = 6.0  # pool-line direction wandering more than this is not trusted
 HEAD = [0, 1, 2, 3, 4]  # nose, eyes, ears
 TRUNK = [5, 6, 11, 12]
@@ -289,7 +302,7 @@ def _from_samples(
     unit = DEFS[key][3]
     values = np.array([s.value for s in samples])
     reasons = list(caps)
-    if DEFS[key][2] is not MetricKind.TEMPORAL and drifts(samples):
+    if DEFS[key][2] is not MetricKind.TEMPORAL and drifts(samples, RESOLUTION.get(key, 0.0)):
         reasons.append(
             "The value climbs or falls steadily through the clip. That is more often the "
             "camera's viewing angle changing than the swimmer, so the middle value is not a "
@@ -320,16 +333,35 @@ def _from_samples(
     )
 
 
-def drifts(samples: list[MetricSample]) -> bool:
-    """Do the per-cycle values run steadily in one direction through the clip?"""
+def drifts(samples: list[MetricSample], resolution: float = 0.0) -> bool:
+    """Do the per-cycle values run steadily in one direction through the clip?
+
+    `resolution` is what the measurement can tell apart. Values closer than that share a
+    rank, and a total change under twice the resolution is no trend at all. Without it the
+    order of two cycles 0.3 degrees apart decided the answer: with four cycles one such
+    swap moves the rank correlation from 1.0 to 0.8, exactly the cut-off."""
     if len(samples) < DRIFT_MIN_SAMPLES:
         return False
     t = np.array([s.t_s for s in samples])
     v = np.array([s.value for s in samples])
-    if np.ptp(v) == 0 or np.ptp(t) == 0:
+    if np.ptp(v) == 0 or np.ptp(t) == 0 or np.ptp(v) < 2 * resolution:
         return False
-    rank = lambda x: np.argsort(np.argsort(x)).astype(float)  # noqa: E731
-    return bool(abs(np.corrcoef(rank(t), rank(v))[0, 1]) >= DRIFT_MIN_CORRELATION)
+
+    def ranks(x: np.ndarray, tolerance: float) -> np.ndarray:
+        order = np.argsort(x, kind="stable")
+        out, start = np.empty(len(x)), 0
+        for i in range(1, len(x) + 1):
+            # a group ends where the next value is further than the tolerance from its first
+            if i == len(x) or x[order[i]] - x[order[start]] > tolerance:
+                out[order[start:i]] = (start + i - 1) / 2
+                start = i
+        return out
+
+    rv = ranks(v, resolution)
+    if np.ptp(rv) == 0:
+        return False
+    correlation = abs(np.corrcoef(ranks(t, 0.0), rv)[0, 1])
+    return bool(correlation >= DRIFT_MIN_CORRELATION - 1e-9)
 
 
 def _per_cycle(

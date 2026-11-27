@@ -47,7 +47,7 @@ export async function onboard(page: Page, goal = "Stroke consistency") {
   await page.getByRole("button", { name: /Continue|Skip/ }).last().click(); // personal bests
   await page.getByText(goal, { exact: true }).click();
   await page.getByRole("button", { name: "Finish" }).click();
-  await expect(page).toHaveURL(/localhost:3000\/$/);
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
 }
 
 export async function signIn(page: Page, s: Swimmer) {
@@ -55,7 +55,7 @@ export async function signIn(page: Page, s: Swimmer) {
   await page.getByLabel("Email").fill(s.email);
   await page.getByLabel("Password", { exact: true }).fill(s.password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/localhost:3000\/$/);
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
 }
 
 export async function uid(page: Page): Promise<string> {

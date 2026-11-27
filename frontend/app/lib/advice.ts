@@ -29,6 +29,8 @@ export type AdviceSuggestion = {
   // timing), not by the model.
   tentative: boolean;
   tentativeReasons: string[];
+  // "exploratory": rests on raw joint positions that are not a verified measurement.
+  evidenceBasis: "measured" | "exploratory";
 };
 
 export type AdvicePractice = {
@@ -102,6 +104,7 @@ export function parseAdvice(raw: unknown): Advice | null {
       evidenceRefs: strings(s.evidence_refs),
       timesS: numbers(s.times_s),
       tentative: s.tentative === true,
+      evidenceBasis: (s.evidence_basis === "exploratory" ? "exploratory" : "measured") as AdviceSuggestion["evidenceBasis"],
       tentativeReasons: strings(s.tentative_reasons),
     }))
     .filter((s) => s.title && s.noticed)

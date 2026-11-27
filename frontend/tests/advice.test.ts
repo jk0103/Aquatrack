@@ -102,3 +102,9 @@ test("the headline says what kind of evidence there is without overstating it", 
   assert.equal(resultHeadline(null, null).title, "No clear technique issue in this clip");
   assert.match(resultHeadline(null, none).note, /normal result/);
 });
+
+test("an exploratory suggestion is marked as such; older documents count as measured", () => {
+  const s = suggestion(1, { evidence_basis: "exploratory", tentative: true, tentative_reasons: ["Leg positions."] });
+  assert.equal(parseAdvice(doc({ suggestions: [s] }))!.suggestions[0].evidenceBasis, "exploratory");
+  assert.equal(parseAdvice(doc())!.suggestions[0].evidenceBasis, "measured");
+});

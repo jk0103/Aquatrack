@@ -163,7 +163,11 @@ function Suggestion({
         </span>
         <h3 className="text-base font-semibold text-slate-900">{s.title}</h3>
         <Badge tone="slate">{categoryLabel(s.category)}</Badge>
-        {s.tentative && <Badge tone="amber">Tentative</Badge>}
+        {s.evidenceBasis === "exploratory" ? (
+          <Badge tone="amber">Exploratory · not a verified measurement</Badge>
+        ) : (
+          s.tentative && <Badge tone="amber">Tentative</Badge>
+        )}
       </div>
       {s.tentative && s.tentativeReasons.length > 0 && (
         <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">

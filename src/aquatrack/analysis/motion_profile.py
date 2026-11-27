@@ -25,7 +25,7 @@ from aquatrack.analysis.metrics.cycles import StrokeAnalysis
 from aquatrack.analysis.pose.cleanup import DROPPED, CleanPose, Fix
 from aquatrack.contracts import AnalysisResult
 
-PROFILE_VERSION = "1.0"
+PROFILE_VERSION = "1.1"
 SAMPLES = 12  # per stroke cycle
 MAX_CYCLES = 6
 JOINTS = {
@@ -52,6 +52,9 @@ FEATURES = (
     "head_ahead_of_shoulder",
     "body_line_vs_picture_horizontal_deg",
 )
+# Per-cycle values that rest on leg joints. Shown to the interpreter as raw positions, never
+# as measurements: see "exploratory" in the profile.
+EXPLORATORY = frozenset({"knee_angle_range_deg", "ankle_below_hip_line"})
 
 
 def _series(values: list[float | None]) -> dict:
@@ -128,63 +131,70 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
         k = idx[name]
         return units[i, k] if usable[i, k] else None
 
+    def at(i: int) -> dict:
+        """Everything read from one frame: positions relative to the shoulder or the hip,
+        the two joint angles, and the body's line."""
+        p = {name: point(i, name) for name in idx}
+        sh, hip = p["shoulder"], p["hip"]
+
+        def rel(name, origin):
+            return None if p[name] is None or origin is None else p[name] - origin
+
+        arm_seen = all(p[k] is not None for k in ("shoulder", "elbow", "wrist"))
+        leg_seen = all(p[k] is not None for k in ("hip", "knee", "ankle"))
+        return {
+            "elbow_pos": rel("elbow", sh),
+            "wrist_pos": rel("wrist", sh),
+            "knee_pos": rel("knee", hip),
+            "ankle_pos": rel("ankle", hip),
+            "elbow": _angle(p["shoulder"], p["elbow"], p["wrist"]) if arm_seen else None,
+            "knee": _angle(p["hip"], p["knee"], p["ankle"]) if leg_seen else None,
+            "hip": None if sh is None or hip is None else float(hip[1] - sh[1]),
+            "head": float(units[i, 0][0] - sh[0]) if usable[i, 0] and sh is not None else None,
+            "tilt": float(np.degrees(np.arctan2(-axis[i, 1], axis[i, 0])))
+            if np.isfinite(axis[i]).all()
+            else None,
+        }
+
+    def pair(v):
+        return None if v is None else [round(float(v[0]), 2), round(float(v[1]), 2)]
+
     rows, feats = [], {k: [] for k in FEATURES}
     for c in cycles:
         closing = pulls[by_reach[c.reach]] if c.reach in by_reach else None
         opening = (
             pulls[by_reach[c.reach] - 1] if closing is not None and by_reach[c.reach] > 0 else None
         )
-        frames = np.linspace(c.start, c.end, SAMPLES, endpoint=False).round().astype(int)
-        samples, got = [], {k: [] for k in ("elbow", "depth", "ahead", "hip", "ankle", "knee")}
-        heads, tilts = [], []
-        for n, i in enumerate(frames):
-            p = {name: point(i, name) for name in idx}
-            sh, hip = p["shoulder"], p["hip"]
-            row = {"phase": round(n / SAMPLES, 2), "t_s": sec(i)}
-            for name, origin, label in (
-                ("elbow", sh, "elbow_rel_shoulder"),
-                ("wrist", sh, "wrist_rel_shoulder"),
-                ("knee", hip, "knee_rel_hip"),
-                ("ankle", hip, "ankle_rel_hip"),
-            ):
-                row[label] = (
-                    None
-                    if p[name] is None or origin is None
-                    else [
-                        round(float(p[name][0] - origin[0]), 2),
-                        round(float(p[name][1] - origin[1]), 2),
-                    ]
-                )
-            elbow = (
-                None
-                if any(p[k] is None for k in ("shoulder", "elbow", "wrist"))
-                else _angle(p["shoulder"], p["elbow"], p["wrist"])
+        # The path: the same 12 moments of every cycle, so cycles can be laid side by side.
+        samples = []
+        for n, i in enumerate(
+            np.linspace(c.start, c.end, SAMPLES, endpoint=False).round().astype(int)
+        ):
+            v = at(int(i))
+            samples.append(
+                {
+                    "phase": round(n / SAMPLES, 2),
+                    "t_s": sec(i),
+                    "elbow_rel_shoulder": pair(v["elbow_pos"]),
+                    "wrist_rel_shoulder": pair(v["wrist_pos"]),
+                    "knee_rel_hip": pair(v["knee_pos"]),
+                    "ankle_rel_hip": pair(v["ankle_pos"]),
+                    "elbow_angle_deg": None if v["elbow"] is None else round(v["elbow"]),
+                    "knee_angle_deg": None if v["knee"] is None else round(v["knee"]),
+                    "interpolated_points": [name for name in idx if filled[i, idx[name]]],
+                    "unusable_points": [name for name in idx if not usable[i, idx[name]]],
+                }
             )
-            knee = (
-                None
-                if any(p[k] is None for k in ("hip", "knee", "ankle"))
-                else _angle(p["hip"], p["knee"], p["ankle"])
-            )
-            row["elbow_angle_deg"] = None if elbow is None else round(elbow)
-            row["knee_angle_deg"] = None if knee is None else round(knee)
-            row["interpolated_points"] = [name for name in idx if filled[i, idx[name]]]
-            row["unusable_points"] = [name for name in idx if not usable[i, idx[name]]]
-            samples.append(row)
-            if elbow is not None:
-                got["elbow"].append(elbow)
-            if row["wrist_rel_shoulder"]:
-                got["ahead"].append(row["wrist_rel_shoulder"][0])
-                got["depth"].append(row["wrist_rel_shoulder"][1])
-            if sh is not None and hip is not None:
-                got["hip"].append(float(hip[1] - sh[1]))
-            if row["ankle_rel_hip"]:
-                got["ankle"].append(row["ankle_rel_hip"][1])
-            if knee is not None:
-                got["knee"].append(knee)
-            if usable[i, 0] and sh is not None:
-                heads.append(float(units[i, 0][0] - sh[0]))
-            if np.isfinite(axis[i]).all():
-                tilts.append(float(np.degrees(np.arctan2(-axis[i, 1], axis[i, 0]))))
+        # The cycle's own numbers come from EVERY frame of it, not from the 12 samples: a
+        # kick turns several times within one arm cycle, and 12 samples miss most of that
+        # (a knee range read from the samples came out at 26 degrees where the frames show
+        # 48).
+        every = [at(i) for i in range(int(c.start), int(c.end))]
+
+        def seen(key, part=None, every=every):
+            values = [f[key] for f in every if f[key] is not None]
+            return [float(x[part]) for x in values] if part is not None else values
+
         events = {}
         if closing is not None:
             events = {
@@ -194,7 +204,9 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
                 "pull_followed_until_s": sec(closing.exit),
                 "pull_followed_to_deg_behind": round(closing.exit_angle_deg),
             }
-        at_start = {name: point(int(c.start), name) for name in ("shoulder", "elbow", "wrist")}
+        elbows, knees, depth = seen("elbow"), seen("knee"), seen("wrist_pos", 1)
+        ahead, hips, ankles = seen("wrist_pos", 0), seen("hip"), seen("ankle_pos", 1)
+        heads, tilts = seen("head"), seen("tilt")
         feats["cycle_duration_s"].append(c.duration_s)
         feats["front_phase_s"].append(
             None if closing is None else (closing.start - closing.reach) / fps
@@ -208,25 +220,13 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
         feats["exit_to_next_reach_s"].append(
             None if opening is None or closing is None else (closing.reach - opening.exit) / fps
         )
-        feats["elbow_angle_at_mid_pull_deg"].append(
-            None
-            if any(v is None for v in at_start.values())
-            else _angle(at_start["shoulder"], at_start["elbow"], at_start["wrist"])
-        )
-        feats["min_elbow_angle_in_cycle_deg"].append(min(got["elbow"]) if got["elbow"] else None)
-        feats["wrist_deepest_below_shoulder"].append(max(got["depth"]) if got["depth"] else None)
-        feats["wrist_furthest_ahead_of_shoulder"].append(
-            max(got["ahead"]) if got["ahead"] else None
-        )
-        feats["hip_below_shoulder_line"].append(
-            float(np.median(got["hip"])) if got["hip"] else None
-        )
-        feats["ankle_below_hip_line"].append(
-            float(np.median(got["ankle"])) if got["ankle"] else None
-        )
-        feats["knee_angle_range_deg"].append(
-            max(got["knee"]) - min(got["knee"]) if got["knee"] else None
-        )
+        feats["elbow_angle_at_mid_pull_deg"].append(at(int(c.start))["elbow"])
+        feats["min_elbow_angle_in_cycle_deg"].append(min(elbows) if elbows else None)
+        feats["wrist_deepest_below_shoulder"].append(max(depth) if depth else None)
+        feats["wrist_furthest_ahead_of_shoulder"].append(max(ahead) if ahead else None)
+        feats["hip_below_shoulder_line"].append(float(np.median(hips)) if hips else None)
+        feats["ankle_below_hip_line"].append(float(np.median(ankles)) if ankles else None)
+        feats["knee_angle_range_deg"].append(max(knees) - min(knees) if knees else None)
         feats["head_ahead_of_shoulder"].append(float(np.median(heads)) if heads else None)
         feats["body_line_vs_picture_horizontal_deg"].append(
             float(np.median(tilts)) if tilts else None
@@ -262,7 +262,7 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
             "usable_share": round(float(usable[:, k].mean()), 2),
             "unusable_stretches_s": runs[:8],
             "dropped_low_score": int(((flags & int(Fix.LOW_SCORE)) > 0).sum()),
-            "dropped_one_frame_jump": int(((flags & int(Fix.SPIKE)) > 0).sum()),
+            "dropped_jump_or_excursion": int(((flags & int(Fix.SPIKE)) > 0).sum()),
             "dropped_anatomically_impossible": int(((flags & int(Fix.IMPOSSIBLE)) > 0).sum()),
             "left_right_swapped_back": int(((flags & int(Fix.SWAPPED)) > 0).sum()),
             "interpolated": int(filled[:, k].sum()),
@@ -274,8 +274,9 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
         "front (downward for a swimmer lying face down). The frame turns with the body, so a "
         "tilted camera does not change these numbers; body_line_vs_picture_horizontal_deg is "
         "the one value that includes camera tilt.",
-        "phase": f"A cycle runs from one mid-pull to the next and is sampled at {SAMPLES} "
-        "equally spaced moments; phase 0 is the mid-pull that starts it.",
+        "phase": f"A cycle runs from one mid-pull to the next. Its path is sampled at {SAMPLES} "
+        "equally spaced moments (phase 0 is the mid-pull that starts it); the cycle_to_cycle "
+        "values are computed from every frame of the cycle, not from those samples.",
         "timing_note": "A cycle's start_s, end_s and duration_s come from one event, named by "
         "timed_from: 'upper_arm' is the upper arm passing straight down (the shoulder's "
         "turnover, which does not depend on elbow bend); 'wrist' is the wrist passing under "
@@ -290,6 +291,15 @@ def _motion(pose: CleanPose, strokes: StrokeAnalysis, arm: str) -> dict:
             "view": "One side-on underwater camera: movement toward or away from the camera is "
             "not seen, the far arm is mostly hidden, and the above-water recovery cannot be "
             "checked.",
+        },
+        "exploratory": {
+            "features": sorted(EXPLORATORY),
+            "sample_fields": ["knee_rel_hip", "ankle_rel_hip", "knee_angle_deg"],
+            "why": "Leg values are raw joint positions, not measurements AquaTrack stands "
+            "behind: the kick has never been checked against video (kick_rhythm is listed as "
+            "not measurable), the far leg is often hidden, and one kick is much shorter than "
+            "the spacing of the path samples, so the 12 samples of a cycle cannot show a kick. "
+            "Anything said from them is a question to look at in the video, not a finding.",
         },
         "cycles": rows,
         "cycle_to_cycle": {k: _series(v) for k, v in feats.items()},

@@ -194,7 +194,11 @@ class YoloPersonDetector:
         folder first. If it is not there, Ultralytics would download pretrained weights by
         itself: fine on a developer's machine, never in a worker, so `offline` refuses."""
         weights = Path(config.detector_weights)
-        if not weights.is_absolute() and (MODELS_DIR / weights).exists():
+        if weights.is_file():
+            # A path to an installed file, as the worker passes after checking it against
+            # the manifest (absolute in the image, relative to the models folder locally).
+            pass
+        elif not weights.is_absolute() and (MODELS_DIR / weights).is_file():
             weights = MODELS_DIR / weights
         elif offline:
             raise FileNotFoundError(f"Detector weights {weights.name} are not installed.")

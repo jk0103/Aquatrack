@@ -266,3 +266,37 @@ new engine version yet.
 
 Both were found and verified on synthetic swimmers and the two real clips only. The 45%
 share and the choice of the upper arm are engineering choices, not validated values.
+
+## Stability of the reliability classes (2026-11-28)
+
+The first local model run gave a pose of the reference clip 2.6 px (median) from the saved
+one, and four metrics changed class. Traced to two causes, both fixed; afterwards the two
+poses give the same class for all 12 metrics.
+
+1. **A stroke counted or not** (`pose/cleanup.py`, `drop_excursions`). In two frames the
+   model drew the camera-side arm above the head. One pose lost those points only because
+   the hidden arm happened to be drawn on the same spot (the left/right merge check); in the
+   other they stayed, the smoothed arm turned impossibly fast, and the whole pull was not
+   counted. That one pull moved the cycle count across the thresholds of `cycle_count`,
+   `rhythm_variation` (4 cycles) and the drift check (4 samples). Cleanup now also drops a
+   point that leaves its path faster than `MAX_POINT_SPEED`, returns within `MAX_GAP_S` and
+   leaves the excursion just as fast; a jump it does not return from is kept. The existing
+   spike check compares with the median of the neighbours, which a two-frame excursion drags
+   along (1.28 trunk lengths against an allowance of 1.36 here).
+2. **A trend decided by noise** (`biomechanics.drifts`). The check ranked the per-cycle
+   values against time. With four cycles one swap of neighbours moves the rank correlation
+   from 1.0 to 0.8, the cut-off, where floating point then decided. Leg-line values of
+   [-8.2, -7.9, -9.9, -11.2] and [-8.1, -8.3, -10.5, -11.2] degrees came out as "reliable" and
+   "limited". Values closer than the metric's resolution (`biomechanics.RESOLUTION`: 2
+   degrees for body and leg line, 0.05 trunk lengths for head height, pull depth and path
+   variation, 7 degrees for the two arm angles) now share a rank, a total change under twice
+   the resolution is no trend, and the cut-off itself is decided the same way every time.
+
+Effect on the saved fixtures: the reference clip now has 4 counted cycles of the camera-side
+arm instead of 3 (the pull that was lost), so `cycle_count` is measurable and
+`rhythm_variation` reliable; in the sprint clip `pull_path_variation` went from reliable to
+limited (0.16 to 0.15). No interpretation rule changed its outcome on either clip.
+
+Not changed: the count thresholds themselves (3 cycles, 4 for a spread). A count is a whole
+number, so a clip with exactly one cycle more or fewer will always sit on one side; what was
+removed is the case where noise, not the swimmer, supplied or took away that cycle.

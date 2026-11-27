@@ -1180,6 +1180,10 @@ class AdviceSuggestion(BaseModel):
     # timing differences close to what one video frame can resolve. Shown as "tentative".
     tentative: bool = False
     tentative_reasons: list[str] = []
+    # "measured": rests on values the analysis stands behind. "exploratory": rests on raw
+    # joint positions that are not a verified measurement (the legs and the kick); always
+    # tentative, shown as a question to look at.
+    evidence_basis: Literal["measured", "exploratory"] = "measured"
 
 
 class AdvicePractice(BaseModel):

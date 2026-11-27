@@ -53,8 +53,9 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
   `onnxruntime-gpu` 1.30; `ultralytics` pinned to 8.4.210, the reference's version),
   `worker/cloudbuild.yaml`, `worker/phase9b.sh`, `scripts/fetch_models.py`,
   `scripts/export_rtmw_onnx.py`, `scripts/gpu_acceptance.py`, `scripts/compare_pose.py`
-  (runs locally, no models). The fetch, export, build and `phase9b.sh` need the owner's
-  acceptance and must never be run on this Mac. `.dockerignore` and `.gcloudignore` are
+  (runs locally, no models). The fetch and export were run on this Mac on 2026-11-27 with
+  the owner's acceptance for private development; the image build and `phase9b.sh` still need
+  the owner's approval and are not run here. `.dockerignore` and `.gcloudignore` are
   allowlists: keep them that way. Docs: `docs/INFERENCE_WORKER.md`,
   `docs/GPU_ACCEPTANCE_TEST.md`, `docs/MODEL_LICENSING_DECISION.md`, and the single
   execution package with its decision gate, `docs/PHASE_9B_EXECUTION.md`. Docs: `docs/ANALYSIS_JOBS.md`, `docs/SECURITY_REVIEW.md`,
@@ -106,9 +107,12 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 - Inference sits behind one interface with three interchangeable sources that all produce
   the same validated data structure: precomputed pose data from Colab, local model
   inference, and (later) a dedicated worker or GPU service. `precomputed` is a development
-  fixture: it is never real inference and must never be described as such. Model inference
-  on a new upload inside the worker has not been run; do not claim it until one real video
-  has gone through `AQUATRACK_POSE_SOURCE=local` on a real worker.
+  fixture: it is never real inference and must never be described as such. Real inference
+  (`AQUATRACK_POSE_SOURCE=local`) first ran on 2026-11-27/28 on the development Mac (CPU;
+  `docs/INFERENCE_WORKER.md`, section 10): the reference clip agreed with the saved reference
+  pose, and a new file went through the web app end to end. Not yet run: the GPU test (9B),
+  the worker container image, and a new side-view clip of a different swimmer. Say which of
+  these a claim rests on.
 - School demonstration (prepared 2026-11-16, not deployed): the real app restricted to
   invited accounts, analysing only the approved public video from saved pose data.
   `api/config.py` (`AQUATRACK_ACCESS`, `AQUATRACK_ALLOWED_UIDS`, `AQUATRACK_DEMO`,
@@ -216,9 +220,13 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 
 ## Environment, privacy and data
 
-- This Mac is for code, light tests and result analysis. No heavy inference here and no
-  large weight or dataset downloads. Heavy inference runs in the student's Google Colab;
-  weights live in the student's Google Drive. Colab is never a production backend.
+- This Mac: code, tests, result analysis and, since the owner's instruction of 2026-11-27,
+  local model inference for development (`uv sync --extra pose`; `models/` holds
+  `yolo11m.pt`, the exported `rtmw_x_stock.onnx` and `manifest.json`, all ignored by git).
+  Use `AQUATRACK_POSE_DEVICE=cpu` in the API's embedded worker: `mps` crashed the server
+  process. No dataset downloads and no training. Colab is never a production backend. Port
+  3000 often belongs to another project's dev server: run AquaTrack's browser tests with
+  `E2E_PORT` set and never stop that server.
 - Firebase: Emulator Suite only for now. `.claude/launch.json` has the configs
   (`firebase-emulators`, `backend-emulated`, `frontend-emulated`);
   `frontend/scripts/emulators.mjs` picks an installed JDK 21+ for the emulators by itself. Do not connect to, read or change any production

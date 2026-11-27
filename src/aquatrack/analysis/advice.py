@@ -41,7 +41,7 @@ from aquatrack.training import library
 
 log = logging.getLogger("aquatrack.advice")
 
-PROMPT_VERSION = "2026.11-2"
+PROMPT_VERSION = "2026.11-3"
 DEFAULT_MODEL = "gpt-6.2-astra"
 DEFAULT_REASONING = "high"
 DEFAULT_MAX_OUTPUT_TOKENS = 40000  # includes reasoning tokens
@@ -106,6 +106,12 @@ a pattern is a first indication, not an established habit: say so in "noticed" a
 suggestion as something to check on a longer clip. Stroke events are placed to the nearest \
 video frame (see uncertainty.timing_resolution_s), so a timing difference of only a frame or \
 two between cycles is not a difference; do not build a suggestion on it.
+- Exploratory values. The input lists, under motion.exploratory, per-cycle features and \
+sample fields that are raw leg positions and not verified measurements (the kick is faster \
+than the path samples and has never been checked against video). You may point to a \
+repeated pattern in them as something for the swimmer to look at in their video, but say in \
+"noticed" that it comes from unverified leg tracking, never call it a fault, and put any \
+suggestion that rests on measured values first.
 - Finding nothing to suggest is a correct answer for a steady swimmer or unusable data. Do \
 not invent a suggestion to be helpful, and do not withhold a pattern the data show clearly.
 
@@ -368,10 +374,24 @@ class Checker:
         self.series = motion["cycle_to_cycle"]
         self.resolution = float(motion["uncertainty"]["timing_resolution_s"])
 
+    def exploratory(self, item: dict) -> bool:
+        """Does the suggestion rest on raw leg positions instead of verified measurements?
+        Decided from what it cites and what it is about, not from how it is worded."""
+        listed = self.profile["motion"].get("exploratory", {})
+        names = set(listed.get("features", [])) | set(listed.get("sample_fields", []))
+        cited = {part for ref in item["evidence_refs"] for part in ref.replace("[", ".").split(".")}
+        return item["category"] == "legs" or bool(names & cited)
+
     def tentative(self, item: dict) -> list[str]:
         """Why a suggestion that passed the checks is still only a first indication. These
         are facts about the sample, decided here; the model's confidence plays no part."""
         reasons = []
+        if self.exploratory(item):
+            reasons.append(
+                "Based on leg positions that AquaTrack does not yet verify as a measurement "
+                "(the kick has not been checked against video). Treat it as something to look "
+                "at in your video, not as a finding."
+            )
         n = min(item["cycles_supporting"], self.followed_trusted or item["cycles_supporting"])
         if self.followed_trusted < MIN_CYCLES_FOR_FIRM or n < MIN_CYCLES_FOR_FIRM:
             seen = self.followed_trusted if self.followed_trusted < MIN_CYCLES_FOR_FIRM else n
@@ -492,8 +512,13 @@ def check(answer: dict, profile: dict) -> dict:
                 times_s=item["times_s"],
                 tentative=bool(checker.tentative(item)),
                 tentative_reasons=checker.tentative(item),
+                evidence_basis="exploratory" if checker.exploratory(item) else "measured",
             )
         )
+    # Measured evidence first: an exploratory suggestion never leads the list.
+    kept["suggestions"].sort(key=lambda s: s.evidence_basis == "exploratory")
+    for n, s in enumerate(kept["suggestions"], 1):
+        s.id = f"s{n}"
     kept["trusted_cycles"] = checker.followed_trusted
     return kept
 

@@ -611,3 +611,36 @@ def test_metrics_are_compared_one_by_one_with_status_changes_flagged():
         "head_height": "status reliable -> limited",
         "new_metric": "only in the new run",
     }
+
+
+@pytest.mark.parametrize("absolute", [True, False])
+def test_the_worker_finds_the_detector_file_it_has_just_verified(monkeypatch, tmp_path, absolute):
+    """Found by the first real run (2026-11-27). The worker hands the detector the path of
+    the file it checked against the manifest. `from_config` only looked up bare file names in
+    the models folder, so that path, absolute in the image and relative locally, was
+    reported as "not installed" and no model could ever load. Not caught earlier because
+    every earlier test used a fake detector."""
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "yolo11m.pt").write_bytes(b"weights")
+    monkeypatch.setattr(rtmw_backend, "MODELS_DIR", models)
+    monkeypatch.chdir(tmp_path)
+    opened = []
+    monkeypatch.setattr(
+        rtmw_backend.YoloPersonDetector,
+        "__init__",
+        lambda self, weights, **kwargs: opened.append(Path(weights)),
+    )
+    given = models / "yolo11m.pt" if absolute else Path("models") / "yolo11m.pt"
+    config = ModelConfig(detector_weights=str(given))
+    rtmw_backend.YoloPersonDetector.from_config(config, offline=True)
+    assert opened and opened[0].resolve() == (models / "yolo11m.pt").resolve()
+    # a bare name is still looked up in the models folder, and a missing file is still refused
+    rtmw_backend.YoloPersonDetector.from_config(
+        ModelConfig(detector_weights="yolo11m.pt"), offline=True
+    )
+    assert opened[-1] == models / "yolo11m.pt"
+    with pytest.raises(FileNotFoundError):
+        rtmw_backend.YoloPersonDetector.from_config(
+            ModelConfig(detector_weights="other.pt"), offline=True
+        )

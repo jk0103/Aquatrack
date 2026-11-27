@@ -182,3 +182,81 @@ not yet applied to a real project.
 3. Licences of both models (`docs/MODEL_LICENSING_DECISION.md`).
 4. No Firebase project exists for the worker to connect to (stage 2 of the acceptance test).
 5. The detector's SHA-256 is not pinned yet (first build).
+
+## 10. First real model runs (2026-11-27 and 28, on the development Mac)
+
+By the owner's instruction of 2026-11-27 the models were run locally. This is real
+inference: new RawPose from YOLO11m and RTMW-x on video, not saved pose data. It was done on
+an Apple M1 Pro (16 GB, macOS 15), without CUDA. It is not the GPU test of
+`docs/PHASE_9B_EXECUTION.md`, which is still not run.
+
+Set-up, as it was actually done:
+
+1. `uv sync --extra pose`: ultralytics 8.4.210, torch 2.14.0, onnxruntime 1.31.0, rtmlib
+   0.0.16. onnxruntime offers `CoreMLExecutionProvider` and `CPUExecutionProvider` here.
+2. Detector: `yolo11m.pt` was already on the machine from the detector comparison
+   (40,684,120 bytes, the size of the publisher's release asset). It was registered with
+   `scripts/fetch_models.py --models-dir models --accept-model-terms`; its SHA-256 is
+   `d5ffc1a6...5305b95` (the release publishes no hash to compare it with).
+3. Pose model: the public cocktail14 checkpoint was downloaded from the OpenMMLab host by
+   `scripts/export_rtmw_onnx.py` (369,720,404 bytes, SHA-256 starts `f840f204`, as the file
+   name promises) and exported in a separate temporary environment with the pinned tool
+   chain (torch 2.5.1, mmengine 0.10.7, mmcv-lite 2.1.0, mmpose 1.3.2, mmdet 3.3.0,
+   numpy<2). Result: `rtmw_x_stock.onnx`, 368,740,409 bytes (the Colab export was
+   368,740,410), SHA-256 `04fcaf04...387bb94`, inputs and outputs as the contract requires.
+   One thing the Dockerfile does not need but a bare environment does: `setuptools<81`
+   (mmengine imports `pkg_resources`).
+4. `models/` holds both files and `manifest.json`; the folder is ignored by git.
+   `python -m aquatrack.worker --check` passes in strict mode.
+
+`--accept-model-terms` was passed on the owner's instruction to run the models locally for
+this private development use. It settles nothing about a public release
+(`MODEL_LICENSING_DECISION.md`).
+
+### What the runs showed
+
+| Run | Device | Result |
+| --- | --- | --- |
+| Reference clip (Front Crawl Underwater, 328 frames) | CPU | 102 s, 3.2 frames/s (detector 0.11 s, pose 0.20 s per frame), 1.3 GB |
+| Same | Apple GPU (`mps`: torch MPS + CoreML) | 28 s, 11.7 frames/s, 1.7 GB |
+| New clip through the web app (derived: mirrored, trimmed, 720p, H.264; no saved pose) | CPU, embedded worker | analysed, stored, advice made, shown in the result page |
+| Never-analysed public clip of another swimmer (CC BY 3.0, filmed head-on, handheld) | CPU, worker path | 92 s; pose found in 16% of frames, grade insufficient, 0 of 12 metrics, no advice call made: reported as not measurable, nothing invented |
+
+Against the saved reference pose of the same video (`scripts/gpu_acceptance.py
+--reference`): every frame detected in both, box overlap 0.996 (median), body points 2.6 px
+apart (median) and 10.2 px (95th percentile) on a 1920 px frame, same median score, 100%
+agreement on confident points: within every pose tolerance. The metrics agree closely
+(stroke rate 24.0 against 23.9, pull depth 0.75 against 0.74, catch angle 52.3 against
+52.2) but not identically: the right arm's fourth cycle became countable, and three metrics
+changed status between reliable and limited. The script therefore reports "differences to
+explain". Small pose differences can move a cycle across a trust threshold; that
+sensitivity is real and is not hidden.
+
+Follow-up (2026-11-28): the status changes were traced to one pull that was counted in one
+pose and not in the other, and to a trend check decided by sub-resolution differences. Both
+are fixed (`docs/BIOMECHANICS_METRICS.md`, "Stability of the reliability classes"); the saved
+reference and the new pose now give the same class for all 12 metrics.
+
+### Defects found by running it
+
+1. **The worker could not load the detector at all** (`model_load_failed`). The worker
+   verifies `models/yolo11m.pt` and passes that path on; `YoloPersonDetector.from_config`
+   only resolved bare file names, so a path, absolute in the image or relative locally, was
+   reported as not installed. Fixed in `rtmw_backend.py`; test in
+   `tests/test_inference_worker.py`. The same defect would have failed the first GPU run.
+2. **Apple GPU acceleration crashes the server process.** As a standalone script `mps`
+   works and agrees with CPU. Inside the API's embedded worker thread the process aborted
+   with a Metal assertion (`MPSGraphTensorData ... shape.count = 0 != strides.count = 3`)
+   during the first job. Use `AQUATRACK_POSE_DEVICE=cpu` for the embedded worker on a Mac.
+   Not investigated further (possibly Metal work started from a non-main thread).
+3. That crash was a real test of recovery: the job was left `analyzing` with a dead lease;
+   after the API was restarted with CPU inference, the new worker took the job over
+   (`interruptions` 1), ran the models and finished it, and the open result page updated.
+
+### Still not done
+
+- The GPU run of Phase 9B and any run inside the worker container image.
+- A new side-view freestyle clip of a different swimmer. Openly licensed footage of that
+  kind was not found beyond the two clips already used; the new-clip run above is a derived
+  file (new pixels, mirrored swimmer, different size and codec), which proves that inference
+  runs on unseen input but not that it generalises to another swimmer.
