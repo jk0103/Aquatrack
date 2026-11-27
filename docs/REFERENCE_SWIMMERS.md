@@ -1,4 +1,4 @@
-# Strong-swimmer reference hints (reference 2026.11-1)
+# Strong-swimmer reference hints (reference 2026.11-2)
 
 Owner's decision, 2026-11-18: findings, priorities and history still compare the swimmer only
 with themselves. In addition, a few measurements are shown next to the same measurements of
@@ -27,14 +27,21 @@ tolerances), `interpretation.py` (`Interpretation.references`), `feedback.py` (c
 
 Public clips downloaded by the owner for tuning only. The videos are not in the repository and
 are never shown in the app; only the numbers measured from them are used. Measured on
-2026-11-18 by this pipeline (analysis schema 1.2) from RTMW-x pose saved locally; no new model
-run was needed for the numbers.
+2026-11-18 by this pipeline (analysis schema 1.2) from RTMW-x pose saved locally. The saved
+pose itself came from local model runs on 2026-11-11; only the re-measuring on 2026-11-18
+needed no new model run.
+
+Version 2026.11-2 (2026-11-27) changed no value, group or tolerance. It removed descriptions
+of the swimmers and clips that had been written as facts but were guesses: the pace swum
+("easy", "steady", "race pace"), the level of two of the swimmers, "adult men", and the claim
+that one clip is cut together from several passes. None of these was measured or checked
+against a source.
 
 | Swimmer | Group | Clip | Reliable cycles |
 | --- | --- | --- | --- |
-| Florian Wellbrock | distance | side view through a pool window, easy freestyle, about 30 s | 14 |
-| Effortless Swimming coach | distance | underwater side view, steady freestyle, about 30 s (good adult swimmer, not an elite racer) | 10 |
-| Andrii Khloptsov | sprint | underwater side view following the swimmer, 50 m race pace | 9 |
+| Florian Wellbrock | distance | side view, freestyle, about 30 s; pace not verified | 14 |
+| Effortless Swimming coach | distance | underwater side view, freestyle, about 30 s; level and pace not verified | 10 |
+| Andrii Khloptsov | sprint | underwater side view following the swimmer; clip titled 50 m freestyle, level and pace not verified | 9 |
 
 | Metric | Wellbrock | Effortless | Khloptsov |
 | --- | --- | --- | --- |
@@ -44,15 +51,19 @@ run was needed for the numbers.
 | head_height (trunk lengths) | -0.03 | -0.04 | -0.02 |
 
 Left out: stroke rate and cycle time (depend on pace, which is not measured), body and leg line
-(the level reference wandered in two of the clips), rhythm (the Wellbrock clip is cut together
-from several passes). Clips tried and not usable: Phelps (cuts and changing angles), McEvoy and
+(the level reference wandered in two of the clips), rhythm (not established that every clip is
+one continuous swim, which a rhythm value needs). Clips tried and not usable: Phelps (cuts and changing angles), McEvoy and
 Park Tae-hwan (filmed head-on).
 
 ## Limits
 
-- Three adult men. This is an orientation, not a norm, and may not carry over to young or
+- Three swimmers whose age, level and pace in the clip were not verified. The groups
+  ("distance", "sprint") come from general knowledge of the swimmer or the clip's title, not
+  from a checked source or a measured pace. Calling them "strong swimmers" is likewise not
+  verified for two of the three. This is an orientation, not a norm, and may not carry over to young or
   beginner swimmers.
-- Good technique differs between swimmers and events: the sprinter's catch angle (50 degrees,
-  a straighter arm) is far from the distance swimmers' (0 to 1 degrees).
+- The values differ between the clips: the sprint clip's catch angle (50 degrees) is far from
+  the other two (0 to 1 degrees). Three clips cannot show whether that is the event, the
+  swimmer or the pace.
 - Not validated against any outcome; nothing here says that moving toward the range makes
   anyone faster.

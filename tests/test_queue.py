@@ -124,7 +124,7 @@ def test_jobs_are_taken_oldest_first_and_never_someone_elses_twice(store, swim_v
 # ---------- leases, crashes and recovery ----------
 
 
-def test_a_dead_workers_job_is_recovered_when_its_lease_runs_out(store, fake):
+def test_a_dead_workers_job_is_recovered_when_its_lease_runs_out(store, fake, monkeypatch):
     request_analysis(store, "vid1", UID, now=T0)
     assert claim(store, "vid1", "dies", now=T0) is not None  # ... and the worker is killed
     soon = T0 + timedelta(seconds=jobs.LEASE_S - 1)
@@ -133,6 +133,9 @@ def test_a_dead_workers_job_is_recovered_when_its_lease_runs_out(store, fake):
     again = claim(store, "vid1", "other", now=later)
     assert again is not None and again.job["leaseOwner"] == "other"
     assert again.job["interruptions"] == 1 and again.job["attempts"] == 1
+    # The run reads the clock itself (heartbeats, the run-time limit). Keep it on this test's
+    # timeline: against the real date a job "started" at T0 is long past JOB_TIMEOUT_S.
+    monkeypatch.setattr(jobs, "_now", lambda: later)
     jobs.process(store, fake, again, "other")
     assert status(store) == "ready"
 
@@ -156,7 +159,7 @@ def test_a_worker_that_lost_its_lease_stores_nothing_and_cannot_finish_the_job(s
     state = {}
 
     def a_stalls_and_b_takes_over(call):
-        expired = datetime.now(UTC) + timedelta(seconds=jobs.LEASE_S + 5)
+        expired = jobs._now() + timedelta(seconds=jobs.LEASE_S + 5)  # the job module's clock
         taken = claim(store, "vid1", "B", now=expired)
         jobs.process(store, FakeInference(swim_video), taken, "B")
         state["after_b"] = (status(store), dict(store.analyses), job(store)["finishedAt"])
@@ -167,7 +170,8 @@ def test_a_worker_that_lost_its_lease_stores_nothing_and_cannot_finish_the_job(s
     assert job(store)["errorCode"] is None
 
 
-def test_running_the_same_job_twice_writes_the_same_analysis_not_two(store, fake):
+def test_running_the_same_job_twice_writes_the_same_analysis_not_two(store, fake, monkeypatch):
+    monkeypatch.setattr(jobs, "_now", lambda: T0)  # one timeline for the claim and the run
     request_analysis(store, "vid1", UID, now=T0)
     first = claim(store, "vid1", "A", now=T0)
     jobs.process(store, fake, first, "A")  # A finishes ...

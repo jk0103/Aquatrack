@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AnalysisPanel } from "@/app/components/AnalysisPanel";
+import { SavedPoseNotice } from "@/app/components/DemoNotice";
 import { FeedbackPanel } from "@/app/components/FeedbackPanel";
 import { InterpretationPanel } from "@/app/components/InterpretationPanel";
 import {
@@ -308,6 +309,13 @@ export default function UploadPage() {
         <div className="mb-5">
           <ResultPills analysis={analysis} />
         </div>
+        {/* Saved pose data is not a model run on this upload: say so where it is seen, not
+            only inside the folded details below. */}
+        {analysis.poseSource === "precomputed" && (
+          <div className="mb-4">
+            <SavedPoseNotice />
+          </div>
+        )}
         <ProblemFrameStage
           video={video}
           analysis={analysis}

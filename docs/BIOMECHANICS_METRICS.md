@@ -186,8 +186,12 @@ labelled visible, elbow and wrist within 0.04 trunk lengths (median) and forearm
 barely separates the two (AUC 0.76): the reason only the camera-side arm's supported frames are
 read. This checks points in single frames, not the metric on whole clips.
 On saved pose of four public clips (not validated): Wellbrock 0.0, Effortless Swimming 0.6,
-Khloptsov (50 m sprint, straight-arm pull) 50.4, the student's clip 26.5 degrees; the frames
-behind each value were checked by eye.
+Khloptsov (clip titled 50 m freestyle) 50.4, the student's clip 26.5 degrees. When these values
+were first recorded (2026-11-18) the frames behind them had not been looked at; the earlier
+wording here said they had. A check was done afterwards (reported 2026-11-25,
+`docs/FORM_STANDARD_NEXT_STEPS.md`): the arm was drawn on the 38 catch frames of five local
+clips; the points follow the arm, with a visible forearm offset in a few Wellbrock frames. That
+is a look at point placement on those frames, not a validation of the angle.
 
 ### pull_path_variation - Pull path variation (geometric, camera-side arm only)
 Element: repeatability of the arm trajectory. Calculation: each pull's wrist path relative to the

@@ -253,7 +253,10 @@ it uses the swimmer's level, goals, records, history and own movement patterns.
 
 ## Git
 
-- Work on `feature/aquatrack-completion`. Never change `main`. No rebase, no force-push.
+- Work on `feature/aquatrack-production` (owner's decision, 2026-11-27: created from
+  `origin/claude/project-thread-u1qeau` at `495fd3b`, the newest development; the school demo
+  branch `feature/aquatrack-completion` is no longer the baseline and stays as deployed).
+  Never change `main`. No rebase, no force-push.
   Integrate by merging; keep the student's history and research branches intact.
 - Commits use the repository's configured identity (the student's, with authorization).
 - Ask before commits (other than merges already approved for a phase), pushes, destructive
@@ -301,6 +304,15 @@ the licensing direction for a public release, a Firebase project and the end-to-
 run, the privacy and security items in `docs/IMPLEMENTATION_STATUS.md`, and real-swimmer
 validation. Do not start a new phase on the strength of the direction decision alone.
 Nothing is deployed and nothing is pushed.
+
+Direction (2026-11-27): the school demonstration was a temporary milestone. The goal is the
+complete application: new uploads analysed by real YOLO11m + RTMW-x inference. Order of work:
+(1) keep the newest code stable, (2) real inference on new videos (9B, then the GPU worker in
+the job flow), (3) pose overlay on the video, (4) validation on several real videos and
+production readiness. Buying GPU time, provisioning anything, deploying weights, paid API
+calls, commits and pushes still each need the owner's approval. Pushes go through the
+repository's own SSH alias (`github-aquatrack`, account `jk0103`); never change the global Git
+identity, the active `gh` account or the SSH configuration.
 
 One working end-to-end flow comes before breadth of metrics. Do not start a phase without
 the owner's approval. After each phase, stop and report.

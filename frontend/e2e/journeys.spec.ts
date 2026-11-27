@@ -200,7 +200,11 @@ test("B. a video is uploaded, analysed by the worker and its feedback shown (dev
   await page.getByRole("link", { name: /result|analysis|video|View|Open/i }).first().click();
   await expect(page).toHaveURL(/\/history\/.+/);
   // processing state first, then the result, without reloading
-  await expect(page.getByText("Improvement priorities")).toBeVisible({ timeout: 110_000 });
+  await expect(page.getByRole("heading", { name: "No main fix from this clip" })).toBeVisible({ timeout: 110_000 });
+  // saved pose data is disclosed without opening anything
+  await expect(page.getByText(/extracted earlier from this\s+exact video/)).toBeVisible();
+  await page.getByText("Full analysis details").click();
+  await expect(page.getByRole("heading", { name: "Improvement priorities" })).toBeVisible();
   await expect(page.getByText("Measured in your video")).toBeVisible();
   await expect(page.getByText(/No priorities from this video/)).toBeVisible();
   await expect(page.getByText(/This video gives no reason to correct anything/)).toBeVisible();
@@ -211,6 +215,8 @@ test("B. a video is uploaded, analysed by the worker and its feedback shown (dev
     await expect.poll(async () => page.locator("video").evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0);
   }
   await page.reload();
+  await expect(page.getByRole("heading", { name: "No main fix from this clip" })).toBeVisible();
+  await page.getByText("Full analysis details").click();
   await expect(page.getByText("Measured in your video")).toBeVisible();
   const videos = await adminOwned("videos", owner);
   expect(videos.map((v) => v.fields.status.stringValue)).toContain("ready");
@@ -232,6 +238,7 @@ test("D. history lists sessions; a compatible pair is compared neutrally and a d
   await expect(page.getByText(/^(Increased|Decreased)$/)).toHaveCount(0); // nothing is put side by side
   // checkpoint follow-up from the previous video, on the later one
   await page.goto(`/history/${b}`);
+  await page.getByText("Full analysis details").click();
   await expect(page.getByText("Checkpoints from your previous video")).toBeVisible();
   await page.goto("/progress");
   await expect(page.getByText(/What each analysis found/)).toBeVisible();

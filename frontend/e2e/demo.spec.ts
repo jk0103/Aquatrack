@@ -117,7 +117,11 @@ test("the invited account uploads the approved video and gets a real analysis an
   await upload(page, PUBLIC_CLIP);
 
   // the job runs: its state is shown first, then the result, without reloading
-  await expect(page.getByText("Improvement priorities")).toBeVisible({ timeout: 110_000 });
+  await expect(page.getByRole("heading", { name: "No main fix from this clip" })).toBeVisible({ timeout: 110_000 });
+  // saved pose data is disclosed without opening anything
+  await expect(page.getByText(/extracted earlier from this\s+exact video/)).toBeVisible();
+  await page.getByText("Full analysis details").click();
+  await expect(page.getByRole("heading", { name: "Improvement priorities" })).toBeVisible();
   await expect(page.getByText("Measured in your video")).toBeVisible();
   await expect(page.getByText(/extracted earlier from this\s+exact video/)).toBeVisible();
   await expect(page.getByText(/not\s+produced by a live model run/)).toBeVisible();

@@ -5,7 +5,7 @@ Owner's decision (2026-11-18): the swimmer is still compared with themselves for
 priorities and history. These hints are a separate, labelled extra so a swimmer with no
 history gets some orientation from their first video. They never create a finding, never
 rank anything, and are never worded as a fault: three swimmers are not a norm, and good
-swimmers differ (a 50 m sprinter pulls with a straighter arm than a distance swimmer).
+swimmers differ (in these clips the sprint swimmer's catch angle is far from the other two).
 
 Values: docs/REFERENCE_SWIMMERS.md (clips, how they were measured, limits). Bump
 REFERENCE_VERSION on any change to the values, groups or tolerances.
@@ -18,12 +18,20 @@ from aquatrack.contracts import (
     ReferenceSwimmer,
 )
 
-REFERENCE_VERSION = "2026.11-1"
+REFERENCE_VERSION = "2026.11-2"
 SPRINT_MAX_M = 100  # a swim of this distance or shorter is set against the sprinter
 
-_W = ("Florian Wellbrock", "distance", "Olympic distance and open-water champion, easy swim")
-_E = ("Effortless Swimming coach", "distance", "good adult swimmer, not an elite racer")
-_K = ("Andrii Khloptsov", "sprint", "elite sprinter, 50 m freestyle race pace")
+# The third field is shown to the swimmer. It states only what is known about the clip: the
+# swimmers' level, age and the pace swum in the clip were not verified (2026.11-2 removed
+# earlier descriptions that were guesses). The group comes from general knowledge of the
+# swimmer or from the clip's title, not from a checked source or a measured pace.
+_W = (
+    "Florian Wellbrock",
+    "distance",
+    "grouped as distance from general knowledge, not a checked source",
+)
+_E = ("Effortless Swimming coach", "distance", "swimmer in a coaching clip; level not verified")
+_K = ("Andrii Khloptsov", "sprint", "clip titled 50 m freestyle; level and pace not verified")
 
 # metric -> (tolerance, [(swimmer, value, cycles)]). Tolerance: differences smaller than this
 # are not told apart (angles: the 90th-percentile forearm direction error on SWIM-360;
@@ -38,7 +46,8 @@ VALUES: dict[str, tuple[float, list[tuple[tuple[str, str, str], float, int]]]] =
 LIMITS = [
     "Three swimmers filmed the same way, measured by AquaTrack: an orientation, not a norm.",
     "Good swimmers differ from each other; a value outside this range says only where it sits.",
-    "The reference swimmers are adult men; this may not carry over to young or beginner swimmers.",
+    "Their age, level and the pace in each clip were not verified; this may not carry over "
+    "to young or beginner swimmers.",
 ]
 
 

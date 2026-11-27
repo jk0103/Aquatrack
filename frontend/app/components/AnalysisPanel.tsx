@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { SavedPoseNotice } from "@/app/components/DemoNotice";
 import { Badge, Button, Card, LoadingState } from "@/app/components/ui";
 import {
   formatMetric,
@@ -75,15 +74,8 @@ export function AnalysisPanel({
       ) : (
         <Results analysis={analysis} onSeek={onSeek} />
       );
-    // Say so whenever the pose data was saved earlier instead of produced for this upload.
-    return analysis.poseSource === "precomputed" ? (
-      <div className="space-y-4">
-        <SavedPoseNotice />
-        {results}
-      </div>
-    ) : (
-      results
-    );
+    // The saved-pose notice is shown by the result page itself, above the fold.
+    return results;
   }
   return <JobStatus video={video} />;
 }

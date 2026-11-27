@@ -98,6 +98,12 @@ Known problems for those steps:
 
 ## Corrections needed in files already pushed
 
+Done locally on 2026-11-27 on `feature/aquatrack-production` (reference 2026.11-2; not
+committed at the time of writing): the three items below were corrected in
+`analysis/reference.py`, `REFERENCE_SWIMMERS.md` and `BIOMECHANICS_METRICS.md`. Still open: the
+name "strong swimmers" itself is unverified for two of the three clips, and the clips'
+copyright and download terms (see "Clips" above) apply to the numbers shown from them.
+
 - `analysis/reference.py` and `REFERENCE_SWIMMERS.md`: descriptions such as "easy swim", "coach,
   not an elite racer" and "adult men" were guesses. So was the claim that Wellbrock's clip is cut
   from several passes.
