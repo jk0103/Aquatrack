@@ -63,6 +63,7 @@ def _stroke_summary(
             reason=c.reason,
             section=c.section,
             kind=c.kind,
+            timed_from=c.timing,
         )
         for c in strokes.cycles
     ]

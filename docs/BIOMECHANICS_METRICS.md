@@ -235,3 +235,34 @@ classes (`coverage.arms[].supported_pct`, `interpolated_pct`, `model_only_pct`, 
 load unchanged and are never rewritten, and the web app shows each in the layout it was made
 for. `stroke.stroke_count` (two-arm total) is no longer produced. Pose files stay at schema 1.0
 and are never modified by analysis.
+
+## Cycle timing: two corrections (2026-11-27)
+
+Found on synthetic swimmers in `experiments/gpt_motion_advice/` and fixed in
+`analysis/metrics/cycles.py`; tests in `tests/test_cycle_robustness.py`. Not committed with a
+new engine version yet.
+
+1. **Hidden strokes no longer make a trusted long cycle.** When the arm's points were missing
+   for a long stretch, the strokes inside it were not counted and the pulls on either side
+   were joined into one cycle (a 1.2 s rhythm measured as a "reliable" 3.6 s). A cycle is
+   now untrusted, kind `merged`, when (a) the arm was not seen at all for more than 45% of it
+   (`MAX_UNSEEN_SHARE`), or (b) between its two pulls the arm was found past straight down
+   and followed back without the passing itself having been seen, with room for a stroke on
+   both sides. In the two real clips the longest unseen stretch of a trusted cycle is 15% of
+   it; no real cycle changed its trusted state.
+2. **A cycle is timed from the upper arm when it can be.** A cycle used to run from one
+   wrist mid-pull (the wrist passing under the shoulder) to the next. That moment moves when
+   the elbow is bent more or less, so a swimmer alternating the bend looked uneven in rhythm
+   (1.31 s / 1.09 s for a steady 1.2 s). When the elbow was seen at every pull of an arm, the
+   cycle now runs from one passage of the UPPER ARM (shoulder to elbow) straight down to the
+   next; otherwise from the wrist as before. Start, end and duration all come from that same
+   event (`StrokeCycle.timing`, stored as `timed_from` on each cycle), so end minus start is
+   the duration. Pull events used by the arm metrics (reach, start of the pull, wrist
+   mid-pull, exit) are unchanged. In the two real clips a cycle's time moves by at most
+   0.044 s (about one frame at 25 fps); stroke rate changed from 53.1 to 52.9 per minute in
+   one clip and not at all in the other. Because the cycle windows moved by up to one frame, two
+   limited body metrics of that clip moved too: body line 1.5 to 1.7 degrees, leg line -6.8 to
+   -6.1 degrees. Nothing changed in the other clip.
+
+Both were found and verified on synthetic swimmers and the two real clips only. The 45%
+share and the choice of the upper arm are engineering choices, not validated values.

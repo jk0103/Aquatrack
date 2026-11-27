@@ -443,6 +443,9 @@ class StrokeCycleOut(BaseModel):
     # 1.1: why an untrusted cycle is unclear: "merged" (looks like two cycles, a pull was not
     # seen), "fragment" (too short to be a cycle), "hidden" (arm not seen well enough).
     kind: str = ""
+    # 1.2 (2026-11-27): the event the cycle is timed from, "upper_arm" or "wrist" ("" in
+    # older results, which were always timed from the wrist).
+    timed_from: str = ""
 
 
 class PartialCycleOut(BaseModel):
